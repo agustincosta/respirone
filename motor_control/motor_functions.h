@@ -1,5 +1,6 @@
 #include <Encoder.h>
 #include <PID_v1.h>
+#include <Arduino.h>
 
 #define CONTROL_ACTIVO true
 
@@ -17,6 +18,12 @@ void initPID();
 
 void setPinModes();
 
-void lecturaEncoder(long *encoder);
+void lecturaEncoder(long encoder);
 
 void actualizacionSetPointMotor();
+
+void comandoMotor(int dirPin, int pwmPin);
+
+void fijarSetPointVelocidad(int frecuenciaRespiracion, double ratio, int volumen);
+
+void calculoDesplazamientoEncoders(long Ts);
