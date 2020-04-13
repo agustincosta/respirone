@@ -4,19 +4,21 @@
 Encoder motor(encoder_a, encoder_b);
 
 //Variables del piston
-double diametroPiston = 125; //mm
-double radioPiston = diametroPiston/2;
-double radioLeva = 34; //mm
+float diametroPiston = 125; //mm
+float radioPiston = diametroPiston/2;
+float areaPiston = 12271.8463; //mm2
+float radioLeva = 34; //mm
 int cuentasPorRev = 8400; //Cuentas del encoder por revolución del motor
 
 //Definicion de variables para velocidad motor
-double v = 0;               //Velocidad lineal del piston
+float v = 0;               //Velocidad lineal del piston
 double w = 0;               //Velocidad angular del motor
 double w_medida = 0;        //Velocidad angular del motor medida por encoder
 double w_comando = 0;       //Velocidad angular del motor comandada por control
-float VEL_ANG_MAX = 8.507;  //Experimental en rad/s
+float VEL_ANG_MAX = 8.976;  //Experimental en rad/s
 float VEL_ANG_MIN = 0.65;    //Experimental en rad/s
-long encoderCount = 0;      //Variable para almacenar la cuenta del encoder
+//long encoderCount = 0;      //Variable para almacenar la cuenta del encoder
+long encoderPrev = -999;
 
 
 //Variables de PID
@@ -50,24 +52,15 @@ void setPinModes() {
   
 }
 
-void lecturaEncoder(long encoder) {
+void lecturaEncoder(long* encoderCountAddr) {
   /**
    * Utilizando la libreria Encoder se lee el contador de cada rueda y luego se resetea para mantener la cuenta chica.
    */
-  encoder = motor.read();
-  //resetea el contador del objeto
-  motor.write(0);
-}
-
-void actualizacionSetPointMotor() {
-  /**
-   * Se calcula segun el comando recibio de velocidades la velocidad de cada motor.
-   */
-    w = v/radioLeva;
-
-    if(w>VEL_ANG_MAX){
-      w = VEL_ANG_MAX;
-    }
+  *encoderCountAddr = motor.read();
+  
+  if (*encoderCountAddr != encoderPrev) {
+    encoderPrev = *encoderCountAddr;
+  }
 }
 
 void comandoMotor(int dirPin, int pwmPin) {
@@ -76,38 +69,40 @@ void comandoMotor(int dirPin, int pwmPin) {
    * 
    * Dependiendo si la velocidad es negativa o positiva se setea el estado del pin de direccion.
    */
-   if(v < 0){
-      v = -v ;
-      digitalWrite(dirPin, LOW); //Controla direccion del motor
-   }else{
-      digitalWrite(dirPin, HIGH);
+   bool direccion = true;
+   if(w < 0)
+   {
+      w = -w ;
+      digitalWrite(dirPin, HIGH); //Controla direccion del motor
+      direccion = true;
+   }
+   else
+   {
+      digitalWrite(dirPin, LOW);
+      direccion = false;
+      w=w*0.97;
    }
    
-   if(v <= VELOCIDAD_MINIMA_EN_RAD_S){
-    v = 0;
-   }
-
-   analogWrite(pwmPin, v/VEL_ANG_MAX*255);
+   //Serial.print("PWM: "); Serial.println(w/VEL_ANG_MAX*255);
+   //Serial.print("DIR: "); Serial.println(direccion);
+   analogWrite(pwmPin, w/VEL_ANG_MAX*255);
 }
 
-void fijarSetPointVelocidad(int frecuenciaRespiracion, double ratio, int volumen) {
+void fijarSetPointVelocidad(int frecuenciaRespiracion, double ratio, float volumen, float* recorridoAngularAddr) {
   /**
    * Esta funcion setea la velocidad del motor para un ciclo de inspiración en funcion
    * del tiempo disponible y el volumen seteado. Solo para modo control por volumen
    */
-  double tiempoInspiratorio = (60/frecuenciaRespiracion)*ratio;
-  double factorTiempo = 0.98;
-  v = volumen/(PI*(sq(radioPiston))*(tiempoInspiratorio*factorTiempo));
+  double tiempoInspiratorio = (60/frecuenciaRespiracion)*ratio; //En segundos
+  //Serial.print("Tiempo: "); Serial.println(tiempoInspiratorio);
+  double factorTiempo = 1;
+  v = volumen/(areaPiston*tiempoInspiratorio*factorTiempo); //todo en unidades del SI    
   
-}
+  //Serial.print("velocidad: "); Serial.println(v);  //En mm/s
 
-void calculoDesplazamientoEncoders(long Ts) {
-  /**
-   * Esta funcion calcula el desplazamiento del piston a partir de la cuenta del encoder
-   */
-  
-  lecturaEncoder(encoderCount);
-  
-  w_medida = encoderCount*2.0*PI/(cuentasPorRev*Ts);
-  
+  *recorridoAngularAddr = (volumen/areaPiston)/0.4539;
+
+  w = v*3.0677;         //En deg/s, el 3.0677 es medio turbio, sale de 125° en 1,33s
+  w = 2*PI*w/360;       //En rad/s
+  //Serial.print("omega (rad/s): "); Serial.println(w);
 }

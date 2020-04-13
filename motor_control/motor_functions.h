@@ -8,22 +8,20 @@
 
 #define CONTROL_SAMPLE_RATE 500  //hz
 
+#define cuentasEncoderRevolucion 8400
+
 /*Definicion de pines*/
-#define pwm_motor 9
-#define dir_motor 10
-#define encoder_a 11
-#define encoder_b 12
+#define pwm_motor 5
+#define dir_motor 4
+#define encoder_a 2
+#define encoder_b 3
 
 void initPID();
 
 void setPinModes();
 
-void lecturaEncoder(long encoder);
-
-void actualizacionSetPointMotor();
+void lecturaEncoder(long* encoderCountAddr);
 
 void comandoMotor(int dirPin, int pwmPin);
 
-void fijarSetPointVelocidad(int frecuenciaRespiracion, double ratio, int volumen);
-
-void calculoDesplazamientoEncoders(long Ts);
+void fijarSetPointVelocidad(int frecuenciaRespiracion, double ratio, float volumen, float* recorridoAngularAddr);
