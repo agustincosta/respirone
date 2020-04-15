@@ -31,6 +31,8 @@
 #define PRESSURE_MODE         "Presion         "
 #define AUTO_MODE             "Automatico      "
 #define CONFIRMATION          "Confirmar       "
+#define AUTO_CONFIRMATION     "Confirmar Auto  "
+#define ADJUSTED_PRESSURE     "PA              "
 #define TIDAL_VOLUME          "VOL TID         "
 #define VOLUME_MINUTE_M       "VMM             "
 #define VOLUME_MINUTE_m       "VMm             "
@@ -53,6 +55,9 @@ typedef enum
   UI_SET_TIDAL_VOLUME,
   UI_BLINK_TIDAL_VOLUME,
   UI_DELAY_END_TIDAL_VOLUME,
+  UI_SET_ADJUSTED_PRESSURE,
+  UI_BLINK_ADJUSTED_PRESSURE,
+  UI_DELAY_END_ADJUSTED_PRESSURE,  
   UI_SET_VOLUME_MINUTE_M,
   UI_BLINK_VOLUME_MINUTE_M,
   UI_DELAY_END_VOLUME_MINUTE_M,
@@ -104,6 +109,7 @@ typedef struct
   int i_e;
   int maxPressure;
   int Trp;
+  int adjustedPressure;
 } 
 UI_t;
 

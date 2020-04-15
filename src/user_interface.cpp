@@ -49,6 +49,7 @@ void UI_Init()
   tempParam.i_e = 2;
   tempParam.maxPressure = 30;
   tempParam.Trp = -4;
+  tempParam.adjustedPressure = 20;
 }
 
 void UI_Task()
@@ -267,7 +268,15 @@ void UI_Task()
       {
         if(UI.selectedMode == UI_PRESSURE_CONTROL)
         {
-          //FIRST PRESSURE PARAM TO CONFIG
+          UI_DisplayClear();
+          UI_DisplayMessage(0,0,ADJUSTED_PRESSURE);
+
+          itoa(tempParam.adjustedPressure,stringAux,10);
+          strcat(stringAux, "cm.H2O");
+          UI_DisplayMessage(0,1,stringAux);
+
+          uiState = UI_SET_ADJUSTED_PRESSURE;
+          UI_Timer(0);
         }
         else if(UI.selectedMode == UI_VOLUME_CONTROL)
         {
@@ -281,6 +290,105 @@ void UI_Task()
           uiState = UI_SET_TIDAL_VOLUME;
           UI_Timer(0);
         }
+      }
+      break;
+
+    case UI_SET_ADJUSTED_PRESSURE:
+      if(UI_ButtonDebounce(BUTTON_UP_PIN))  
+      {
+        (tempParam.adjustedPressure < 40) ? tempParam.adjustedPressure += 1 : tempParam.adjustedPressure = 40;
+        itoa(tempParam.adjustedPressure,stringAux,10);
+        strcat(stringAux, "cm.H2O");
+        UI_DisplayMessage(0,1,stringAux);
+
+      } 
+      else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) 
+      {
+        (tempParam.adjustedPressure > 5)? tempParam.adjustedPressure -= 1 : tempParam.adjustedPressure = 1;
+        itoa(tempParam.adjustedPressure,stringAux,10);
+        strcat(stringAux, "cm.H2O");
+        UI_DisplayMessage(0,1,stringAux);
+      }
+      else if(UI_ButtonDebounce(BUTTON_ENTER_PIN))
+      {
+        itoa(tempParam.adjustedPressure,stringAux,10);
+        strcat(stringAux, "cm.H2O");
+        UI_DisplayMessage(0,1,stringAux);
+        UI.adjustedPressure = tempParam.adjustedPressure;
+        uiState = UI_DELAY_END_ADJUSTED_PRESSURE;
+        UI_Timer(0);
+      }
+      else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
+      {
+        UI_DisplayClear();
+        UI_DisplayMessage(0,0,SELECT_MODE);
+        UI_DisplayMessage(0,1,AUTO_MODE);
+        uiState = UI_SET_MODE_AUTO;
+        UI_Timer(0);       
+      }      
+      else if(UI_Timer(TIMEOUT_BLINK))
+      {
+        uiState = UI_BLINK_ADJUSTED_PRESSURE;
+        UI_DisplayMessage(0,1,EMPTY_LINE);
+        UI_Timer(0);
+      }    
+      break;
+
+    case UI_BLINK_ADJUSTED_PRESSURE:
+      if(UI_ButtonDebounce(BUTTON_UP_PIN))  
+      {
+        (tempParam.adjustedPressure < 40) ? tempParam.tidalVolume += 1 : tempParam.tidalVolume = 40;
+        itoa(tempParam.adjustedPressure,stringAux,10);
+        strcat(stringAux, "cm.H2O");
+        UI_DisplayMessage(0,1,stringAux);
+      } 
+      else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) 
+      {
+        (tempParam.tidalVolume > 5) ? tempParam.tidalVolume -= 1 : tempParam.tidalVolume = 5;
+        itoa(tempParam.adjustedPressure,stringAux,10);
+        strcat(stringAux, "cm.H2O");
+        UI_DisplayMessage(0,1,stringAux);
+      }
+      else if(UI_ButtonDebounce(BUTTON_ENTER_PIN))
+      {
+        itoa(tempParam.adjustedPressure,stringAux,10);
+        strcat(stringAux, "cm.H2O");
+        UI_DisplayMessage(0,1,stringAux);
+        UI.adjustedPressure = tempParam.adjustedPressure;
+        uiState = UI_DELAY_END_ADJUSTED_PRESSURE;
+        UI_Timer(0);
+      }
+      else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
+      {
+        UI_DisplayClear();
+        UI_DisplayMessage(0,0,SELECT_MODE);
+        UI_DisplayMessage(0,1,AUTO_MODE);
+        uiState = UI_SET_MODE_AUTO;
+        UI_Timer(0);       
+      }      
+      else if(UI_Timer(TIMEOUT_BLINK/2))
+      {
+        itoa(tempParam.adjustedPressure,stringAux,10);
+        strcat(stringAux, "cm.H2O");
+        UI_DisplayMessage(0,1,stringAux);
+        uiState = UI_SET_ADJUSTED_PRESSURE;
+        UI_Timer(0);
+      }        
+
+      break;
+
+    case UI_DELAY_END_ADJUSTED_PRESSURE:
+      if(UI_Timer(TIMEOUT_SHOW_SELECTED_PARAM))
+      {
+          UI_DisplayClear();
+          UI_DisplayMessage(0,0,VOLUME_MINUTE_M);
+
+          itoa(tempParam.volumeMinute_M,stringAux,10);
+          strcat(stringAux, "L/m");
+          UI_DisplayMessage(0,1,stringAux);
+
+          uiState = UI_SET_VOLUME_MINUTE_M;
+          UI_Timer(0);
       }
       break;
 
@@ -1047,7 +1155,8 @@ void UI_Task()
       if(UI_Timer(TIMEOUT_SHOW_SELECTED_PARAM))
       {
         UI_DisplayClear();
-        UI_DisplayMessage(0,0,CONFIRMATION);
+        (UI.selectedMode == UI_SET_MODE_AUTO) ?
+          UI_DisplayMessage(0,0,CONFIRMATION) : UI_DisplayMessage(0,0,AUTO_CONFIRMATION);
         UI_DisplayMessage(0,1,"SI:Enter,NO:Back");
         UI_DisplayMessage(0,1,stringAux);
         uiState = UI_CONFIRM_CONFIG_PARAMETERS;
@@ -1069,16 +1178,21 @@ void UI_Task()
         {
           case 0:
             Serial.println("VOLUMEN");
+            Serial.print("Volumen Tidal:      ");
+            Serial.println(UI.tidalVolume);
             break;
           case 1:
             Serial.println("PRESION");
+            Serial.print("Presión Ajustada:   ");
+            Serial.println(UI.adjustedPressure);
             break;
           case 2:
             Serial.println("AUTOMATICO");
+            Serial.print("Volumen Tidal:      ");
+            Serial.println(UI.tidalVolume);
             break;
         }
-        Serial.print("Volumen Tidal:      ");
-        Serial.println(UI.tidalVolume);
+
         Serial.print("Volumen minuto Máx: ");
         Serial.println(UI.volumeMinute_M);
         Serial.print("Volumen minuto mín: ");
@@ -1107,6 +1221,8 @@ void UI_Task()
       break;
 
     case UI_SHOW_PARAMETERS:
+      // execute state machine with real time parameters
+      // wait for menu to reestart config
       break;
 
     default:
