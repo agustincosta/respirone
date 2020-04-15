@@ -6,7 +6,7 @@
 
 void setup()
 {
-  UserInterface_Init();
+  UI_Init();
   LedInit();
   // add init functions
 }
@@ -14,7 +14,7 @@ void setup()
 void loop()
 {
   LedTick();
-  UserInterface_Task();
+  UI_Task();
   // add task functions
 }
 
