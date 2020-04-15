@@ -9,6 +9,29 @@
 #include "Arduino.h"
 
 /**
+ * @brief 
+ */
+typedef struct
+{
+    bool limitSwitch;           // Switch status
+    uint8_t breathPerMinute;    // Measured value of breath/minute
+    uint16_t volumePerMinute;   // Volume/minute in the last minute
+}
+MOTOR_t;
+
+/**
+ * @brief FSM states for the motor
+ */
+typedef enum 
+{
+    MOTOR_IDLE,
+    MOTOR_RETURN_HOME_POSITION,
+    MOTOR_VOLUME_CONTROL,
+    MOTOR_PRESSURE_CONTROL   
+}
+Motor_States_e; 
+
+/**
  *  @brief 
  */
 void Motor_Init();
@@ -17,14 +40,6 @@ void Motor_Init();
  *  @brief 
  */
 void Motor_Tasks();
-
-/**
- * @brief 
- * 
- * @return true 
- * @return false 
- */
-bool Motor_IsInHomePosition();
 
 /**
  * @brief 
@@ -48,6 +63,14 @@ void Motor_VolumeModeSet(uint16_t tidalVolume, uint8_t breathPerMinute, uint8_t 
  * @param IE_ratio 
  */
 void Motor_PressureModeSet(uint16_t adjustedPressure, uint8_t breathPerMinute, uint8_t IE_ratio);
+
+/**
+ * @brief 
+ * 
+ * @return true 
+ * @return false 
+ */
+bool Motor_IsInHomePosition();
 
 /**
  * @brief 

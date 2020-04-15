@@ -144,14 +144,19 @@ void Control_VolumeModeTask()
       {
         volumeModeState = CTRL_VOLUME_EXPIRATION_SETUP;
 
+        // Update peak pressure value
+        CTRL.peakPressure = CTRL.pressure;
+
         // Update volume per minute value
         CTRL.volumePerMinute = Motor_GetVolumePerMinute();
         if (CTRL.volumePerMinute>UI.maxVolumePerMinute)
         {
+          volumeModeState = CTRL_VOLUME_EXPIRATION_SETUP;
           UI_SetAlarm(ALARM_HIGH_VOLUME_PER_MINUTE);
         }
         else if (CTRL.volumePerMinute<UI.minVolumePerMinute)
         {
+          //volumeModeState = CTRL_VOLUME_EXPIRATION_SETUP;
           UI_SetAlarm(ALARM_LOW_VOLUME_PER_MINUTE);
         }
       }
