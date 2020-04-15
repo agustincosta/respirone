@@ -6,11 +6,11 @@
         {
             "name": "Win32",
             "includePath": [
-                "c:/Users/Marco/Desktop/Temporal/RESPIRONE/include",
-                "c:/Users/Marco/Desktop/Temporal/RESPIRONE/src",
+                "c:/Users/Marco/Desktop/RESPIRONE/RESPIRONE/include",
+                "c:/Users/Marco/Desktop/RESPIRONE/RESPIRONE/src",
                 "C:/Users/Marco/.platformio/packages/framework-arduino-avr/cores/arduino",
                 "C:/Users/Marco/.platformio/packages/framework-arduino-avr/variants/standard",
-                "c:/Users/Marco/Desktop/Temporal/RESPIRONE/.pio/libdeps/uno/LiquidCrystal_ID136",
+                "c:/Users/Marco/Desktop/RESPIRONE/RESPIRONE/.pio/libdeps/uno/LiquidCrystal_ID136",
                 "C:/Users/Marco/.platformio/lib/LiquidCrystal_ID136",
                 "C:/Users/Marco/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
                 "C:/Users/Marco/.platformio/packages/framework-arduino-avr/libraries/HID/src",
@@ -23,11 +23,11 @@
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
-                    "c:/Users/Marco/Desktop/Temporal/RESPIRONE/include",
-                    "c:/Users/Marco/Desktop/Temporal/RESPIRONE/src",
+                    "c:/Users/Marco/Desktop/RESPIRONE/RESPIRONE/include",
+                    "c:/Users/Marco/Desktop/RESPIRONE/RESPIRONE/src",
                     "C:/Users/Marco/.platformio/packages/framework-arduino-avr/cores/arduino",
                     "C:/Users/Marco/.platformio/packages/framework-arduino-avr/variants/standard",
-                    "c:/Users/Marco/Desktop/Temporal/RESPIRONE/.pio/libdeps/uno/LiquidCrystal_ID136",
+                    "c:/Users/Marco/Desktop/RESPIRONE/RESPIRONE/.pio/libdeps/uno/LiquidCrystal_ID136",
                     "C:/Users/Marco/.platformio/lib/LiquidCrystal_ID136",
                     "C:/Users/Marco/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
                     "C:/Users/Marco/.platformio/packages/framework-arduino-avr/libraries/HID/src",

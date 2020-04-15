@@ -15,15 +15,15 @@
  */
 typedef struct control
 {
+    uint8_t breathPerMinute;    // Measured value of breath/minute
+
     uint16_t pressure;          // Actual pressure value
     uint16_t peakPressure;      // Peak pressure in the last cycle
-    uint16_t plateuPressure;    // Plateau pressure in the last cycle
+    uint16_t plateauPressure;   // Plateau pressure in the last cycle
     uint16_t PEEP;              // Measured value of PEEP in the last cycle
 
     uint16_t volume;            // Actual volume value
     uint16_t volumePerMinute;   // Volume/minute in the last minute
-
-    uint8_t breathPerMinute;    // Measured value of breath/minute
 }
 CTRL_t;
 

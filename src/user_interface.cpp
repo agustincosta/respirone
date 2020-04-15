@@ -151,6 +151,12 @@ bool UI_ButtonDebounce(uint8_t pin)
 }
 
 
+void UI_SetAlarm(uint8_t alarm)
+{
+
+}
+
+
 bool UI_Timer(uint32_t n)
 {
   static uint32_t initialMillis;

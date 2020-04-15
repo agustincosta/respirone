@@ -36,10 +36,24 @@ UI_ControlModesOptions_e;
 
 typedef struct
 {
-  bool setUpComplete;
+  bool    setUpComplete;
   uint8_t selectedMode;
+
   uint8_t IE_ratio;
+
   uint8_t breathPerMinute;
+  uint8_t maxBreathPerMinute;
+  uint8_t minBreathPerMinute;    
+
+  uint16_t adjustedPressure;
+  uint16_t maxPressure;
+  uint16_t minPressure;
+
+  uint16_t tidalVolume;
+  uint16_t maxVolumePerMinute;
+  uint16_t minVolumePerMinute;  
+
+  uint8_t triggerRespectPEEP;  
 } 
 UI_t;
 
@@ -79,6 +93,13 @@ void UserInterface_Task();
  *  \details More details
  */
 bool UI_ButtonDebounce(uint8_t pin);
+
+/**
+ * @brief 
+ * 
+ * @param alarm 
+ */
+void UI_SetAlarm(uint8_t alarm);
 
 /**
  *  \brief Brief description

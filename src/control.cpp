@@ -8,12 +8,13 @@
 #include "motor.h"
 #include "user_interface.h"
 #include "datalogger.h"
+#include "alarms.h"
 
 CTRL_t CTRL;
 
 Control_Modes_e controlMode;
-Control_VolumeStates_e controlVolumeState;
-Control_PressureStates_e controlPressureState;
+Control_VolumeStates_e volumeModeState;
+Control_PressureStates_e pressureModeState;
 
 void Control_Init()
 {
@@ -21,12 +22,15 @@ void Control_Init()
   Motor_Init();
 
   controlMode = CONTROL_IDLE;
-  controlVolumeState = CTRL_VOLUME_INIT;
-  controlPressureState = CTRL_PRESSURE_INIT;
+  volumeModeState = CTRL_VOLUME_INIT;
+  pressureModeState = CTRL_PRESSURE_INIT;
 }
 
 void Control_Task()
 {
+  Motor_Tasks();
+  Sensor_Tasks();
+
   switch (controlMode)
   {
     case CONTROL_IDLE:
@@ -95,60 +99,103 @@ void Control_VolumeModeTask()
 {
   static uint16_t inspirationTimeout, expirationTimeout;
   
-  switch (controlVolumeState)
+  switch (volumeModeState)
   {
-    case CTRL_VOLUME_INIT:
-      //ToDo> motor return to home position  
+    case CTRL_VOLUME_INIT: 
+      if (Motor_IsInHomePosition())
+      {
+        volumeModeState = CTRL_VOLUME_INSPIRATION_SETUP;
 
-      controlVolumeState = CTRL_VOLUME_INSPIRATION_SETUP;
-
-      inspirationTimeout = MINUTE_MS/(UI.breathPerMinute*(UI.IE_ratio+1));
-      expirationTimeout  = (MINUTE_MS*UI.IE_ratio)/(UI.breathPerMinute*(UI.IE_ratio+1));   
-
+        inspirationTimeout = MINUTE_MS/(UI.breathPerMinute*(UI.IE_ratio+1));
+        expirationTimeout  = (MINUTE_MS*UI.IE_ratio)/(UI.breathPerMinute*(UI.IE_ratio+1));  
+      }
+      else
+      {
+        Motor_ReturnToHomePosition();
+      }     
       break;
 
     case CTRL_VOLUME_INSPIRATION_SETUP:
-      controlVolumeState = CTRL_VOLUME_INSPIRATION_MONITORING;
+      volumeModeState = CTRL_VOLUME_INSPIRATION_MONITORING;
 
-      // ToDo> set motor speed
-      // Motor_Setpoint(UI.TIDALvolume, UI.breathPerMinute, UI.IE_ratio);
+      Motor_VolumeModeSet(UI.tidalVolume, UI.breathPerMinute, UI.IE_ratio);
 
       CTRL_Timer(0);
       break;
 
     case CTRL_VOLUME_INSPIRATION_MONITORING:
-
-      // check Pval<Pmax else alarm
-      // Sensor_GetValue()>UI.pressureMax alarm
-
-      if(CTRL_Timer(inspirationTimeout))
+      // Get pressure last value
+      CTRL.pressure = Sensor_GetLastValue(PRESSURE_SENSOR_1);
+      
+      // Update plateau pressure value
+      if (Sensor_PlateauDetected(PRESSURE_SENSOR_1))
       {
-        // update volume/minute
-        controlVolumeState = CTRL_VOLUME_EXPIRATION_SETUP;
+        CTRL.plateauPressure = CTRL.pressure;
+      }
+
+      // Check exit conditions
+      if (CTRL.pressure<UI.maxPressure)     // High pressure
+      {
+        volumeModeState = CTRL_VOLUME_EXPIRATION_SETUP;
+        
+        UI_SetAlarm(ALARM_HIGH_PRESSURE);
+      }
+      else if(CTRL_Timer(inspirationTimeout))   // Timeout
+      {
+        volumeModeState = CTRL_VOLUME_EXPIRATION_SETUP;
+
+        // Update volume per minute value
+        CTRL.volumePerMinute = Motor_GetVolumePerMinute();
+        if (CTRL.volumePerMinute>UI.maxVolumePerMinute)
+        {
+          UI_SetAlarm(ALARM_HIGH_VOLUME_PER_MINUTE);
+        }
+        else if (CTRL.volumePerMinute<UI.minVolumePerMinute)
+        {
+          UI_SetAlarm(ALARM_LOW_VOLUME_PER_MINUTE);
+        }
       }
       break;
 
     case CTRL_VOLUME_EXPIRATION_SETUP:
-      controlVolumeState = CTRL_VOLUME_EXPIRATION_IDLE;
+      volumeModeState = CTRL_VOLUME_EXPIRATION_IDLE;
 
-      // ToDo> set motor speed
+      Motor_ReturnToHomePosition();
 
       CTRL_Timer(0);
       break;
 
     case CTRL_VOLUME_EXPIRATION_IDLE:
-      // ToDo> check limit switch
+      // Update PEEP value
+      if (Sensor_PlateauDetected(PRESSURE_SENSOR_1))
+        CTRL.PEEP = Sensor_GetLastValue(PRESSURE_SENSOR_1);
 
-      if(CTRL_Timer(expirationTimeout))
-      {    
-        // update breath per minute
-        controlVolumeState = CTRL_VOLUME_INSPIRATION_SETUP;
+      if (Motor_IsInHomePosition())
+      {
+        if (Sensor_PatientTrigger(PRESSURE_SENSOR_1))
+        {
+          volumeModeState = CTRL_VOLUME_INSPIRATION_SETUP;
+        }
+        else if(CTRL_Timer(expirationTimeout))
+        {  
+          volumeModeState = CTRL_VOLUME_INSPIRATION_SETUP;
+
+          // Update breaths per minute value
+          CTRL.breathPerMinute = Motor_GetBreathPerMinute();
+          if (CTRL.breathPerMinute>UI.maxBreathPerMinute)
+          {
+            UI_SetAlarm(ALARM_HIGH_BREATHS_PER_MINUTE);
+          }
+          else if (CTRL.breathPerMinute<UI.minVolumePerMinute)
+          {
+            UI_SetAlarm(ALARM_LOW_BREATHS_PER_MINUTE);
+          }          
+        }
       }
-      // else inspiration 
       break;      
 
     default:
-      controlVolumeState = CTRL_VOLUME_INIT;
+      volumeModeState = CTRL_VOLUME_INIT;
       // ToDo: report error
       break;
   }
@@ -156,30 +203,105 @@ void Control_VolumeModeTask()
 
 void Control_PressureModeTask()
 {
-  switch (controlPressureState)
+  static uint16_t inspirationTimeout, expirationTimeout;
+  
+  switch (pressureModeState)
   {
-    case CTRL_PRESSURE_INIT:
-      controlPressureState = CTRL_PRESSURE_INSPIRATION_SETUP;
+    case CTRL_PRESSURE_INIT: 
+      if (Motor_IsInHomePosition())
+      {
+        pressureModeState = CTRL_PRESSURE_INSPIRATION_SETUP;
+
+        inspirationTimeout = MINUTE_MS/(UI.breathPerMinute*(UI.IE_ratio+1));
+        expirationTimeout  = (MINUTE_MS*UI.IE_ratio)/(UI.breathPerMinute*(UI.IE_ratio+1));  
+      }
+      else
+      {
+        Motor_ReturnToHomePosition();
+      }     
       break;
 
     case CTRL_PRESSURE_INSPIRATION_SETUP:
-      controlPressureState = CTRL_PRESSURE_INSPIRATION_MONITORING;
+      pressureModeState = CTRL_PRESSURE_INSPIRATION_MONITORING;
+
+      Motor_PressureModeSet(UI.adjustedPressure, UI.breathPerMinute, UI.IE_ratio);
+
+      CTRL_Timer(0);
       break;
 
     case CTRL_PRESSURE_INSPIRATION_MONITORING:
-      controlPressureState = CTRL_PRESSURE_EXPIRATION_SETUP;
+      // Get pressure last value
+      CTRL.pressure = Sensor_GetLastValue(PRESSURE_SENSOR_1);
+      
+      // Update plateau pressure value
+      if (Sensor_PlateauDetected(PRESSURE_SENSOR_1))
+      {
+        CTRL.plateauPressure = CTRL.pressure;
+      }
+
+      // Check exit conditions
+      if (CTRL.pressure<UI.maxPressure)     // High pressure
+      {
+        pressureModeState = CTRL_PRESSURE_EXPIRATION_SETUP;
+        
+        UI_SetAlarm(ALARM_HIGH_PRESSURE);
+      }
+      else if(CTRL_Timer(inspirationTimeout))   // Timeout
+      {
+        pressureModeState = CTRL_PRESSURE_EXPIRATION_SETUP;
+
+        // Update volume per minute value
+        CTRL.volumePerMinute = Motor_GetVolumePerMinute();
+        if (CTRL.volumePerMinute>UI.maxVolumePerMinute)
+        {
+          UI_SetAlarm(ALARM_HIGH_VOLUME_PER_MINUTE);
+        }
+        else if (CTRL.volumePerMinute<UI.minVolumePerMinute)
+        {
+          UI_SetAlarm(ALARM_LOW_VOLUME_PER_MINUTE);
+        }
+      }
       break;
 
     case CTRL_PRESSURE_EXPIRATION_SETUP:
-      controlPressureState = CTRL_PRESSURE_EXPIRATION_IDLE;
+      pressureModeState = CTRL_PRESSURE_EXPIRATION_IDLE;
+
+      Motor_ReturnToHomePosition();
+
+      CTRL_Timer(0);
       break;
 
     case CTRL_PRESSURE_EXPIRATION_IDLE:
-      controlPressureState = CTRL_PRESSURE_INSPIRATION_SETUP;
+      // Update PEEP value
+      if (Sensor_PlateauDetected(PRESSURE_SENSOR_1))
+        CTRL.PEEP = Sensor_GetLastValue(PRESSURE_SENSOR_1);
+
+      if (Motor_IsInHomePosition())
+      {
+        if (Sensor_PatientTrigger(PRESSURE_SENSOR_1))
+        {
+          pressureModeState = CTRL_PRESSURE_INSPIRATION_SETUP;
+        }
+        else if(CTRL_Timer(expirationTimeout))
+        {  
+          pressureModeState = CTRL_PRESSURE_INSPIRATION_SETUP;
+
+          // Update breaths per minute value
+          CTRL.breathPerMinute = Motor_GetBreathPerMinute();
+          if (CTRL.breathPerMinute>UI.maxBreathPerMinute)
+          {
+            UI_SetAlarm(ALARM_HIGH_BREATHS_PER_MINUTE);
+          }
+          else if (CTRL.breathPerMinute<UI.minVolumePerMinute)
+          {
+            UI_SetAlarm(ALARM_LOW_BREATHS_PER_MINUTE);
+          }          
+        }
+      }
       break;      
 
     default:
-      controlPressureState = CTRL_PRESSURE_INIT;
+      pressureModeState = CTRL_PRESSURE_INIT;
       // ToDo: report error
       break;
   }

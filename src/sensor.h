@@ -38,12 +38,18 @@ typedef struct
 {
   uint16_t value[PRESSURE_SENSOR_QUEUE_SIZE];
   uint8_t  pValue;
-  uint16_t lastPeakValue;
-  uint16_t lastPlateauValue;
 }
 PRESSURE_t;
 
 extern PRESSURE_t pressure[PRESSURE_SENSOR_QTY];
+
+typedef enum 
+{
+    SENSOR_IDLE,
+    SENSOR_ACQUIRE,
+    SENSOR_PROCESS
+}
+Sensor_States_e; 
 
 /**
  *  @brief 
@@ -52,10 +58,8 @@ void Sensor_Init();
 
 /**
  * @brief 
- * 
- * @param sensorNumber 
  */
-void Sensor_ProccessNewValue(uint8_t sensorNumber);
+void Sensor_Tasks();
 
 /**
  * @brief 
@@ -64,5 +68,32 @@ void Sensor_ProccessNewValue(uint8_t sensorNumber);
  * @return uint16_t 
  */
 uint16_t Sensor_GetLastValue(uint8_t sensorNumber);
+
+/**
+ * @brief 
+ * 
+ * @param sensorNumber 
+ * @return true 
+ * @return false 
+ */
+bool Sensor_PatientTrigger(uint8_t sensorNumber);
+
+/**
+ * @brief 
+ * 
+ * @param sensorNumber 
+ * @return true 
+ * @return false 
+ */
+bool Sensor_PlateauDetected(uint8_t sensorNumber);
+
+/**
+ * @brief 
+ * 
+ * @param n 
+ * @return true 
+ * @return false 
+ */
+bool Sensor_Timer(uint32_t n);
 
 #endif
