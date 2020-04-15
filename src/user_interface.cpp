@@ -1,6 +1,8 @@
 #include "user_interface.h"
 #include <LiquidCrystal.h>
 
+#define ARDUINO_PIN_QTY 45
+
 // Variables
 
 UI_t UI;
@@ -12,7 +14,7 @@ LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 //MEGA
 //LiquidCrystal lcd(45, 44, 43, 42, 41, 40);
 
-DebounceStates debounceState;
+DebounceStates_t debounceState[ARDUINO_PIN_QTY];
 
 // User Interface
 
@@ -102,34 +104,47 @@ void UserInterface_Task()
 
 bool UI_ButtonDebounce(uint8_t pin)
 {
-  static uint8_t debounceInitialMillis[13]; 
+  static uint32_t debounceInitialMillis[ARDUINO_PIN_QTY]; 
 
-  switch (debounceState) 
+  switch (debounceState[pin]) 
   {
-    case WAIT_FOR_BUTTON:
-      if (digitalRead(pin)==LOW) 
+    case BUTTON_RELEASED:
+      switch (digitalRead(pin)) 
       {
-        if ( (uint8_t)millis()-debounceInitialMillis[pin]>50)
-        {
-          debounceState = PRESSED_BUTTON; 
-          return true;
-        }
-      }
-      else
-      {
-        debounceInitialMillis[pin] = (uint8_t)millis();
-      }   
+        case LOW:
+          if ( millis()-debounceInitialMillis[pin]>5 )
+          {
+            debounceState[pin] = BUTTON_PRESSED; 
+            debounceInitialMillis[pin] = millis();
+            return true;
+          }
+          break;
+
+        case HIGH:
+          debounceInitialMillis[pin] = millis();
+          break;
+      }  
       break;
-      
-    case PRESSED_BUTTON:
-      if (digitalRead(pin)==HIGH) 
+
+    case BUTTON_PRESSED:
+      switch (digitalRead(pin)) 
       {
-        debounceState = WAIT_FOR_BUTTON; 
-      }
-      break; 
+        case LOW:
+          debounceInitialMillis[pin] = millis();
+          break;
+
+        case HIGH:
+          if ( millis()-debounceInitialMillis[pin]>5 )
+          {
+            debounceState[pin] = BUTTON_RELEASED; 
+            debounceInitialMillis[pin] = millis();
+          }
+          break;
+      }  
+      break;      
 
     default:
-        debounceState = WAIT_FOR_BUTTON; 
+        debounceState[pin] = BUTTON_RELEASED; 
         break;
   } 
   return false;

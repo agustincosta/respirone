@@ -38,17 +38,19 @@ typedef struct
 {
   bool setUpComplete;
   uint8_t selectedMode;
+  uint8_t IE_ratio;
+  uint8_t breathPerMinute;
 } 
 UI_t;
 
 extern UI_t UI;
 
-
-enum DebounceStates 
+typedef enum  
 {
-  WAIT_FOR_BUTTON,
-  PRESSED_BUTTON
-}; 
+  BUTTON_PRESSED,
+  BUTTON_RELEASED
+}
+DebounceStates_t; 
 
 /**
  *  \brief Brief description
@@ -87,6 +89,5 @@ bool UI_ButtonDebounce(uint8_t pin);
  *  \details More details
  */
 bool UI_Timer(uint32_t n);
-
 
 #endif // USER_INTERFACE_H
