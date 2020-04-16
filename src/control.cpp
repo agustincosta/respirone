@@ -173,13 +173,16 @@ void Control_VolumeModeTask()
       break;
 
     case CTRL_VOLUME_EXPIRATION_IDLE:
+      // Get pressure last value
+      CTRL.pressure = Sensor_GetLastValue(PRESSURE_SENSOR_1);
+
       // Update PEEP value
       if (Sensor_PlateauDetected(PRESSURE_SENSOR_1))
-        CTRL.PEEP = Sensor_GetLastValue(PRESSURE_SENSOR_1);
+        CTRL.PEEP = CTRL.pressure;
 
       if (Motor_IsInHomePosition())
       {
-        if (Sensor_PatientTrigger(PRESSURE_SENSOR_1))
+        if (CTRL.pressure<UI.TrP) // Trigger from patient
         {
           volumeModeState = CTRL_VOLUME_INSPIRATION_SETUP;
         }
@@ -279,13 +282,16 @@ void Control_PressureModeTask()
       break;
 
     case CTRL_PRESSURE_EXPIRATION_IDLE:
+      // Get pressure last value
+      CTRL.pressure = Sensor_GetLastValue(PRESSURE_SENSOR_1);
+
       // Update PEEP value
       if (Sensor_PlateauDetected(PRESSURE_SENSOR_1))
-        CTRL.PEEP = Sensor_GetLastValue(PRESSURE_SENSOR_1);
+        CTRL.PEEP = CTRL.pressure;
 
       if (Motor_IsInHomePosition())
       {
-        if (Sensor_PatientTrigger(PRESSURE_SENSOR_1))
+        if (CTRL.pressure<UI.TrP) // Trigger from patient
         {
           pressureModeState = CTRL_PRESSURE_INSPIRATION_SETUP;
         }
