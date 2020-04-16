@@ -11,7 +11,7 @@
 
 void setup()
 {
-  UserInterface_Init();
+  UI_Init();
   Control_Init();
   DataLogger_Init();
   LedInit();
@@ -20,7 +20,7 @@ void setup()
 void loop()
 {
   Control_Task();
-  UserInterface_Task();
+  UI_Task();
   DataLogger_Task();
   LedTick();
 }

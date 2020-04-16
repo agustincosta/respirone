@@ -42,10 +42,12 @@ void Control_Task()
         {
           case UI_VOLUME_CONTROL:
             controlMode = VOLUME_CONTROL;
+            volumeModeState = CTRL_VOLUME_INIT;
             break;
 
           case UI_PRESSURE_CONTROL:
             controlMode = PRESSURE_CONTROL;
+            pressureModeState = CTRL_PRESSURE_INIT;
             break;    
         
           default:
@@ -63,7 +65,7 @@ void Control_Task()
         if (UI.selectedMode==UI_PRESSURE_CONTROL)
         {
           controlMode = PRESSURE_CONTROL;
-          break; 
+          pressureModeState = CTRL_PRESSURE_INIT;
         }         
       }
       else
@@ -80,13 +82,13 @@ void Control_Task()
         if (UI.selectedMode==UI_VOLUME_CONTROL)
         {
           controlMode = VOLUME_CONTROL;
+          volumeModeState = CTRL_VOLUME_INIT;
         }         
       }
       else
       {
         Control_PressureModeTask();
       }
-
       break;      
   
     default:
@@ -106,8 +108,8 @@ void Control_VolumeModeTask()
       {
         volumeModeState = CTRL_VOLUME_INSPIRATION_SETUP;
 
-        inspirationTimeout = MINUTE_MS/(UI.breathPerMinute*(UI.IE_ratio+1));
-        expirationTimeout  = (MINUTE_MS*UI.IE_ratio)/(UI.breathPerMinute*(UI.IE_ratio+1));  
+        inspirationTimeout = MINUTE_MS/(UI.breathsMinute*(UI.i_e+1));
+        expirationTimeout  = (MINUTE_MS*UI.i_e)/(UI.breathsMinute*(UI.i_e+1));  
       }
       else
       {
@@ -118,7 +120,7 @@ void Control_VolumeModeTask()
     case CTRL_VOLUME_INSPIRATION_SETUP:
       volumeModeState = CTRL_VOLUME_INSPIRATION_MONITORING;
 
-      Motor_VolumeModeSet(UI.tidalVolume, UI.breathPerMinute, UI.IE_ratio);
+      Motor_VolumeModeSet(UI.tidalVolume, UI.breathsMinute, UI.i_e);
 
       CTRL_Timer(0);
       break;
@@ -148,13 +150,13 @@ void Control_VolumeModeTask()
         CTRL.peakPressure = CTRL.pressure;
 
         // Update volume per minute value
-        CTRL.volumePerMinute = Motor_GetVolumePerMinute();
-        if (CTRL.volumePerMinute>UI.maxVolumePerMinute)
+        CTRL.volumeMinute = Motor_GetVolumePerMinute();
+        if (CTRL.volumeMinute>UI.maxVolumeMinute)
         {
           volumeModeState = CTRL_VOLUME_EXPIRATION_SETUP;
           UI_SetAlarm(ALARM_HIGH_VOLUME_PER_MINUTE);
         }
-        else if (CTRL.volumePerMinute<UI.minVolumePerMinute)
+        else if (CTRL.volumeMinute<UI.minVolumeMinute)
         {
           //volumeModeState = CTRL_VOLUME_EXPIRATION_SETUP;
           UI_SetAlarm(ALARM_LOW_VOLUME_PER_MINUTE);
@@ -186,12 +188,12 @@ void Control_VolumeModeTask()
           volumeModeState = CTRL_VOLUME_INSPIRATION_SETUP;
 
           // Update breaths per minute value
-          CTRL.breathPerMinute = Motor_GetBreathPerMinute();
-          if (CTRL.breathPerMinute>UI.maxBreathPerMinute)
+          CTRL.breathsMinute = Motor_GetBreathsPerMinute();
+          if (CTRL.breathsMinute>UI.maxBreathsMinute)
           {
             UI_SetAlarm(ALARM_HIGH_BREATHS_PER_MINUTE);
           }
-          else if (CTRL.breathPerMinute<UI.minVolumePerMinute)
+          else if (CTRL.breathsMinute<UI.minVolumeMinute)
           {
             UI_SetAlarm(ALARM_LOW_BREATHS_PER_MINUTE);
           }          
@@ -217,8 +219,8 @@ void Control_PressureModeTask()
       {
         pressureModeState = CTRL_PRESSURE_INSPIRATION_SETUP;
 
-        inspirationTimeout = MINUTE_MS/(UI.breathPerMinute*(UI.IE_ratio+1));
-        expirationTimeout  = (MINUTE_MS*UI.IE_ratio)/(UI.breathPerMinute*(UI.IE_ratio+1));  
+        inspirationTimeout = MINUTE_MS/(UI.breathsMinute*(UI.i_e+1));
+        expirationTimeout  = (MINUTE_MS*UI.i_e)/(UI.breathsMinute*(UI.i_e+1));  
       }
       else
       {
@@ -229,7 +231,7 @@ void Control_PressureModeTask()
     case CTRL_PRESSURE_INSPIRATION_SETUP:
       pressureModeState = CTRL_PRESSURE_INSPIRATION_MONITORING;
 
-      Motor_PressureModeSet(UI.adjustedPressure, UI.breathPerMinute, UI.IE_ratio);
+      Motor_PressureModeSet(UI.adjustedPressure, UI.breathsMinute, UI.i_e);
 
       CTRL_Timer(0);
       break;
@@ -256,12 +258,12 @@ void Control_PressureModeTask()
         pressureModeState = CTRL_PRESSURE_EXPIRATION_SETUP;
 
         // Update volume per minute value
-        CTRL.volumePerMinute = Motor_GetVolumePerMinute();
-        if (CTRL.volumePerMinute>UI.maxVolumePerMinute)
+        CTRL.volumeMinute = Motor_GetVolumePerMinute();
+        if (CTRL.volumeMinute>UI.maxVolumeMinute)
         {
           UI_SetAlarm(ALARM_HIGH_VOLUME_PER_MINUTE);
         }
-        else if (CTRL.volumePerMinute<UI.minVolumePerMinute)
+        else if (CTRL.volumeMinute<UI.minVolumeMinute)
         {
           UI_SetAlarm(ALARM_LOW_VOLUME_PER_MINUTE);
         }
@@ -292,12 +294,12 @@ void Control_PressureModeTask()
           pressureModeState = CTRL_PRESSURE_INSPIRATION_SETUP;
 
           // Update breaths per minute value
-          CTRL.breathPerMinute = Motor_GetBreathPerMinute();
-          if (CTRL.breathPerMinute>UI.maxBreathPerMinute)
+          CTRL.breathsMinute = Motor_GetBreathsPerMinute();
+          if (CTRL.breathsMinute>UI.maxBreathsMinute)
           {
             UI_SetAlarm(ALARM_HIGH_BREATHS_PER_MINUTE);
           }
-          else if (CTRL.breathPerMinute<UI.minVolumePerMinute)
+          else if (CTRL.breathsMinute<UI.minVolumeMinute)
           {
             UI_SetAlarm(ALARM_LOW_BREATHS_PER_MINUTE);
           }          

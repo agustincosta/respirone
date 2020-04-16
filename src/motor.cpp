@@ -6,8 +6,8 @@ Motor_States_e motorState;
 
 void Motor_Init()
 {
-  MOTOR.breathPerMinute = 0;
-  MOTOR.volumePerMinute = 0;
+  MOTOR.breathsMinute = 0;
+  MOTOR.volumeMinute = 0;
 }
 
 void Motor_Tasks()
@@ -45,12 +45,12 @@ void Motor_ReturnToHomePosition()
 
 }
 
-void Motor_VolumeModeSet(uint16_t tidalVolume, uint8_t breathPerMinute, uint8_t IE_ratio)
+void Motor_VolumeModeSet(uint16_t tidalVolume, uint8_t breathsPerMinute, uint8_t IE_ratio)
 {
 
 }
 
-void Motor_PressureModeSet(uint16_t adjustedPressure, uint8_t breathPerMinute, uint8_t IE_ratio)
+void Motor_PressureModeSet(uint16_t adjustedPressure, uint8_t breatshPerMinute, uint8_t IE_ratio)
 {
 
 }
@@ -60,12 +60,12 @@ bool Motor_IsInHomePosition()
   return MOTOR.limitSwitch;
 }
 
-uint8_t Motor_GetBreathPerMinute()
+uint8_t Motor_GetBreathsPerMinute()
 {
-  return MOTOR.breathPerMinute;
+  return MOTOR.breathsMinute;
 }
 
 uint8_t Motor_GetVolumePerMinute()
 {
-  return MOTOR.volumePerMinute;
+  return MOTOR.volumeMinute;
 }

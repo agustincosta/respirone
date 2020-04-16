@@ -14,8 +14,8 @@
 typedef struct
 {
     bool limitSwitch;           // Switch status
-    uint8_t breathPerMinute;    // Measured value of breath/minute
-    uint16_t volumePerMinute;   // Volume/minute in the last minute
+    uint8_t breathsMinute;    // Measured value of breath/minute
+    uint16_t volumeMinute;   // Volume/minute in the last minute
 }
 MOTOR_t;
 
@@ -53,7 +53,7 @@ void Motor_ReturnToHomePosition();
  * @param breathPerMinute 
  * @param IE_ratio 
  */
-void Motor_VolumeModeSet(uint16_t tidalVolume, uint8_t breathPerMinute, uint8_t IE_ratio);
+void Motor_VolumeModeSet(uint16_t tidalVolume, uint8_t breathsPerMinute, uint8_t IE_ratio);
 
 /**
  * @brief 
@@ -62,7 +62,7 @@ void Motor_VolumeModeSet(uint16_t tidalVolume, uint8_t breathPerMinute, uint8_t 
  * @param breathPerMinute 
  * @param IE_ratio 
  */
-void Motor_PressureModeSet(uint16_t adjustedPressure, uint8_t breathPerMinute, uint8_t IE_ratio);
+void Motor_PressureModeSet(uint16_t adjustedPressure, uint8_t breathsPerMinute, uint8_t IE_ratio);
 
 /**
  * @brief 
@@ -77,7 +77,7 @@ bool Motor_IsInHomePosition();
  * 
  * @return uint8_t 
  */
-uint8_t Motor_GetBreathPerMinute();
+uint8_t Motor_GetBreathsPerMinute();
 
 /**
  * @brief 
