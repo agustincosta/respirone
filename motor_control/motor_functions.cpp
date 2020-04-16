@@ -7,7 +7,7 @@ Encoder motor(encoder_a, encoder_b);
 float diametroPiston = 125; //mm
 float radioPiston = diametroPiston/2;
 float areaPiston = 12271.8463; //mm2
-float radioLeva = 34; //mm
+float radioLeva = 0.0315; //mm
 int cuentasPorRev = 8400; //Cuentas del encoder por revolución del motor
 
 //Definicion de variables para velocidad motor
@@ -28,19 +28,17 @@ long presionMinimaControl = 5;  //Presion minima para control
 long presionMaximaControl = 35; //Presion maxima para control
 
 
-//Variables de PID
-#if CONTROL_ACTIVO_VOLUMEN
-  double Kp = 0.215, Ki = 4.032, Kd = 0.00; //Variables de PID probadas en Rover
-  PID volumenPID(&w_medida,&w_comando,&w_setpoint, Kp, Ki, Kd, DIRECT); //Crea objeto PID
-  //PID(&Input, &Output, &Setpoint, Kp, Ki, Kd, Direction)
-#endif
+/*Variables de PID*/ 
+//Ambos usan las mismas
+double Kp = 0.215, Ki = 4.032, Kd = 0.00; //Variables de PID probadas en Rover
 
-#if CONTROL_ACTIVO_PRESION
-  //double Kp = 0.215, Ki = 4.032, Kd = 0.00; //Variables de PID probadas en Rover
-  PID presionPID(&p_medida,&p_comando,&p_setpoint, Kp, Ki, Kd, DIRECT); //Crea objeto PID
-  //PID(&Input, &Output, &Setpoint, Kp, Ki, Kd, Direction)
-#endif
-//El control activo de presion toma referencias de presion pero actua sobre la vel
+
+//PID de control por volumen
+PID volumenPID(&w_medida,&w_comando,&w_setpoint, Kp, Ki, Kd, DIRECT); //Crea objeto PID
+
+//PID de control por presion
+PID presionPID(&p_medida,&p_comando,&p_setpoint, Kp, Ki, Kd, DIRECT); //Crea objeto PID
+
 
 void initPID() {
   /**
@@ -50,22 +48,26 @@ void initPID() {
 
   //PID para control por volumen
   #if CONTROL_ACTIVO_VOLUMEN
+  {
     volumenPID.SetMode(AUTOMATIC);
 
     //Se ajusta el rango de salida porque de lo contrario solo funciona para el rango 0 - 255
     volumenPID.SetOutputLimits(-VEL_ANG_MAX*0.98,VEL_ANG_MAX*0.98);
 
     volumenPID.SetSampleTime((1000/(float)CONTROL_SAMPLE_RATE));
+  }
   #endif
 
   //PID para control por presion
   #if CONTROL_ACTIVO_PRESION
+  {
     presionPID.SetMode(AUTOMATIC);
 
     //Se ajusta el rango de salida porque de lo contrario solo funciona para el rango 0 - 255
     presionPID.SetOutputLimits(presionMinimaControl, presionMaximaControl);
 
     presionPID.SetSampleTime((1000/(float)CONTROL_SAMPLE_RATE));
+  }
   #endif
 
 }
@@ -91,11 +93,12 @@ void lecturaEncoder(long* encoderCounter) {
   motor.write(0);
 }
 
-void calculoVelocidadMedida(long Ts) {
+void calculoVelocidadMedida(long Ts, long* encoderTotal) {
   /**
    * Calcula la velocidad angular del periodo dado por el tiempo Ts en ms
    */
   lecturaEncoder(&encoderCounts);
+  *encoderTotal += encoderCounts;
 
   w_medida = encoderCounts*2.0*PI/(cuentasPorRev*Ts/1000); //En rad/s
    
@@ -110,11 +113,11 @@ void comandoMotor(int dirPin, int pwmPin, double velocidad) {
    if(velocidad < 0)
    {
       velocidad = -velocidad ;
-      digitalWrite(dirPin, HIGH); //Controla direccion del motor
+      digitalWrite(dirPin, LOW); //Controla direccion del motor
    }
    else
    {
-      digitalWrite(dirPin, LOW);
+      digitalWrite(dirPin, HIGH);
    }
    
    //Serial.print("PWM: "); Serial.println(velocidad/VEL_ANG_MAX*255);
@@ -122,19 +125,19 @@ void comandoMotor(int dirPin, int pwmPin, double velocidad) {
    analogWrite(pwmPin, velocidad/VEL_ANG_MAX*255);
 }
 
-void setpointVelocidadVolumen(int frecuenciaRespiracion, double ratio, float volumen, float* recorridoAngularAddr) {
+void setpointVelocidadVolumen(int frecuenciaRespiracion, double ratio, float volumen) {
   /**
    * Esta funcion setea la velocidad del motor para un ciclo de inspiración en funcion
    * del tiempo disponible y el volumen seteado. Solo para modo control por volumen
    */
   double tiempoInspiratorio = (60.0/frecuenciaRespiracion)*ratio; //En segundos
   //Serial.print("Tiempo: "); Serial.println(tiempoInspiratorio);
-  double factorTiempo = 1;
+  double factorTiempo = 0.90;
   v = volumen/(areaPiston*tiempoInspiratorio*factorTiempo); //todo en unidades del SI    
   
   //Serial.print("velocidad: "); Serial.println(v);  //En mm/s
 
-  *recorridoAngularAddr = (volumen/areaPiston)/0.4539;
+  float recorridoAngularAddr = (volumen/areaPiston)/0.4539;
 
   w_setpoint = v*3.0677;         //En deg/s, el 3.0677 es medio turbio, sale de 125° en 1,33s
   w_setpoint = 2.0*PI*w_setpoint/360.0;       //En rad/s
@@ -183,25 +186,33 @@ void controlDePresion() {
    comandoMotor(dir_motor, pwm_motor, w_comando); //Mueve el motor
 }
 
-void controlDeVolumen(long Ts) {
+void controlDeVolumen(long Ts, long* encoderTotal) {
   /**
    * Esta funcion usa un PID para computar la velocidad de comando para alcanzar
    * y determina la velocidad del motor
    */
-   calculoVelocidadMedida(Ts);  //Calcula w_medida a partir de periodo (Ts) y encoder
+   calculoVelocidadMedida(Ts, encoderTotal);  //Calcula w_medida a partir de periodo (Ts) y encoder
    volumenPID.Compute();        //Actualiza w_comando en funcion de w_medida y w_setpoint
+   
+   Serial.print("w_comando: "); Serial.println(w_comando);
+   Serial.print("w_medida: "); Serial.println(w_medida);
+   Serial.print("w_setpoint: "); Serial.println(w_setpoint);
+   
    comandoMotor(dir_motor, pwm_motor, w_comando); //Mueve el motor
 }
 
 void tiemposInspExp(int frecuenciaRespiracion, double ratio, double* tiempoInspiratorio, double* tiempoExpiratorio) {
+  /**
+   * Esta funcion calcula los tiempos inspiratorios y expiratorios para determinar el control del motor
+   */
   *tiempoInspiratorio = (60/frecuenciaRespiracion)*ratio; //En segundos
   *tiempoExpiratorio = (60/frecuenciaRespiracion)*(1-ratio); //En segundos
 }
 
-void inspiracionVolumen(int frecuenciaRespiracion, double ratio, float volumen, float* recorridoAngular) {
+void inspiracionVolumen(int frecuenciaRespiracion, double ratio, float volumen) {
   /**
    * Esta funcion calcula la velocidad del motor y lo comanda para control por volumen sin PID
    */
-  setpointVelocidadVolumen(frecuenciaRespiracion, ratio, volumen, recorridoAngular); //Setea velocidad
+  setpointVelocidadVolumen(frecuenciaRespiracion, ratio, volumen); //Setea velocidad
   comandoMotor(dir_motor, pwm_motor, w_setpoint);
 }
