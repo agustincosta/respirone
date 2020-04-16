@@ -21,7 +21,8 @@
 // TimeOuts (ms)
 #define INIT_MESSAGE_TIMEOUT        3000   
 #define TIMEOUT_BLINK               500
-#define TIMEOUT_SHOW_SELECTED_PARAM 500   
+#define TIMEOUT_SHOW_SELECTED_PARAM 500  
+#define TIMEOUT_RESTART_CONFIG      5000 
 
 //Display messages
 #define PROJECT_NAME          "RESPIRONE       "
@@ -78,7 +79,8 @@ typedef enum
   UI_DELAY_END_TRP, 
   UI_CONFIRM_CONFIG_PARAMETERS, 
   UI_SET_DEFAULT_PARAMETERS,
-  UI_SHOW_PARAMETERS
+  UI_SHOW_PARAMETERS,
+  UI_RESTART_CONFIG
 } 
 UI_states_e; 
 
@@ -132,6 +134,16 @@ void UI_Init();
  *  \details More details
  */
 void UI_Task();
+
+
+/**
+ *  \brief Brief description
+ *  
+ *  \return Return description
+ *  
+ *  \details More details
+ */
+void UI_ShowParametersTask();
 
 /**
  *  \brief Brief description

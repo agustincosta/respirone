@@ -10,6 +10,7 @@ UI_states_e uiState;
 LiquidCrystal lcd(45, 44, 43, 42, 41, 40);
 
 DebounceStates_t debounceState[ARDUINO_PIN_QTY];
+bool buttonState[ARDUINO_PIN_QTY];
 
 UI_t tempParam;
 UI_t UI;
@@ -1171,6 +1172,7 @@ void UI_Task()
         UI_DisplayClear();
         UI_DisplayMessage(0,0,"TO DO:");
         UI_DisplayMessage(0,1,"SHOW PARAMETERS");
+        UI_Timer(0);
 
         // Debug
         Serial.print("MODO:               ");
@@ -1221,14 +1223,40 @@ void UI_Task()
       break;
 
     case UI_SHOW_PARAMETERS:
+      if(UI_ButtonDebounce(BUTTON_MENU_PIN))
+      {
+        uiState = UI_RESTART_CONFIG;
+        UI_Timer(0);
+      }
+      else
+      {
       // execute state machine with real time parameters
-      // wait for menu to reestart config
+      UI_ShowParametersTask();
+      }
+      break;
+
+    case UI_RESTART_CONFIG:
+      UI_ButtonDebounce(BUTTON_MENU_PIN);
+
+      if((buttonState[BUTTON_MENU_PIN]) && (UI_Timer(TIMEOUT_RESTART_CONFIG)))
+      {
+        UI_Init();
+      }
+      else if(!buttonState[BUTTON_MENU_PIN])
+      {
+        uiState = UI_SHOW_PARAMETERS;
+      }
       break;
 
     default:
       uiState = UI_WAITING_BUTTON;
       break;
   }
+}
+
+void UI_ShowParametersTask()
+{
+
 }
 
 void UI_DisplayMessage(uint8_t pos, uint8_t line, const char *message)
@@ -1254,6 +1282,7 @@ bool UI_ButtonDebounce(uint8_t pin)
           if ( millis()-debounceInitialMillis[pin]>5 )
           {
             debounceState[pin] = BUTTON_PRESSED; 
+            buttonState[pin] = true;
             debounceInitialMillis[pin] = millis();
             return true;
           }
@@ -1273,6 +1302,7 @@ bool UI_ButtonDebounce(uint8_t pin)
           if ( millis()-debounceInitialMillis[pin]>5 )
           {
             debounceState[pin] = BUTTON_RELEASED; 
+            buttonState[pin] = false;
             debounceInitialMillis[pin] = millis();
           }
           break;
