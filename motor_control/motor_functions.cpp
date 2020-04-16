@@ -7,7 +7,7 @@ Encoder motor(encoder_a, encoder_b);
 float diametroPiston = 125; //mm
 float radioPiston = diametroPiston/2;
 float areaPiston = 12271.8463; //mm2
-float radioLeva = 0.0315; //mm
+float radioLeva = 31.5; //mm
 int cuentasPorRev = 8400; //Cuentas del encoder por revolución del motor
 
 //Definicion de variables para velocidad motor
@@ -171,7 +171,7 @@ void controlDePresion() {
    
    lecturaPresion(&p_medida, 10);   //Actualiza p_medida
    presionPID.Compute();            //Actualiza p_comando en funcion de p_medida y p_setpoint
-   deltaPresion = p_setpoint - p_medida;   //Diferencia de presion para determinar cambio de velocidad
+   deltaPresion = p_setpoint - p_comando;   //Diferencia de presion para determinar cambio de velocidad
    deltaVelocidad = map(abs(deltaPresion), 0, 30, 0, 255);   //Convierte diferencia de presion a diferencia de velocidad (TURBIO)
    
    if (deltaPresion >= 0) 
@@ -193,11 +193,11 @@ void controlDeVolumen(long Ts, long* encoderTotal) {
    */
    calculoVelocidadMedida(Ts, encoderTotal);  //Calcula w_medida a partir de periodo (Ts) y encoder
    volumenPID.Compute();        //Actualiza w_comando en funcion de w_medida y w_setpoint
-   
+   /*
    Serial.print("w_comando: "); Serial.println(w_comando);
    Serial.print("w_medida: "); Serial.println(w_medida);
    Serial.print("w_setpoint: "); Serial.println(w_setpoint);
-   
+   */
    comandoMotor(dir_motor, pwm_motor, w_comando); //Mueve el motor
 }
 
@@ -215,4 +215,13 @@ void inspiracionVolumen(int frecuenciaRespiracion, double ratio, float volumen) 
    */
   setpointVelocidadVolumen(frecuenciaRespiracion, ratio, volumen); //Setea velocidad
   comandoMotor(dir_motor, pwm_motor, w_setpoint);
+}
+
+void cuentasEncoderVolumen(float volumen, long* cuentasInspiracion) {
+  /**
+   * Calcula las cuentas necesarias para desplazar el volumen 
+   */
+  float recorrido = volumen/areaPiston;           //Distancia que debe recorrer el piston en mm
+  float recorridoAngular = recorrido/radioLeva;   //Angulo que debe recorrer el motor en rad
+  *cuentasInspiracion = round(cuentasEncoderRevolucion*recorridoAngular/(2*PI));
 }

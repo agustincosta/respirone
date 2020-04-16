@@ -5,7 +5,7 @@
 #include <Arduino.h>
 
 /*Control activo PID*/
-#define CONTROL_ACTIVO_VOLUMEN true
+#define CONTROL_ACTIVO_VOLUMEN false
 #define CONTROL_ACTIVO_PRESION true
 #define CONTROL_SAMPLE_RATE 5  //hz
 
@@ -46,3 +46,5 @@ void controlDeVolumen(long Ts, long* encoderTotal);
 void tiemposInspExp(int frecuenciaRespiracion, double ratio, double* tiempoInspiratorio, double* tiempoExpiratorio);
 
 void inspiracionVolumen(int frecuenciaRespiracion, double ratio, float volumen);
+
+void cuentasEncoderVolumen(float volumen, long* cuentasInspiracion);
