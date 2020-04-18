@@ -2,9 +2,7 @@
  * @file sensor.h
  * @brief 
  * @version 0.1
- * 
  */
-
 #ifndef SENSOR_H
 #define SENSOR_H
 
@@ -36,19 +34,23 @@ PressureSensorIndexes_e;
 
 typedef struct
 {
-  int16_t value[PRESSURE_SENSOR_QUEUE_SIZE];        // Measured value
-  int16_t avgValue;                                 // Average value
+  int16_t value[PRESSURE_SENSOR_QUEUE_SIZE];        // Measured value queue
   uint8_t pValue;                                   // Queue index
+
+  int16_t averageValue;                             // Average value
+
+  int16_t peakValue;                                // Peak value
+  
+  bool plateauDetected;
+  int16_t plateauValue;                             // Plateau value
 }
 PRESSURE_t;
 
-extern PRESSURE_t pressure[PRESSURE_SENSOR_QTY];
-
 typedef enum 
 {
-    SENSOR_IDLE,
-    SENSOR_ACQUIRE,
-    SENSOR_PROCESS
+  SENSOR_IDLE,
+  SENSOR_ACQUIRE,
+  SENSOR_PROCESS
 }
 Sensor_States_e; 
 
@@ -76,7 +78,15 @@ int16_t Sensor_GetLastValue(uint8_t sensorNumber);
  * @param sensorNumber 
  * @return int16_t 
  */
-int16_t Sensor_GetAverageValue(uint8_t sensorNumber);
+int16_t Sensor_GetPeakValue(uint8_t sensorNumber);
+
+/**
+ * @brief 
+ * 
+ * @param sensorNumber 
+ * @return int16_t 
+ */
+int16_t Sensor_GetPlateauValue(uint8_t sensorNumber);
 
 /**
  * @brief 

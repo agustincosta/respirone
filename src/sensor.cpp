@@ -1,15 +1,19 @@
+/**
+ * @file sensor.cpp
+ * @brief 
+ * @version 0.1
+ */
 #include "sensor.h"
 
 PRESSURE_t pressure[PRESSURE_SENSOR_QTY];
-
-bool plateauPressureDetected;
+uint16_t sensorAnalogRead;
 
 Sensor_States_e sensorState; 
 
 void Sensor_Init()
 {
   sensorState = SENSOR_IDLE;
-  plateauPressureDetected = false;
+  // ToDo> Init struct
 }
 
 void Sensor_Tasks()
@@ -28,32 +32,40 @@ void Sensor_Tasks()
       sensorState = SENSOR_PROCESS;
 
       // Acquire and queue
-      pressure[PRESSURE_SENSOR_1].value[pressure[PRESSURE_SENSOR_1].pValue] = (uint16_t)map(analogRead(PRESSURE_SENSOR_1_PIN), 0, 1023, PRESSURE_SENSOR_MIN_VALUE, PRESSURE_SENSOR_MAX_VALUE);
-      pressure[PRESSURE_SENSOR_1].pValue = (pressure[PRESSURE_SENSOR_1].pValue+1)%PRESSURE_SENSOR_QUEUE_SIZE;
+      sensorAnalogRead = analogRead(PRESSURE_SENSOR_1_PIN);
+      pressure[PRESSURE_SENSOR_1].value[pressure[PRESSURE_SENSOR_1].pValue] = (uint16_t)map(sensorAnalogRead, 0, 1023, PRESSURE_SENSOR_MIN_VALUE, PRESSURE_SENSOR_MAX_VALUE);
       break;    
 
     case SENSOR_PROCESS:
       sensorState = SENSOR_IDLE;
 
       // Average 
-      pressure[PRESSURE_SENSOR_1].avgValue = 0;
+      pressure[PRESSURE_SENSOR_1].averageValue = 0;
       for (uint8_t pressureIndex = 0; pressureIndex < PRESSURE_SENSOR_QUEUE_SIZE; pressureIndex++)
       {
-        pressure[PRESSURE_SENSOR_1].avgValue = pressure[PRESSURE_SENSOR_1].value[pressureIndex]/PRESSURE_SENSOR_QUEUE_SIZE;    
+        pressure[PRESSURE_SENSOR_1].averageValue += pressure[PRESSURE_SENSOR_1].value[pressureIndex];    
       }      
+      pressure[PRESSURE_SENSOR_1].averageValue /= PRESSURE_SENSOR_QUEUE_SIZE;
+
+      // Peak
+      pressure[PRESSURE_SENSOR_1].peakValue = max(pressure[PRESSURE_SENSOR_1].peakValue, pressure[PRESSURE_SENSOR_1].value[pressure[PRESSURE_SENSOR_1].pValue]);
 
       // Plateau detection
       uint8_t pressureCounter;
       for (pressureCounter = 0; pressureCounter < PRESSURE_SENSOR_QUEUE_SIZE; pressureCounter++)
       {
-        if (pressure[PRESSURE_SENSOR_1].value[pressureCounter]-pressure[PRESSURE_SENSOR_1].avgValue>PRESSURE_SENSOR_PLATEAU_THRESHOLD)
+        if (abs(pressure[PRESSURE_SENSOR_1].value[pressureCounter]-pressure[PRESSURE_SENSOR_1].averageValue)>PRESSURE_SENSOR_PLATEAU_THRESHOLD)
           break;        
       }
       if (pressureCounter==PRESSURE_SENSOR_QUEUE_SIZE) 
-        plateauPressureDetected = true;
+      {
+        pressure[PRESSURE_SENSOR_1].plateauDetected = true;
+        pressure[PRESSURE_SENSOR_1].plateauValue = pressure[PRESSURE_SENSOR_1].averageValue;
+      }
 
+      // Increase pointer
+      pressure[PRESSURE_SENSOR_1].pValue = (pressure[PRESSURE_SENSOR_1].pValue+1)%PRESSURE_SENSOR_QUEUE_SIZE;
       break;
-
   }      
 }
 
@@ -70,11 +82,29 @@ int16_t Sensor_GetLastValue(uint8_t sensorNumber)
   }
 }
 
-int16_t Sensor_GetAverageValue(uint8_t sensorNumber)
+int16_t Sensor_GetPeakValue(uint8_t sensorNumber)
 {
   if (sensorNumber<PRESSURE_SENSOR_QTY)
   {
-    return pressure[sensorNumber].avgValue;
+    int16_t returnValue = pressure[sensorNumber].peakValue;
+
+    pressure[sensorNumber].peakValue = PRESSURE_SENSOR_MIN_VALUE;
+
+    return returnValue;
+  }
+  else
+  {
+    // ToDo: report error
+    return PRESSURE_SENSOR_INVALID_VALUE;
+  }
+}
+
+int16_t Sensor_GetPlateauValue(uint8_t sensorNumber)
+{
+  if (sensorNumber<PRESSURE_SENSOR_QTY)
+  {
+    pressure[sensorNumber].plateauDetected = false;
+    return pressure[sensorNumber].plateauValue;
   }
   else
   {
@@ -85,13 +115,7 @@ int16_t Sensor_GetAverageValue(uint8_t sensorNumber)
 
 bool Sensor_PlateauDetected(uint8_t sensorNumber)
 {
-  if (plateauPressureDetected)
-  {
-    plateauPressureDetected = false;
-    return true;
-  }
-  else
-    return false;
+  return pressure[sensorNumber].plateauDetected;
 }
 
 bool Sensor_Timer(uint32_t n)
@@ -105,5 +129,5 @@ bool Sensor_Timer(uint32_t n)
   else if((millis() - initialMillis) > n){
 	  return true;
   }
-    return false;
+  return false;
 }

@@ -1,16 +1,16 @@
 #include "datalogger.h"
 #include "control.h"
 #include "user_interface.h"
+#include "Arduino.h"
 
 bool logEnable;
 bool printUserSettings;
 
 uint32_t logTimeoutMillis;
 
-
 void DataLogger_Init()
 {
-  Serial.begin(115200);
+  Serial.begin(9600);
 
   logEnable = true;
   printUserSettings = false;
@@ -31,6 +31,7 @@ void DataLogger_Task()
     if((millis() - initialMillis) > logTimeoutMillis)
     {
       initialMillis = millis();
+      
       DataLogger_ReportStatus();  
     }
   }
@@ -117,18 +118,22 @@ void serialEvent()
   {
     switch ((char)Serial.read())
     {
+      // toggle log enable
       case 'l': case 'L':
         logEnable^=true;
         break;
 
+      // print user settings
       case 'u': case 'U':
         printUserSettings=true;  
         break;    
 
+      // increase log period
       case '+':
         logTimeoutMillis += 50; 
         break; 
 
+      // decrease log period
       case '-':
         (logTimeoutMillis>50)? (logTimeoutMillis -= 50) : logTimeoutMillis = 0; 
         break; 
