@@ -1,5 +1,5 @@
 #include <EEPROM.h>
-#include "motor_functions.h"
+#include "motor.h"
 #define logOutput true
 
 
@@ -35,7 +35,7 @@ void setup() {
   initPID();
   volumen = volumen*1000; //A mm3
   
-  presionOffset = analogRead(sensorPresion);
+  presionOffset = analogRead(pressureSensor);
 
   #if logOutput
     Serial.println("----------- Comienza experimento: Control por volumen -----------");
@@ -44,7 +44,7 @@ void setup() {
     Serial.print("Relacion I:E: 1:"); Serial.println(round(1/ratio)-1);
   #endif
 
-  tiemposInspExp(frecuenciaRespiracion, ratio, &tiempoInspiratorio, &tiempoExpiratorio);
+  tiemposInspExp();
 
   //encoderTotal = EEPROM.get(0,encoderTotal);
   
@@ -67,24 +67,24 @@ void loop() {
       {
         /*setpointVelocidadVolumen(frecuenciaRespiracion, ratio, volumen);*/ //Setea velocidad
         //comandoMotor(dir_motor, pwm_motor, 1);
-        inspiracionVolumen(frecuenciaRespiracion, ratio, volumen);
+        inspiracionVolumen();
       }
       #else
       {
         //inspiracionVolumen(frecuenciaRespiracion, ratio, volumen);
-        comandoMotor(dir_motor, pwm_motor, VEL_ANG_MAX);
+        comandoMotor(motorDIR, motorPWM, VEL_ANG_MAX);
       }
       #endif
 
       long millisInsp = millis();
-      cuentasEncoderVolumen(volumen, &cuentasInspiracion);
+      cuentasEncoderVolumen();
       
       float tiempoInsp = (60000/frecuenciaRespiracion)*ratio;
       long tPrev = 0;
       long tAct = 0; 
 
       while (encoderTotal < cuentasInspiracion) {
-        lecturaEncoder(&encoderCount);
+        lecturaEncoder();
         encoderTotal += encoderCount;
         lecturaPresion(&valorPresion, presionOffset);
         
@@ -97,11 +97,11 @@ void loop() {
           Serial.print("P "); Serial.println(valorPresion);
         #endif
       }
-      comandoMotor(dir_motor, pwm_motor, 0);
+      comandoMotor(motorDIR, motorPWM, 0);
     
       while (millis()- millisInsp < tiempoInsp) {
         
-        comandoMotor(dir_motor, pwm_motor, 0); 
+        comandoMotor(motorDIR, motorPWM, 0); 
         tAct = millis();
         
         #if CONTROL_ACTIVO_VOLUMEN 
@@ -109,7 +109,7 @@ void loop() {
         /*Control por volumen con PID - Aumento controlado del flujo*/
           Ts = tAct - tPrev;
           tPrev = tAct;
-          controlDeVolumen(Ts, &encoderTotal);
+          controlDeVolumen();
           EEPROM.put(0,encoderTotal);
           delay(20);
         } 
@@ -144,7 +144,7 @@ void loop() {
     
     Serial.println("Inspiracion terminada");
     /*----------EXPIRACION-----------*/
-    comandoMotor(dir_motor, pwm_motor, -VEL_ANG_MAX); //Setea velocidad
+    comandoMotor(motorDIR, motorPWM, -VEL_ANG_MAX); //Setea velocidad
   
     float tiempoExp = (60000/frecuenciaRespiracion)*(1-ratio);
     long millisExp = millis(); 
@@ -153,7 +153,7 @@ void loop() {
   
     while (encoderTotal > 0) { 
     
-      lecturaEncoder(&encoderCount);
+      lecturaEncoder();
       encoderTotal += encoderCount;
       lecturaPresion(&valorPresion, presionOffset);
       EEPROM.put(0,encoderTotal);
@@ -166,7 +166,7 @@ void loop() {
     }
     
     if (ratio < 0.5) {
-      comandoMotor(dir_motor, pwm_motor, 0);
+      comandoMotor(motorDIR, motorPWM, 0);
       delay(1000*(tiempoExpiratorio - tiempoInspiratorio));
       //Serial.println(tiempoExpiratorio);
       //Serial.println(tiempoInspiratorio);
