@@ -10,6 +10,7 @@
 #include <PID_v1.h>
 #include <Encoder.h>
 #include <Arduino.h>
+#include "user_interface.h"
 
 /**
  * @brief Estructura con todas las variables del motor
@@ -21,7 +22,7 @@ typedef struct
     uint8_t breathsMinute;  // Measured value of breath/minute
     uint16_t volumeMinute;  // Volume/minute in the last minute
     uint16_t tidalVolume;   // Tidal volume in ml
-    float IE_Ratio;       // Ratio of expirations to inspirations
+    float IE_Ratio;         // Ratio of expirations to inspirations
     bool volumeModeSet;     // Volume control mode set
     bool pressureModeSet;   // Pressure control mode set
     //Angular velocity

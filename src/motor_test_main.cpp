@@ -146,8 +146,8 @@ void loop() {
     /*----------EXPIRACION-----------*/
     comandoMotor(motorDIR, motorPWM, -VEL_ANG_MAX); //Setea velocidad
   
-    float tiempoExp = (60000/frecuenciaRespiracion)*(1-ratio);
-    long millisExp = millis(); 
+    //float tiempoExp = (60000/frecuenciaRespiracion)*(1-ratio);
+    //long millisExp = millis(); 
   
     //millis()- millisExp < tiempoExp
   

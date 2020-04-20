@@ -216,11 +216,17 @@ void Motor_Tasks() {
     case MOTOR_IDLE:                          
 
       if (MOTOR.powerOn) {
-        MOTOR.powerOn = false;
-        motorState = MOTOR_RETURN_HOME_POSITION;
+        if (MOTOR.limitSwitch) {
+          if (UI.setUpComplete) {
+            MOTOR.powerOn = false;
+          }
+        }
+        else {
+          motorState = MOTOR_RETURN_HOME_POSITION;
+        }
+        
       }
-
-      if (MOTOR.inExpiration) {
+      else if (MOTOR.inExpiration) {
         if (millis() < MOTOR.expEndTime) {
           MOTOR.inExpiration = false;
           if (MOTOR.volumeModeSet) {
@@ -257,7 +263,7 @@ void Motor_Tasks() {
       
       break;    
 
-    /*----------------------VOLUME CONTRO----------------------*/
+    /*----------------------VOLUME CONTROL----------------------*/
     case MOTOR_VOLUME_CONTROL:
       
       if (!MOTOR.inInspiration) {                               // Check if it its the first iteration to save the time
