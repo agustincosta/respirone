@@ -6,6 +6,19 @@
         {
             "name": "Win32",
             "includePath": [
+                "C:/Users/agusc/Documents/GIT/respirone/include",
+                "C:/Users/agusc/Documents/GIT/respirone/src",
+                "C:/Users/agusc/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                "C:/Users/agusc/.platformio/lib/PID_ID2",
+                "C:/Users/agusc/.platformio/lib/Encoder_ID129",
+                "C:/Users/agusc/.platformio/lib/Encoder_ID129/utility",
+                "C:/Users/agusc/.platformio/packages/framework-arduino-avr/cores/arduino",
+                "C:/Users/agusc/.platformio/packages/framework-arduino-avr/variants/mega",
+                "C:/Users/agusc/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                "C:/Users/agusc/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                "C:/Users/agusc/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                "C:/Users/agusc/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                "C:/Users/agusc/.platformio/packages/tool-unity",
                 "c:/Users/Marco/Desktop/RESPIRONE/RESPIRONE/include",
                 "c:/Users/Marco/Desktop/RESPIRONE/RESPIRONE/src",
                 "C:/Users/Marco/.platformio/packages/framework-arduino-avr/cores/arduino",
@@ -25,7 +38,8 @@
                     "c:/Users/Marco/Desktop/RESPIRONE/RESPIRONE/include",
                     "c:/Users/Marco/Desktop/RESPIRONE/RESPIRONE/src",
                     "C:/Users/Marco/.platformio/packages/framework-arduino-avr/cores/arduino",
-                    "C:/Users/Marco/.platformio/packages/framework-arduino-avr/variants/mega",
+                    "C:/Users/Marco/.platformio/packages/framework-arduino-avr/variants/standard",
+                    "c:/Users/Marco/Desktop/RESPIRONE/RESPIRONE/.pio/libdeps/uno/LiquidCrystal_ID136",
                     "C:/Users/Marco/.platformio/lib/LiquidCrystal_ID136",
                     "C:/Users/Marco/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
                     "C:/Users/Marco/.platformio/packages/framework-arduino-avr/libraries/HID/src",
@@ -48,7 +62,7 @@
             "intelliSenseMode": "clang-x64",
             "cStandard": "c11",
             "cppStandard": "c++11",
-            "compilerPath": "C:/Users/Marco/.platformio/packages/toolchain-atmelavr/bin/avr-gcc.exe",
+            "compilerPath": "C:/Users/agusc/.platformio/packages/toolchain-atmelavr/bin/avr-gcc.exe",
             "compilerArgs": [
                 "-mmcu=atmega2560",
                 ""
