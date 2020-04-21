@@ -12,6 +12,18 @@
 #include <Arduino.h>
 #include "user_interface.h"
 
+#define MOTOR_VERBOSE true
+
+typedef enum
+{
+    MOTOR_STARTING,                 // Motor starting by returning to home
+    MOTOR_ADVANCING,                // Motor driving piston forward, airflow to patient
+    MOTOR_STOPPED,                  // Motor stopped, pressure mantained during inspiration
+    MOTOR_RETURNING,                // Motor returning to home position during expiration
+    MOTOR_WAITING                   // Motor stopped in home position expecting cycle trigger
+}
+Motor_Stages_e;
+
 /**
  * @brief Estructura con todas las variables del motor
  */
@@ -23,8 +35,8 @@ typedef struct
     uint16_t volumeMinute;  // Volume/minute in the last minute
     uint16_t tidalVolume;   // Tidal volume in ml
     float IE_Ratio;         // Ratio of expirations to inspirations
-    bool volumeModeSet;     // Volume control mode set
-    bool pressureModeSet;   // Pressure control mode set
+    uint8_t modeSet;        // Breathing mode set by UI
+    bool pressureTrigger;   // Pressure under PEEP to trigger inspiration cycle
     //Angular velocity
     double wSetpoint;       // Angular velocity setpoint for motor 
     double wMeasure;        // Angular velocity measured by encoder in a given period
@@ -40,15 +52,14 @@ typedef struct
     //Times
     float inspirationTime;  // Duration of inspiration in seconds
     float expirationTime;   // Duration of expiration in seconds
-    long Ts;                // Control loop time period
-    long tAct;              // Auxiliary time variable
-    long tPrev;             // Auxiliary time variable
-    long inspEndTime;       // Time in millis inspiration ends
-    long expEndTime;        // Time in millis expiration ends
-    //Flags
-    bool inInspiration;     // Flag indicating inspiration started
-    bool inExpiration;      // Flag indicating expiration started
-    bool powerOn;           // Flag indicating system just powered on and needs to return to home position
+    uint32_t Ts;            // Control loop time period
+    uint32_t tAct;          // Auxiliary time variable
+    uint32_t tPrev;         // Auxiliary time variable
+    uint32_t inspEndTime;   // Time in millis inspiration ends
+    uint32_t expEndTime;    // Time in millis expiration ends
+    uint32_t cycleStart;    // Time in millis a cycle starts
+    //Motor state
+    Motor_Stages_e motorAction; // Action being carried out by motor
 }
 MOTOR_t;
 
@@ -57,17 +68,30 @@ MOTOR_t;
  */
 typedef enum 
 {
-    MOTOR_IDLE,
-    MOTOR_RETURN_HOME_POSITION,
-    MOTOR_VOLUME_CONTROL,
-    MOTOR_PRESSURE_CONTROL   
+    MOTOR_POWER_ON,                 // First state when system starts, does not return to it
+    MOTOR_IDLE,                     // Waiting for next cycle to begin
+    MOTOR_RETURN_HOME_POSITION,     // Return to home after inspiration or power on
+    MOTOR_VOLUME_CONTROL,           // Inspiration by volume control
+    MOTOR_PRESSURE_CONTROL,         // Inspiration by pressure control
+    MOTOR_PAUSE,                    // Pause during inspiration after control condition met (volume displaced) before expiration
 }
 Motor_States_e; 
+
+typedef struct 
+{
+    float tidalVolume;           // Volume displaced in a given cycle
+    uint32_t cycleTime;             // Time taken by each cycle
+}
+Measured_t;
+
 
 /*Control activo PID*/
 #define CONTROL_ACTIVO_VOLUMEN true
 #define CONTROL_ACTIVO_PRESION true
 #define CONTROL_SAMPLE_RATE 5  // Hz
+
+/*Limite respiraciones minuto*/
+#define BUFFER_SIZE 30
 
 /*Velocidades*/
 #define VEL_ANG_MAX 8.986   // Experimental en rad/s
@@ -134,14 +158,6 @@ void calculoVelocidadMedida(long Ts);
 void comandoMotor(int dirPin, int pwmPin, double velocidad);
 
 /**
- * @brief Reads pressure sensor value
- * 
- * @param pressureValue Pressure read 
- * @param offsetADC Offset ADC counts at ambient pressure
- */
-void lecturaPresion(double* pressureValue, int offsetADC);
-
-/**
  * @brief Controls the pressure of system using PID
  * 
  */
@@ -186,51 +202,11 @@ void Motor_Tasks();
 void Motor_ReturnToHomePosition();
 
 /**
- * @brief 
- * 
- * @return true 
- * @return false 
- */
-bool Motor_IsInHomePosition();
-
-/**
- * @brief 
- * 
- * @return uint8_t 
- */
-uint8_t Motor_GetBreathsPerMinute();
-
-/**
- * @brief 
- * 
- * @return uint8_t 
- */
-uint8_t Motor_GetVolumePerMinute();
-
-/**
  * @brief Sets MOTOR.wSetpoint
  * 
  * @param vel Angular velocity setpoint
  */
 void setpointVelocity(float vel);
-
-/**
- * @brief Sets parameters for volume control mode
- * 
- * @param tidalVolume 
- * @param breathsPerMinute 
- * @param IE_ratio 
- */
-void Motor_VolumeModeSet(uint16_t tidalVolume, uint8_t breathsPerMinute, uint8_t IE_ratio);
-
-/**
- * @brief Sets parameters for pressure control mode
- * 
- * @param adjustedPressure 
- * @param breathsPerMinute 
- * @param IE_ratio 
- */
-void Motor_PressureModeSet(uint16_t adjustedPressure, uint8_t breathsPerMinute, uint8_t IE_ratio);
 
 /**
  * @brief Control period calculation
@@ -243,5 +219,52 @@ void calculateControlPeriod();
  * 
  */
 void inspirationFirstIteration();
+
+/**
+ * @brief Updates breathing parameters at the beginning of a new cycle
+ * 
+ */
+void Motor_SetBreathingParams();
+
+/**
+ * @brief Calculates displaced volume from encoder counts in pressure control mode
+ * 
+ */
+float calculateDisplacedVolume();
+
+/**
+ * @brief Saves the measured tidal volume and cycle time in a cicular array
+ * 
+ * @param measuredTidalVol Measured tidal volume in a cycle
+ * @param measuredCycleTime Measured time a cycle takes
+ */
+void saveRealData(float tidalVol, uint32_t cycleTime);
+
+/**
+ * @brief Returns tidal volume of last cycle
+ * 
+ * @return float Tidal volume
+ */
+float getTidalVolume();
+
+/**
+ * @brief Returns the Breaths in the last Minute
+ * 
+ * @return uint8_t Number of breaths
+ */
+uint8_t getBreathsMinute();
+
+/**
+ * @brief Returns the volume sent to patient in the last minute
+ * 
+ * @return float volume/min
+ */
+float getVolumeMinute();
+
+/**
+ * @brief Updates CTRL control structure with BPM, Tidal vol and Vol minute
+ * 
+ */
+void updateControlVariables();
 
 #endif

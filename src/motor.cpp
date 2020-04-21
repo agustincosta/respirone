@@ -1,8 +1,15 @@
 #include "motor.h"
+#include "control.h"
 
 //Definicion de motor
 MOTOR_t MOTOR;
-Motor_States_e motorState; 
+Motor_States_e motorState;
+
+//Variables para medidas reales
+Measured_t measuredData[BUFFER_SIZE];
+uint32_t measuredCycleTime = 0;
+float measuredTidalVol = 0;
+
 
 //Definicion de encoder
 Encoder encoder(encoderA, encoderB);
@@ -16,13 +23,13 @@ PID volumenPID(&MOTOR.wMeasure, &MOTOR.wCommand, &MOTOR.wSetpoint, Kp, Ki, Kd, D
 //PID de control por presion
 PID presionPID(&MOTOR.pMeasure,&MOTOR.pCommand,&MOTOR.pSetpoint, Kp, Ki, Kd, DIRECT); //Crea objeto PID
 
+
 void Motor_Init() {
   //Breathing parameters
   MOTOR.breathsMinute = 0;
   MOTOR.volumeMinute = 0;
   MOTOR.IE_Ratio = 0;
-  MOTOR.volumeModeSet = false;
-  MOTOR.pressureModeSet = false;
+  MOTOR.modeSet = UI_VOLUME_CONTROL;
   //Angular velocity
   MOTOR.wSetpoint = 0;
   MOTOR.wMeasure = 0;
@@ -43,10 +50,9 @@ void Motor_Init() {
   MOTOR.tPrev = 0;
   MOTOR.inspEndTime = 0;
   MOTOR.expEndTime = 0;
-  //Flags
-  MOTOR.inInspiration = false;
-  MOTOR.inExpiration = false;
-  MOTOR.powerOn = true;
+  MOTOR.cycleStart = 0;
+  //Motor state
+  MOTOR.motorAction = MOTOR_STARTING;
 }
 
 void initPID() {
@@ -134,15 +140,6 @@ void comandoMotor(int dirPin, int pwmPin, double velocidad) {
   analogWrite(pwmPin, velocidad/VEL_ANG_MAX*255);
 }
 
-void lecturaPresion(double* pressureValue, int offsetADC) {
-  /**
-   * Esta funcion lee el valor de presion del sensor a traves del ADC y corrige la 
-   * medida restando el offset que tenga el ADC a presion ambiente
-   */
-  int valorADC = analogRead(pressureSensor);
-  *pressureValue = map(valorADC-offsetADC, 0, 1023, 0, 600);  //Conversion a mbar
-}
-
 void controlDePresion() {
   /**
    * Esta funcion usa un PID para computar la presion de comando para alcanzar 
@@ -151,10 +148,10 @@ void controlDePresion() {
    double deltaPresion = 0;
    double deltaVelocidad = 0; 
    
-   lecturaPresion(&MOTOR.pMeasure, 10);   //Actualiza p_medida
-   presionPID.Compute();            //Actualiza p_comando en funcion de p_medida y p_setpoint
+   MOTOR.pMeasure = CTRL.pressure;                    //Actualiza la presion medida
+   presionPID.Compute();                              //Actualiza p_comando en funcion de p_medida y p_setpoint
    deltaPresion = MOTOR.pSetpoint - MOTOR.pCommand;   //Diferencia de presion para determinar cambio de velocidad
-   deltaVelocidad = map(abs(deltaPresion), 0, 30, 0, 255);   //Convierte diferencia de presion a diferencia de velocidad (TURBIO)
+   deltaVelocidad = map(abs(deltaPresion), 0, PRES_MAX, 0, VEL_ANG_MAX);   //Convierte diferencia de presion a diferencia de velocidad (TURBIO)
    
    if (deltaPresion >= 0) 
    {
@@ -212,61 +209,100 @@ void cuentasEncoderVolumen() {
 void Motor_Tasks() {
   switch (motorState)
   {
-    /*------------------------IDLE------------------------*/
-    case MOTOR_IDLE:                          
+    /*--------------------------POWER ON--------------------------*/
+    case MOTOR_POWER_ON:
+      MOTOR.motorAction = MOTOR_STARTING;
+      motorState = MOTOR_RETURN_HOME_POSITION;
 
-      if (MOTOR.powerOn) {
-        if (MOTOR.limitSwitch) {
-          if (UI.setUpComplete) {
-            MOTOR.powerOn = false;
-          }
-        }
-        else {
-          motorState = MOTOR_RETURN_HOME_POSITION;
-        }
-        
+      #if MOTOR_VERBOSE
+        Serial.println("STATE: POWER ON");
+      #endif
+
+    /*-----------------------RETURN TO HOME-----------------------*/
+    case MOTOR_RETURN_HOME_POSITION:
+
+      #if MOTOR_VERBOSE
+        Serial.println("STATE: RETURN TO HOME");
+      #endif
+      
+      if (MOTOR.motorAction == MOTOR_STOPPED) {                                // Check if it its the first iteration to save time
+        MOTOR.motorAction = MOTOR_RETURNING;
+        MOTOR.expEndTime = millis() + MOTOR.expirationTime*1000;
+      } 
+
+      if (!MOTOR.limitSwitch || (MOTOR.encoderTotal > 0)) {   // Not in home position conditions
+        Motor_ReturnToHomePosition();        
       }
-      else if (MOTOR.inExpiration) {
-        if (millis() < MOTOR.expEndTime) {
-          MOTOR.inExpiration = false;
-          if (MOTOR.volumeModeSet) {
+      else {                                                  // In home position - either by encoder or limit switch
+        comandoMotor(motorDIR, motorPWM, 0);
+
+        if (MOTOR.motorAction == MOTOR_STARTING) {
+          MOTOR.encoderTotal = 0;
+        } 
+
+        motorState = MOTOR_IDLE;                              // Back to idle state
+      }   
+      
+      break;
+
+    /*----------------------------IDLE----------------------------*/
+    case MOTOR_IDLE:
+
+      #if MOTOR_VERBOSE
+        Serial.println("STATE: IDLE");
+      #endif
+
+      Motor_SetBreathingParams();     //First checks if UI.setUpComplete                        
+
+      if (MOTOR.motorAction == MOTOR_RETURNING) {             // If expirating
+        MOTOR.motorAction = MOTOR_WAITING;                    // Change state variable to waiting
+        
+        //BEGIN NEW CYCLE
+        if (millis() >= MOTOR.expEndTime || MOTOR.pressureTrigger) {    // Inspiration beginning condition
+          
+          
+
+          measuredCycleTime = millis() - MOTOR.cycleStart;    // Calculate last cycle time
+          saveRealData(measuredTidalVol, measuredCycleTime);  // Saves cycle time and tidal vol in queue
+
+          MOTOR.cycleStart = millis();                        // Saves time cycle begins
+
+          if (MOTOR.modeSet == UI_VOLUME_CONTROL) {           // Volume mode
             motorState = MOTOR_VOLUME_CONTROL;
           }
-          else if (MOTOR.pressureModeSet) {
+          else if (MOTOR.modeSet == UI_PRESSURE_CONTROL) {    // Pressure mode
             motorState = MOTOR_PRESSURE_CONTROL;
           }
           else {
             motorState = MOTOR_IDLE;
           }
-        }
-        /* else if (inspiracion detectada por sensor de presion)
-
-        */ 
+        }       
       }
+      else if (MOTOR.motorAction == MOTOR_STARTING) {           // If starting
+        if (UI.setUpComplete) {                                 // Check if setup complete
+         
+          if (MOTOR.modeSet == UI_VOLUME_CONTROL) {             // Volume mode
+            motorState = MOTOR_VOLUME_CONTROL;
+          }
+          else if (MOTOR.modeSet == UI_PRESSURE_CONTROL) {      // Pressure mode
+            motorState = MOTOR_PRESSURE_CONTROL;
+          }
+          else {
+            motorState = MOTOR_IDLE;
+          }
+        }         
+      }
+
       break;
 
-    /*----------------------RETURN TO HOME----------------------*/
-    case MOTOR_RETURN_HOME_POSITION:
-      
-      if (!MOTOR.inExpiration) {                                // Check if it its the first iteration to save time
-        MOTOR.inExpiration = true;
-        MOTOR.expEndTime = millis() + MOTOR.expirationTime*1000;
-      }
-
-      if (!MOTOR.limitSwitch && (MOTOR.encoderTotal > 0)) {   // Not in home position conditions
-        Motor_ReturnToHomePosition();        
-      }
-      else {                                                  // In home position - either by encoder or limit switch
-        comandoMotor(motorDIR, motorPWM, 0); 
-        motorState = MOTOR_IDLE;                              // Back to idle state
-      }   
-      
-      break;    
-
-    /*----------------------VOLUME CONTROL----------------------*/
+    /*-----------------------VOLUME CONTROL-----------------------*/
     case MOTOR_VOLUME_CONTROL:
+
+      #if MOTOR_VERBOSE
+        Serial.println("STATE: VOLUME CONTROL");
+      #endif
       
-      if (!MOTOR.inInspiration) {                               // Check if it its the first iteration to save the time
+      if (MOTOR.motorAction == MOTOR_WAITING) {                 // Check if it its the first iteration to save the time
         inspirationFirstIteration();
       }
 
@@ -283,20 +319,25 @@ void Motor_Tasks() {
         }
         #endif
       }
-      else if (millis() < MOTOR.inspEndTime) {                  // Piston reached final position but time remains in inspiration
-        comandoMotor(motorDIR, motorPWM, 0); 
-      }
-      else {                                                    // Piston in final position and inspiration time ended
-        motorState = MOTOR_RETURN_HOME_POSITION;
-        MOTOR.inInspiration = false;
+      else {
+        comandoMotor(motorDIR, motorPWM, 0);
+
+        measuredTidalVol = calculateDisplacedVolume();          // Calculate how much volume was displaced from encoder
+
+        motorState = MOTOR_PAUSE;
+        MOTOR.motorAction = MOTOR_STOPPED;
       }
 
       break;    
       
     /*----------------------PRESSURE CONTROL----------------------*/
     case MOTOR_PRESSURE_CONTROL:
+
+      #if MOTOR_VERBOSE
+        Serial.println("STATE: PRESSURE CONTROL");
+      #endif
       
-      if (!MOTOR.inInspiration) {                               // Check if it its the first iteration to save the time
+      if (MOTOR.motorAction == MOTOR_WAITING) {                               // Check if it its the first iteration to save the time
         inspirationFirstIteration();
       }
   
@@ -304,13 +345,31 @@ void Motor_Tasks() {
         controlDePresion();
       }
       else {                                                    // Piston in final position and inspiration time ended
-        motorState = MOTOR_RETURN_HOME_POSITION;
-        MOTOR.inInspiration = false;
+        measuredTidalVol = calculateDisplacedVolume();          // Calculate how much volume was displaced from encoder
+        
+        motorState = MOTOR_RETURN_HOME_POSITION;    
+        MOTOR.motorAction = MOTOR_STOPPED;                      // Set to pause to make RETURN state simpler
       }
 
       break;        
 
-    /*-------------------------DEFAULT------------------------*/
+    /*--------------------PAUSE IN INSPIRATION--------------------*/
+    case MOTOR_PAUSE:
+
+      #if MOTOR_VERBOSE
+        Serial.println("STATE: PAUSE");
+      #endif
+
+      if (millis() < MOTOR.inspEndTime) {                       // Piston reached final position but time remains in inspiration
+        comandoMotor(motorDIR, motorPWM, 0); 
+      }
+      else {                                                    // Piston in final position and inspiration time ended
+        motorState = MOTOR_RETURN_HOME_POSITION;
+      }
+
+      break;
+
+    /*-------------------------DEFAULT----------------------------*/
     default:
       break;
   }
@@ -320,36 +379,8 @@ void Motor_ReturnToHomePosition() {
   comandoMotor(motorDIR, motorPWM, -0.8*VEL_ANG_MAX);     // Sets return speed 
 }
 
-bool Motor_IsInHomePosition() {
-  return MOTOR.limitSwitch;
-}
-
-uint8_t Motor_GetBreathsPerMinute() {
-  return MOTOR.breathsMinute;
-}
-
-uint8_t Motor_GetVolumePerMinute() {
-  return MOTOR.volumeMinute;
-}
-
 void setpointVelocity(float vel) {
   MOTOR.wSetpoint = vel;
-}
-
-void Motor_VolumeModeSet(uint16_t tidalVolume, uint8_t breathsPerMinute, uint8_t IE_ratio) {
-  MOTOR.IE_Ratio = IE_ratio;
-  MOTOR.breathsMinute = breathsPerMinute;
-  MOTOR.tidalVolume = tidalVolume;
-  MOTOR.volumeModeSet = true;
-  MOTOR.pressureModeSet = false; 
-}
-
-void Motor_PressureModeSet(uint16_t adjustedPressure, uint8_t breathsPerMinute, uint8_t IE_ratio) {
-  MOTOR.IE_Ratio = IE_ratio;
-  MOTOR.breathsMinute = breathsPerMinute;
-  MOTOR.pSetpoint = adjustedPressure;
-  MOTOR.volumeModeSet = false;
-  MOTOR.pressureModeSet = true; 
 }
 
 void calculateControlPeriod() {
@@ -359,8 +390,75 @@ void calculateControlPeriod() {
 }
 
 void inspirationFirstIteration() {
-  MOTOR.inInspiration = true;
+  MOTOR.motorAction = MOTOR_ADVANCING;
   tiemposInspExp();             // Calculates inspiration and expiration times
   MOTOR.inspEndTime = millis() + MOTOR.inspirationTime*1000;
   cuentasEncoderVolumen();      // Calculates MOTOR.inspirationCounts
+}
+
+void Motor_SetBreathingParams() {
+  if (UI.setUpComplete) {
+    MOTOR.breathsMinute = UI.breathsMinute;
+    MOTOR.tidalVolume = UI.tidalVolume;
+    MOTOR.IE_Ratio = (float)(1/(1+UI.i_e));
+    MOTOR.pSetpoint = (double)UI.adjustedPressure;
+    MOTOR.modeSet = UI.selectedMode;
+  }
+}
+
+float calculateDisplacedVolume() {
+  float recorridoAngular = MOTOR.inspirationCounts*2*PI/encoderCountsPerRev;
+  float recorrido = recorridoAngular*crownRadius;
+  float volumeDisplaced = recorrido*pistonArea;
+
+  return volumeDisplaced;
+}
+
+void saveRealData(float tidalVol, uint32_t cycleTime) {
+
+  for (size_t i = BUFFER_SIZE-1; i > 0; i--)          //Moves data one place to the right
+  {
+    measuredData[i] = measuredData[i-1];
+  }
+  measuredData[0].cycleTime = cycleTime;              //Always saves data in first spot
+  measuredData[0].tidalVolume = tidalVol;
+}
+
+float getTidalVolume() {
+  return measuredTidalVol;
+}
+
+uint8_t getBreathsMinute() {
+
+  uint32_t lastCycle = measuredData[0].cycleTime;
+  uint8_t iterations = 0;
+
+  for (size_t i = 0; i < BUFFER_SIZE; i++)
+  {
+    if(measuredData[i].cycleTime < lastCycle-60000) {
+      iterations = i;
+      break;
+    }
+  }
+
+  return iterations; 
+}
+
+float getVolumeMinute() {
+
+  uint8_t cyclesMinute = getBreathsMinute();
+  float volumeMinute = 0;
+
+  for (size_t i = 0; i < cyclesMinute; i++)
+  {
+    volumeMinute += measuredData[i].tidalVolume;
+  }
+  
+  return volumeMinute;
+}
+
+void updateControlVariables() {
+  CTRL.breathsMinute = getBreathsMinute();
+  CTRL.volume = (uint16_t)getTidalVolume();
+  CTRL.volumeMinute = (uint16_t)getVolumeMinute();
 }

@@ -31,6 +31,7 @@ void Control_Task()
   Motor_Tasks();
   Sensor_Tasks();
 
+  /*
   switch (controlMode)
   {
     case CONTROL_IDLE:
@@ -94,11 +95,12 @@ void Control_Task()
     default:
       // ToDo: report error
       break;
-  }
+  }*/
 }
 
 void Control_VolumeModeTask()
 {
+  /*
   static uint16_t inspirationTimeout, expirationTimeout;
   
   switch (volumeModeState)
@@ -221,10 +223,12 @@ void Control_VolumeModeTask()
       // ToDo: report error
       break;
   }
+  */
 }
 
 void Control_PressureModeTask()
 {
+  /*
   static uint16_t inspirationTimeout, expirationTimeout;
   
   switch (pressureModeState)
@@ -337,6 +341,7 @@ void Control_PressureModeTask()
       // ToDo: report error
       break;
   }
+  */
 }
 
 bool CTRL_Timer(uint32_t n)
