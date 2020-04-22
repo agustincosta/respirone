@@ -148,9 +148,9 @@ typedef struct
           maxBreathsMinute,
           minBreathsMinute;    
 
-  uint16_t adjustedPressure,  // 
-           maxPressure,
-           minPressure;
+  int16_t adjustedPressure;  // 
+  int16_t maxPressure;
+  int16_t minPressure;
 
   uint16_t tidalVolume,       //
            maxVolumeMinute,

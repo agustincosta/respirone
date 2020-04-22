@@ -31,6 +31,7 @@ void Control_Task()
   Motor_Tasks();
   Sensor_Tasks();
 
+  /*
   switch (controlMode)
   {
     case CONTROL_IDLE:
@@ -94,11 +95,12 @@ void Control_Task()
     default:
       // ToDo: report error
       break;
-  }
+  }*/
 }
 
 void Control_VolumeModeTask()
 {
+  /*
   static uint16_t inspirationTimeout, expirationTimeout;
   
   switch (volumeModeState)
@@ -126,15 +128,9 @@ void Control_VolumeModeTask()
       break;
 
     case CTRL_VOLUME_INSPIRATION_MONITORING:
-      // Get pressure last value
+      // Update pressure last value
       CTRL.pressure = Sensor_GetLastValue(PRESSURE_SENSOR_1);
       
-      // Update plateau pressure value
-      if (Sensor_PlateauDetected(PRESSURE_SENSOR_1))
-      {
-        CTRL.plateauPressure = CTRL.pressure;
-      }
-
       // Check exit conditions
       if (CTRL.pressure<UI.maxPressure)     // High pressure
       {
@@ -147,20 +143,26 @@ void Control_VolumeModeTask()
         volumeModeState = CTRL_VOLUME_EXPIRATION_SETUP;
 
         // Update peak pressure value
-        CTRL.peakPressure = CTRL.pressure;
+        CTRL.peakPressure = Sensor_GetPeakValue(PRESSURE_SENSOR_1);
+
+        // Update plateau pressure value
+        if (Sensor_PlateauDetected(PRESSURE_SENSOR_1))
+        {
+          CTRL.plateauPressure = Sensor_GetPlateauValue(PRESSURE_SENSOR_1);
+        }
 
         // Update volume per minute value
-        CTRL.volumeMinute = Motor_GetVolumePerMinute();
-        if (CTRL.volumeMinute>UI.maxVolumeMinute)
-        {
-          volumeModeState = CTRL_VOLUME_EXPIRATION_SETUP;
-          UI_SetAlarm(ALARM_HIGH_VOLUME_PER_MINUTE);
-        }
-        else if (CTRL.volumeMinute<UI.minVolumeMinute)
-        {
-          //volumeModeState = CTRL_VOLUME_EXPIRATION_SETUP;
-          UI_SetAlarm(ALARM_LOW_VOLUME_PER_MINUTE);
-        }
+        // CTRL.volumeMinute = Motor_GetVolumePerMinute();
+        // if (CTRL.volumeMinute>UI.maxVolumeMinute)
+        // {
+          // volumeModeState = CTRL_VOLUME_EXPIRATION_SETUP;
+          // UI_SetAlarm(ALARM_HIGH_VOLUME_PER_MINUTE);
+        // }
+        // else if (CTRL.volumeMinute<UI.minVolumeMinute)
+        // {
+          ////volumeModeState = CTRL_VOLUME_EXPIRATION_SETUP;
+          // UI_SetAlarm(ALARM_LOW_VOLUME_PER_MINUTE);
+        // }
       }
       break;
 
@@ -173,19 +175,29 @@ void Control_VolumeModeTask()
       break;
 
     case CTRL_VOLUME_EXPIRATION_IDLE:
-      // Update PEEP value
-      if (Sensor_PlateauDetected(PRESSURE_SENSOR_1))
-        CTRL.PEEP = Sensor_GetLastValue(PRESSURE_SENSOR_1);
+      // Get pressure last value
+      CTRL.pressure = Sensor_GetLastValue(PRESSURE_SENSOR_1);
 
-      if (Motor_IsInHomePosition())
+      if (CTRL.pressure<UI.TrP) // Trigger from patient
       {
-        if (Sensor_PatientTrigger(PRESSURE_SENSOR_1))
+        if (Motor_IsInHomePosition())
         {
           volumeModeState = CTRL_VOLUME_INSPIRATION_SETUP;
         }
-        else if(CTRL_Timer(expirationTimeout))
-        {  
+        else
+        {
+          //ToDo> report error
+        }
+      }
+      else if(CTRL_Timer(expirationTimeout))
+      {  
+        if (Motor_IsInHomePosition())
+        {
           volumeModeState = CTRL_VOLUME_INSPIRATION_SETUP;
+		  
+		  // Update PEEP value
+		  if (Sensor_PlateauDetected(PRESSURE_SENSOR_1))
+			CTRL.PEEP = Sensor_GetPlateauValue(PRESSURE_SENSOR_1);
 
           // Update breaths per minute value
           CTRL.breathsMinute = Motor_GetBreathsPerMinute();
@@ -196,8 +208,13 @@ void Control_VolumeModeTask()
           else if (CTRL.breathsMinute<UI.minVolumeMinute)
           {
             UI_SetAlarm(ALARM_LOW_BREATHS_PER_MINUTE);
-          }          
+          }      
         }
+        else
+        {
+          //ToDo> report error
+        }
+            
       }
       break;      
 
@@ -206,10 +223,12 @@ void Control_VolumeModeTask()
       // ToDo: report error
       break;
   }
+  */
 }
 
 void Control_PressureModeTask()
 {
+  /*
   static uint16_t inspirationTimeout, expirationTimeout;
   
   switch (pressureModeState)
@@ -279,18 +298,24 @@ void Control_PressureModeTask()
       break;
 
     case CTRL_PRESSURE_EXPIRATION_IDLE:
-      // Update PEEP value
-      if (Sensor_PlateauDetected(PRESSURE_SENSOR_1))
-        CTRL.PEEP = Sensor_GetLastValue(PRESSURE_SENSOR_1);
+      // Get pressure last value
+      CTRL.pressure = Sensor_GetLastValue(PRESSURE_SENSOR_1);
 
-      if (Motor_IsInHomePosition())
+      if (CTRL.pressure<UI.TrP) // Trigger from patient
       {
-        if (Sensor_PatientTrigger(PRESSURE_SENSOR_1))
+		  if (Motor_IsInHomePosition())
         {
           pressureModeState = CTRL_PRESSURE_INSPIRATION_SETUP;
         }
-        else if(CTRL_Timer(expirationTimeout))
-        {  
+        else
+        {
+          //ToDo> report error
+        }		
+      }
+      else if(CTRL_Timer(expirationTimeout))
+      {
+        if (Motor_IsInHomePosition())
+        {
           pressureModeState = CTRL_PRESSURE_INSPIRATION_SETUP;
 
           // Update breaths per minute value
@@ -302,9 +327,13 @@ void Control_PressureModeTask()
           else if (CTRL.breathsMinute<UI.minVolumeMinute)
           {
             UI_SetAlarm(ALARM_LOW_BREATHS_PER_MINUTE);
-          }          
+          }
         }
-      }
+        else
+        {
+          //ToDo> report error
+        }    		
+      }          
       break;      
 
     default:
@@ -312,6 +341,7 @@ void Control_PressureModeTask()
       // ToDo: report error
       break;
   }
+  */
 }
 
 bool CTRL_Timer(uint32_t n)

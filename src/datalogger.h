@@ -3,6 +3,11 @@
 
 #include "Arduino.h"
 
+#define DATALOG_STATUS_TIMEOUT 100
+
+#define FIRMWARE_VERSION_HIGH 01
+#define FIRMWARE_VERSION_LOW  00
+
 typedef enum 
 {
     ERROR_
@@ -26,6 +31,11 @@ void DataLogger_Task();
  * 
  */
 void DataLogger_ReportStatus();
+
+/**
+ * @brief 
+ */
+void DataLogger_PrintUserSettings();
 
 /**
  * @brief 
