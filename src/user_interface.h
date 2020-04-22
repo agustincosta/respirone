@@ -9,14 +9,17 @@
 
 #define ARDUINO_PIN_QTY   45
 
- // Buttons
-#define BUTTON_UP_PIN     6   
-#define BUTTON_ENTER_PIN  5 
-#define BUTTON_BACK_PIN   4   
-#define BUTTON_DOWN_PIN   3 
-#define BUTTON_MENU_PIN   2  
+// LEDS
+#define LED_ALARM_PIN  11
 
-#define EMERGENCY_STOP      7
+// Buttons
+#define BUTTON_UP_PIN     40   
+#define BUTTON_DOWN_PIN   42
+#define BUTTON_MENU_PIN   44 
+#define BUTTON_ENTER_PIN  46
+#define BUTTON_BACK_PIN   48 
+ 
+#define EMERGENCY_STOP    50
 
 // TimeOuts (ms)
 #define INIT_MESSAGE_TIMEOUT        3000   
@@ -25,6 +28,7 @@
 #define TIMEOUT_RESTART_CONFIG      5000 
 
 //Display messages
+//Config
 #define DISPLAY_PROJECT_NAME          "RESPIRONE       "
 #define DISPLAY_LAUNCH_MENU           "Presione Menu   "
 #define DISPLAY_SELECT_MODE           "Seleccionar Modo"
@@ -38,10 +42,27 @@
 #define DISPLAY_VOLUME_MINUTE_M       "VMM             "
 #define DISPLAY_VOLUME_MINUTE_m       "VMm             "
 #define DISPLAY_BPM                   "RPM             "
-#define DISPLAY_I_E                   "I:E             "
+#define DISPLAY_T_I                   "Ti%             "
+#define DISPLAY_T_P                   "Tp%             "
 #define DISPLAY_MAX_PRESSURE          "PMax            "
 #define DISPLAY_TRP                   "TrP             "
 #define DISPLAY_EMPTY_LINE            "                "
+//Show
+#define DISPLAY_S_MODE           "SET MD"
+#define DISPLAY_R_SND_VOL        "REAL VEn"
+#define DISPLAY_S_TIDAL_VOL      "SET VT"
+#define DISPLAY_S_ADJ_PRESS      "SET PA"
+#define DISPLAY_R_VOL_MIN        "REAL V/m"
+#define DISPLAY_R_PRESSURE       "REAL Pr"
+#define DISPLAY_R_PEEP           "REAL PP"
+#define DISPLAY_S_MAX_PRESS      "SET PM"
+#define DISPLAY_R_PEAK_PRESS     "REAL Ppi"
+#define DISPLAY_S_BPM            "SET RPM"
+#define DISPLAY_R_BPM            "REAL RPM"
+#define DISPLAY_S_TI             "SET Ti%"
+#define DISPLAY_S_TP             "SET Tp%"
+#define DISPLAY_S_TRP            "SET TrP"
+
 
 typedef enum  
 {
@@ -68,9 +89,12 @@ typedef enum
   UI_SET_RPM,
   UI_BLINK_RPM,
   UI_DELAY_END_RPM,
-  UI_SET_I_E,
-  UI_BLINK_I_E,
-  UI_DELAY_END_I_E,
+  UI_SET_T_I,
+  UI_BLINK_T_I,
+  UI_DELAY_END_T_I,
+  UI_SET_T_P,
+  UI_BLINK_T_P,
+  UI_DELAY_END_T_P,  
   UI_SET_MAX_PRESSURE,
   UI_BLINK_MAX_PRESSURE,
   UI_DELAY_END_MAX_PRESSURE,
@@ -83,6 +107,18 @@ typedef enum
   UI_RESTART_CONFIG
 } 
 UI_states_e; 
+
+typedef enum
+{
+  UI_SCREEN_1,
+  UI_SCREEN_2,
+  UI_SCREEN_3,
+  UI_SCREEN_4,
+  UI_SCREEN_5,
+  UI_SCREEN_6,
+  UI_SCREEN_7
+}
+UI_ShowParametersStates_e;
 
 typedef enum  
 {
@@ -105,21 +141,26 @@ typedef struct
   bool    setUpComplete;      // Setup completed flag
   uint8_t selectedMode;       
 
-  uint8_t i_e;                // Inspiration/Expiration ratio
+  uint8_t t_i,                // Total % of breath cicle to inspiration  
+          t_p;                // Total % of breath cicle to pause  
 
-  uint8_t breathsMinute;      // Respiratory rate
-  uint8_t maxBreathsMinute;
-  uint8_t minBreathsMinute;    
+  uint8_t breathsMinute,      // Respiratory rate
+          maxBreathsMinute,
+          minBreathsMinute;    
 
-  uint16_t adjustedPressure;  // 
-  uint16_t maxPressure;
-  uint16_t minPressure;
+  uint16_t adjustedPressure,  // 
+           maxPressure,
+           minPressure;
 
-  uint16_t tidalVolume;       //
-  uint16_t maxVolumeMinute;
-  uint16_t minVolumeMinute;  
+  uint16_t tidalVolume,       //
+           maxVolumeMinute,
+           minVolumeMinute;  
 
   int8_t TrP;                 // Trigger respect PEEP
+
+  //////////////////////////////////////////////////////////////////////////////////////
+  uint8_t i_e;     /////////// SHOULD NOT BE USED ////////////   (just to compile)  ////
+  //////////////////////////////////////////////////////////////////////////////////////
 } 
 UI_t;
 
@@ -156,6 +197,16 @@ void UI_ShowParametersTask();
 /**
  *  \brief Brief description
  *  
+ *  \return Return description
+ *  
+ *  \details More details
+ */
+void UI_DisplayParameters(const char *param1, const char *param2, 
+                          const char *val1, uint8_t pos1, const char *val2, uint8_t pos2);
+
+/**
+ *  \brief Brief description
+ *  
  *  \param [in] pin Description for pin
  *  \return Return description
  *  
@@ -187,7 +238,15 @@ void UI_DisplayClear();
  */
 void UI_SetAlarm(uint8_t alarm);
 
-
+/**
+ *  \brief Brief description
+ *  
+ *  \param [in] pin Description for pin
+ *  \return Return description
+ *  
+ *  \details More details
+ */
+void UI_LoadParam();
 
 /**
  *  \brief Brief description
