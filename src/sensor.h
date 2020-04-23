@@ -13,7 +13,7 @@
  */
 #define PRESSURE_SENSOR_1_PIN               A0
 
-#define PRESSURE_SENSOR_MAX_VALUE           100 // ToDo
+#define PRESSURE_SENSOR_MAX_VALUE           600 // ToDo
 #define PRESSURE_SENSOR_MIN_VALUE           0   // ToDo
 #define PRESSURE_SENSOR_INVALID_VALUE       PRESSURE_SENSOR_MAX_VALUE+1   
 #define PRESSURE_SENSOR_PLATEAU_THRESHOLD   10 // ToDo
@@ -21,6 +21,8 @@
 #define PRESSURE_SENSOR_ACQUISITION_PERIOD  50
 
 #define PRESSURE_SENSOR_QUEUE_SIZE          10
+
+#define PRESSURE_SENSOR_OFFSET_ADC          204   // Reemplazar despues con una medida real de la presion atmosferica
 
 /**
  * @section Module types 

@@ -14,6 +14,7 @@
 
 #define MOTOR_VERBOSE true
 
+
 typedef enum
 {
     MOTOR_STARTING,                 // Motor starting by returning to home
@@ -33,8 +34,8 @@ typedef struct
     //Breathing parameters
     uint8_t breathsMinute;  // Measured value of breath/minute
     uint16_t volumeMinute;  // Volume/minute in the last minute
-    uint16_t tidalVolume;   // Tidal volume in ml
-    float IE_Ratio;         // Ratio of expirations to inspirations
+    uint32_t tidalVolume;   // Tidal volume in ml
+    float inspPercentage; // Ratio of expirations to inspirations
     uint8_t modeSet;        // Breathing mode set by UI
     bool pressureTrigger;   // Pressure under PEEP to trigger inspiration cycle
     //Angular velocity
@@ -60,6 +61,9 @@ typedef struct
     uint32_t cycleStart;    // Time in millis a cycle starts
     //Motor state
     Motor_Stages_e motorAction; // Action being carried out by motor
+    //Flags
+    bool flagInspEnded;     // Flag activated when inspiration ends
+    bool flagExpEnded;      // Flag activated when expiration ends
 }
 MOTOR_t;
 
@@ -86,7 +90,7 @@ Measured_t;
 
 
 /*Control activo PID*/
-#define CONTROL_ACTIVO_VOLUMEN true
+#define CONTROL_ACTIVO_VOLUMEN false
 #define CONTROL_ACTIVO_PRESION true
 #define CONTROL_SAMPLE_RATE 5  // Hz
 

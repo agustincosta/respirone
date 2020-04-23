@@ -7,19 +7,19 @@
  * @section Defines
  */
 
-#define ARDUINO_PIN_QTY   45
+#define ARDUINO_PIN_QTY   53
 
 // LEDS
 #define LED_ALARM_PIN  11
 
 // Buttons
-#define BUTTON_UP_PIN     40   
-#define BUTTON_DOWN_PIN   42
-#define BUTTON_MENU_PIN   44 
-#define BUTTON_ENTER_PIN  46
-#define BUTTON_BACK_PIN   48 
+#define BUTTON_UP_PIN     43   
+#define BUTTON_DOWN_PIN   45
+#define BUTTON_MENU_PIN   47 
+#define BUTTON_ENTER_PIN  49
+#define BUTTON_BACK_PIN   51 
  
-#define EMERGENCY_STOP    50
+#define EMERGENCY_STOP    53
 
 // TimeOuts (ms)
 #define INIT_MESSAGE_TIMEOUT        3000   

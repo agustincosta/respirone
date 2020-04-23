@@ -33,7 +33,7 @@ void Sensor_Tasks()
 
       // Acquire and queue
       sensorAnalogRead = analogRead(PRESSURE_SENSOR_1_PIN);
-      pressure[PRESSURE_SENSOR_1].value[pressure[PRESSURE_SENSOR_1].pValue] = (uint16_t)map(sensorAnalogRead, 0, 1023, PRESSURE_SENSOR_MIN_VALUE, PRESSURE_SENSOR_MAX_VALUE);
+      pressure[PRESSURE_SENSOR_1].value[pressure[PRESSURE_SENSOR_1].pValue] = (uint16_t)map(sensorAnalogRead, PRESSURE_SENSOR_OFFSET_ADC, 1023, PRESSURE_SENSOR_MIN_VALUE, PRESSURE_SENSOR_MAX_VALUE);
       break;    
 
     case SENSOR_PROCESS:
