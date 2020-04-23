@@ -12,13 +12,13 @@ void DataLogger_Init()
 {
   Serial.begin(115200);
 
-  logEnable = false;
+  logEnable = true;
   printUserSettings = false;
 
   logTimeoutMillis = DATALOG_STATUS_TIMEOUT;
 
   // Initial message
-  Serial.println((String)"<Respirone, " + (String)"Version "+String(FIRMWARE_VERSION_HIGH)+"." +String(FIRMWARE_VERSION_LOW) + (String)", "+ (String)__DATE__ + (String)">\n\n");
+  //Serial.println((String)"<Respirone, " + (String)"Version "+String(FIRMWARE_VERSION_HIGH)+"." +String(FIRMWARE_VERSION_LOW) + (String)", "+ (String)__DATE__ + (String)">\n\n");
 }
 
 void DataLogger_Task()
@@ -47,13 +47,22 @@ void DataLogger_Task()
 
 void DataLogger_ReportStatus()
 {
-  Serial.print("<BpM="+String(CTRL.breathsMinute)+",");   
-  Serial.print("Pr="+String(CTRL.pressure)+",");           
-  Serial.print("Ppk="+String(CTRL.peakPressure)+",");      
-  Serial.print("Ppl="+String(CTRL.plateauPressure)+",");   
-  Serial.print("Ppe="+String(CTRL.PEEP)+",");              
-  Serial.print("Vr="+String(CTRL.volume)+",");            
-  Serial.print("VpM="+String(CTRL.volumeMinute)+">\n");  
+  //Serial.print("<BpM="+String(CTRL.breathsMinute)+",");   
+  //Serial.print("Pr="+String(CTRL.pressure)+",");           
+  //Serial.print("Ppk="+String(CTRL.peakPressure)+",");      
+  //Serial.print("Ppl="+String(CTRL.plateauPressure)+",");   
+  //Serial.print("Ppe="+String(CTRL.PEEP)+",");              
+  //Serial.print("Vr="+String(CTRL.volume)+",");            
+  //Serial.print("VpM="+String(CTRL.volumeMinute)+">\n");  
+
+  Serial.print(String(CTRL.breathsMinute)+",");   
+  Serial.print(String(CTRL.pressure)+",");           
+  Serial.print(String(CTRL.peakPressure)+",");      
+  Serial.print(String(CTRL.plateauPressure)+",");   
+  Serial.print(String(CTRL.PEEP)+",");              
+  Serial.print(String(CTRL.volume)+",");            
+  Serial.print(String(CTRL.volumeMinute)+"\n");   
+ 
 }
 
 void DataLogger_PrintUserSettings()

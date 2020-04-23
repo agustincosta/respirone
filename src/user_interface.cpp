@@ -27,7 +27,7 @@ UI_t UI;
 void UI_Init()
 {
   // Debug
-  // Serial.begin(9600);
+  // //Serial.begin(9600);
 
   // Display
   lcd.begin(16,2);               // initialize the lcd 
@@ -1293,40 +1293,40 @@ void UI_Task()
         UI_Timer(0);
 
         // Debug
-        Serial.print("MODO:               ");
+        //Serial.print("MODO:               ");
         switch(UI.selectedMode)
         {
           case 0:
-            Serial.println("VOLUMEN");
-            Serial.print("Volumen Tidal:      ");
-            Serial.println(UI.tidalVolume);
+            //Serial.println("VOLUMEN");
+            //Serial.print("Volumen Tidal:      ");
+            //Serial.println(UI.tidalVolume);
             break;
           case 1:
-            Serial.println("PRESION");
-            Serial.print("Presión Ajustada:   ");
-            Serial.println(UI.adjustedPressure);
+            //Serial.println("PRESION");
+            //Serial.print("Presión Ajustada:   ");
+            //Serial.println(UI.adjustedPressure);
             break;
           case 2:
-            Serial.println("AUTOMATICO");
-            Serial.print("Volumen Tidal:      ");
-            Serial.println(UI.tidalVolume);
+            //Serial.println("AUTOMATICO");
+            //Serial.print("Volumen Tidal:      ");
+            //Serial.println(UI.tidalVolume);
             break;
         }
 
-        Serial.print("Volumen minuto Máx: ");
-        Serial.println(UI.maxVolumeMinute);
-        Serial.print("Volumen minuto mín: ");
-        Serial.println(UI.minVolumeMinute);
-        Serial.print("RPM:                ");
-        Serial.println(UI.breathsMinute);
-        Serial.print("TI%                 ");
-        Serial.println(UI.t_i);
-        Serial.print("TP%                 ");
-        Serial.println(UI.t_p);
-        Serial.print("Presión Máx:        ");
-        Serial.println(UI.maxPressure);
-        Serial.print("TrP:                ");
-        Serial.println(UI.TrP);
+        //Serial.print("Volumen minuto Máx: ");
+        //Serial.println(UI.maxVolumeMinute);
+        //Serial.print("Volumen minuto mín: ");
+        //Serial.println(UI.minVolumeMinute);
+        //Serial.print("RPM:                ");
+        //Serial.println(UI.breathsMinute);
+        //Serial.print("TI%                 ");
+        //Serial.println(UI.t_i);
+        //Serial.print("TP%                 ");
+        //Serial.println(UI.t_p);
+        //Serial.print("Presión Máx:        ");
+        //Serial.println(UI.maxPressure);
+        //Serial.print("TrP:                ");
+        //Serial.println(UI.TrP);
       }
       else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
       {

@@ -67,6 +67,12 @@ void Motor_Init() {
   //Flags
   MOTOR.flagInspEnded = false;
   MOTOR.flagExpEnded = false;
+
+  initPID();
+  setPinModes();
+
+  tone(11, 500, 500);
+
 }
 
 void initPID() {
@@ -128,7 +134,7 @@ void calculoVelocidadMedida(long Ts) {
    */
   lecturaEncoder();
 
-  MOTOR.wMeasure = MOTOR.encoderCounts*2.0*PI/(encoderCountsPerRev*Ts/1000); //En rad/s
+  MOTOR.wMeasure = MOTOR.encoderCounts*2.0*PI/(encoderCountsPerRev*Ts/SEC_TO_MILLIS); //En rad/s
    
 }
 
@@ -210,20 +216,21 @@ void tiemposInspExp() {
   /**
    * Esta funcion calcula los tiempos inspiratorios y expiratorios para determinar el control del motor
    */
-  MOTOR.inspirationTime = (60000.0/MOTOR.breathsMinute)*MOTOR.inspPercentage; //En milisegundos
-  MOTOR.expirationTime = (60000.0/MOTOR.breathsMinute)*(1-MOTOR.inspPercentage); //En milisegundos
+  MOTOR.inspirationTime = (MINUTE_MS/MOTOR.breathsMinute)*MOTOR.inspPercentage; //En milisegundos
+  MOTOR.expirationTime = (MINUTE_MS/MOTOR.breathsMinute)*(1-MOTOR.inspPercentage); //En milisegundos
 }
 
 void cuentasEncoderVolumen() {
   /**
    * Calcula las cuentas necesarias para desplazar el volumen 
    */
-  float recorrido = MOTOR.tidalVolume*1000/pistonArea;           //Distancia que debe recorrer el piston en mm (*1000 para pasar de ml a mm3)
+  float recorrido = MOTOR.tidalVolume*ML_TO_MM3/pistonArea;           //Distancia que debe recorrer el piston en mm (*1000 para pasar de ml a mm3)
   float recorridoAngular = recorrido/crownRadius;           //Angulo que debe recorrer el motor en rad
   MOTOR.inspirationCounts = round(encoderCountsPerRev*recorridoAngular/(2*PI));   
 }
 
 void Motor_Tasks() {
+
   switch (motorState)
   {
     
@@ -276,7 +283,7 @@ void Motor_Tasks() {
 
       Motor_SetBreathingParams();     //First checks if UI.setUpComplete  
 
-      //Serial.print("MOTOR STATE"); Serial.println(MOTOR.motorAction);                      
+      //Serial.print("MOTOR STATE"); Serial.println(MOTOR.motorAction);
 
       if (MOTOR.motorAction == MOTOR_RETURNING || MOTOR.motorAction == MOTOR_WAITING) {             // If expirating
         MOTOR.motorAction = MOTOR_WAITING;                    // Change state variable to waiting
@@ -287,11 +294,12 @@ void Motor_Tasks() {
           MOTOR.flagExpEnded = true;
 
           measuredCycleTime = millis() - MOTOR.cycleStart;    // Calculate last cycle time
-          saveRealData(measuredTidalVol, measuredCycleTime);  // Saves cycle time and tidal vol in queue
+          saveRealData(measuredTidalVol, measuredCycleTime);  // Saves cycle time and tidal vol in queue}
+          updateControlVariables();
 
           MOTOR.cycleStart = millis();                        // Saves time cycle begins
 
-          if (MOTOR.modeSet == UI_VOLUME_CONTROL) {           // Volume mode
+          if (MOTOR.modeSet == UI_VOLUME_CONTROL || MOTOR.modeSet == UI_AUTOMATIC_CONTROL) {           // Volume mode
             motorState = MOTOR_VOLUME_CONTROL;
             #if MOTOR_VERBOSE
               Serial.println("STATE: VOLUME CONTROL");
@@ -338,7 +346,7 @@ void Motor_Tasks() {
       if (MOTOR.motorAction == MOTOR_WAITING) {                 // Check if it its the first iteration to save the time
         inspirationFirstIteration();
       }
-     
+
       if (MOTOR.encoderTotal < MOTOR.inspirationCounts) {       // Piston moving forward
         
         #if CONTROL_ACTIVO_VOLUMEN 
@@ -354,7 +362,7 @@ void Motor_Tasks() {
         #endif
       }
       else {
-        comandoMotor(motorDIR, motorPWM, 0);
+        comandoMotor(motorDIR, motorPWM, VEL_PAUSE);
 
         measuredTidalVol = calculateDisplacedVolume();          // Calculate how much volume was displaced from encoder
 
@@ -394,7 +402,7 @@ void Motor_Tasks() {
     case MOTOR_PAUSE:
 
       if (millis() < MOTOR.inspEndTime) {                       // Piston reached final position but time remains in inspiration
-        comandoMotor(motorDIR, motorPWM, 0); 
+        comandoMotor(motorDIR, motorPWM, VEL_PAUSE); 
         MOTOR.motorAction = MOTOR_STOPPED;
       }
       else {                                                    // Piston in final position and inspiration time ended
@@ -408,6 +416,7 @@ void Motor_Tasks() {
 
     /*-------------------------DEFAULT----------------------------*/
     default:
+      Serial.println("ESTADO DESCONOCIDO");
       break;
   }
 }
@@ -418,7 +427,8 @@ void Motor_ReturnToHomePosition() {
 
 void setpointVelocityCalculation() {
   float motorAdvanceTime = MOTOR.inspirationTime*(1-MOTOR.pausePercentage);
-  float angularVelocity = (MOTOR.inspirationCounts*2.0*PI/encoderCountsPerRev)/motorAdvanceTime;
+  float angularRange = (MOTOR.inspirationCounts*2.0*PI/encoderCountsPerRev)*SEC_TO_MILLIS;
+  float angularVelocity = angularRange/motorAdvanceTime;
 
   if (angularVelocity < VEL_ANG_MIN) {
     MOTOR.wSetpoint = VEL_ANG_MIN;
@@ -453,15 +463,16 @@ void Motor_SetBreathingParams() {
     MOTOR.pausePercentage = ((float)UI.t_p)/100;
     MOTOR.pSetpoint = (double)UI.adjustedPressure;
     MOTOR.modeSet = UI.selectedMode;
+    MOTOR.pressureTrigger = (CTRL.pressure < CTRL.PEEP+ UI.TrP);
   }
 }
 
 float calculateDisplacedVolume() {
-  float recorridoAngular = MOTOR.inspirationCounts*2*PI/encoderCountsPerRev;
+  float recorridoAngular = MOTOR.encoderTotal*2*PI/encoderCountsPerRev;
   float recorrido = recorridoAngular*crownRadius;
   float volumeDisplaced = recorrido*pistonArea;
 
-  return volumeDisplaced;
+  return volumeDisplaced/ML_TO_MM3;
 }
 
 void saveRealData(float tidalVol, uint32_t cycleTime) {

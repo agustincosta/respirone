@@ -12,8 +12,43 @@
 #include <Arduino.h>
 #include "user_interface.h"
 
-#define MOTOR_VERBOSE true
+#define MOTOR_VERBOSE false
 
+/*Control activo PID*/
+#define CONTROL_ACTIVO_VOLUMEN true
+#define CONTROL_ACTIVO_PRESION true
+#define CONTROL_SAMPLE_RATE 5  // Hz
+
+/*Limite respiraciones minuto*/
+#define BUFFER_SIZE 30
+
+/*Velocidades*/
+#define VEL_ANG_MAX 8.986   // Experimental en rad/s
+#define VEL_ANG_MIN 3.5     // Experimental en rad/s
+#define VEL_PAUSE 3.2       // Probar
+
+/*Presiones*/
+#define PRES_MIN 5          // Minimum control pressure
+#define PRES_MAX 35         // Maximum control pressure
+
+/*Encoder*/
+#define encoderCountsPerRev 8400
+
+/*Definicion de pines*/
+#define encoderA 2
+#define encoderB 3
+#define motorDIR 4
+#define motorPWM 5
+#define endSwitch 6 
+#define pressureSensor A0
+
+/*Caracteristicas mecanicas*/
+#define pistonArea 12271.8463   //En mm2
+#define crownRadius 31.50       //En mm
+
+/*Conversiones*/
+#define SEC_TO_MILLIS 1000
+#define ML_TO_MM3 1000
 
 typedef enum
 {
@@ -68,6 +103,8 @@ typedef struct
 }
 MOTOR_t;
 
+extern MOTOR_t MOTOR;
+
 /**
  * @brief FSM states for the motor
  */
@@ -88,38 +125,6 @@ typedef struct
     uint32_t cycleTime;             // Time taken by each cycle
 }
 Measured_t;
-
-
-/*Control activo PID*/
-#define CONTROL_ACTIVO_VOLUMEN false
-#define CONTROL_ACTIVO_PRESION true
-#define CONTROL_SAMPLE_RATE 5  // Hz
-
-/*Limite respiraciones minuto*/
-#define BUFFER_SIZE 30
-
-/*Velocidades*/
-#define VEL_ANG_MAX 8.986   // Experimental en rad/s
-#define VEL_ANG_MIN 0.65    // Experimental en rad/s
-
-/*Presiones*/
-#define PRES_MIN 5          // Minimum control pressure
-#define PRES_MAX 35         // Maximum control pressure
-
-/*Encoder*/
-#define encoderCountsPerRev 8400
-
-/*Definicion de pines*/
-#define encoderA 2
-#define encoderB 3
-#define motorDIR 4
-#define motorPWM 5
-#define endSwitch 6 
-#define pressureSensor A0
-
-/*Caracteristicas mecanicas*/
-#define pistonArea 12271.8463   //En mm2
-#define crownRadius 31.50       //En mm
 
 /**
  * @brief Initializes motor structure variables
