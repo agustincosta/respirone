@@ -4,6 +4,9 @@
  * @version 0.1
  */
 #include "sensor.h"
+#include "control.h"
+#include "motor.h"
+#include "alarms.h"
 
 PRESSURE_t pressure[PRESSURE_SENSOR_QTY];
 uint16_t sensorAnalogRead;
@@ -18,6 +21,29 @@ void Sensor_Init()
 
 void Sensor_Tasks()
 {
+  if (MOTOR.flagInspEnded)
+  {
+    MOTOR.flagInspEnded = false;
+
+    // Update peak pressure value
+    CTRL.peakPressure = Sensor_GetPeakValue(PRESSURE_SENSOR_1);
+
+    // Update plateau pressure value
+    if (Sensor_PlateauDetected(PRESSURE_SENSOR_1))
+    {
+      CTRL.plateauPressure = Sensor_GetPlateauValue(PRESSURE_SENSOR_1);
+    }
+  }
+
+  if (MOTOR.flagExpEnded)
+  {
+    MOTOR.flagExpEnded = false;
+    // Update PEEP value
+		if (Sensor_PlateauDetected(PRESSURE_SENSOR_1))
+			CTRL.PEEP = Sensor_GetPlateauValue(PRESSURE_SENSOR_1);
+  }
+  
+
   switch(sensorState)
   {
     case SENSOR_IDLE:
@@ -34,6 +60,15 @@ void Sensor_Tasks()
       // Acquire and queue
       sensorAnalogRead = analogRead(PRESSURE_SENSOR_1_PIN);
       pressure[PRESSURE_SENSOR_1].value[pressure[PRESSURE_SENSOR_1].pValue] = (uint16_t)map(sensorAnalogRead, PRESSURE_SENSOR_OFFSET_ADC, 1023, PRESSURE_SENSOR_MIN_VALUE, PRESSURE_SENSOR_MAX_VALUE);
+      
+      // Update pressure last value
+      CTRL.pressure = Sensor_GetLastValue(PRESSURE_SENSOR_1);
+      
+      // Check exit conditions
+      if (CTRL.pressure<UI.maxPressure)     // High pressure
+      {
+        UI_SetAlarm(ALARM_HIGH_PRESSURE);
+      }  
       break;    
 
     case SENSOR_PROCESS:
