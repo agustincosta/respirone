@@ -35,7 +35,8 @@ typedef struct
     uint8_t breathsMinute;  // Measured value of breath/minute
     uint16_t volumeMinute;  // Volume/minute in the last minute
     uint32_t tidalVolume;   // Tidal volume in ml
-    float inspPercentage; // Ratio of expirations to inspirations
+    float inspPercentage;   // Percentage of cycle for inspiration
+    float pausePercentage;  // Percentage of inspiration for pause
     uint8_t modeSet;        // Breathing mode set by UI
     bool pressureTrigger;   // Pressure under PEEP to trigger inspiration cycle
     //Angular velocity
@@ -99,7 +100,7 @@ Measured_t;
 
 /*Velocidades*/
 #define VEL_ANG_MAX 8.986   // Experimental en rad/s
-#define VEL_ANG_MIN 0.65    // Experimental en rad/s - No se usa
+#define VEL_ANG_MIN 0.65    // Experimental en rad/s
 
 /*Presiones*/
 #define PRES_MIN 5          // Minimum control pressure
@@ -206,11 +207,10 @@ void Motor_Tasks();
 void Motor_ReturnToHomePosition();
 
 /**
- * @brief Sets MOTOR.wSetpoint
+ * @brief Sets MOTOR.wSetpoint taking into account UI.t_i and UI.t_p
  * 
- * @param vel Angular velocity setpoint
  */
-void setpointVelocity(float vel);
+void setpointVelocityCalculation();
 
 /**
  * @brief Control period calculation

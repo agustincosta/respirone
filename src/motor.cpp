@@ -39,6 +39,7 @@ void Motor_Init() {
   MOTOR.breathsMinute = 0;
   MOTOR.volumeMinute = 0;
   MOTOR.inspPercentage = 0;
+  MOTOR.pausePercentage = 0;
   MOTOR.modeSet = UI_VOLUME_CONTROL;
   //Angular velocity
   MOTOR.wSetpoint = 0;
@@ -147,6 +148,8 @@ void comandoMotor(int dirPin, int pwmPin, double velocidad) {
   {
     digitalWrite(dirPin, HIGH);
   }
+
+  //velocidad = (velocidad < VEL_ANG_MIN)? VEL_ANG_MIN : velocidad;   // Can't go below minimum speed
    
   //Serial.print("PWM: "); Serial.println(velocidad/VEL_ANG_MAX*255);
   //Serial.print("DIR: "); Serial.println(direccion);
@@ -183,21 +186,22 @@ void controlDeVolumen() {
    * Esta funcion usa un PID para computar la velocidad de comando para alcanzar
    * y determina la velocidad del motor
    */
-   calculoVelocidadMedida(MOTOR.Ts);  //Calcula w_medida a partir de periodo (Ts) y encoder
-   volumenPID.Compute();        //Actualiza w_comando en funcion de w_medida y w_setpoint
-   /*
-   Serial.print("MOTOR.wCommand: "); Serial.println(MOTOR.wCommand);
-   Serial.print("MOTOR.wMeasure: "); Serial.println(MOTOR.wMeasure);
-   Serial.print("MOTOR.wSetpoint: "); Serial.println(MOTOR.wSetpoint);
-   */
-   comandoMotor(motorDIR, motorPWM, MOTOR.wCommand); //Mueve el motor
+  setpointVelocityCalculation();
+  calculoVelocidadMedida(MOTOR.Ts);  //Calcula w_medida a partir de periodo (Ts) y encoder
+  volumenPID.Compute();        //Actualiza w_comando en funcion de w_medida y w_setpoint
+  /*
+  Serial.print("MOTOR.wCommand: "); Serial.println(MOTOR.wCommand);
+  Serial.print("MOTOR.wMeasure: "); Serial.println(MOTOR.wMeasure);
+  Serial.print("MOTOR.wSetpoint: "); Serial.println(MOTOR.wSetpoint);
+  */
+  comandoMotor(motorDIR, motorPWM, MOTOR.wCommand); //Mueve el motor
 }
 
 void inspiracionVolumen() {
   /**
    * Esta funcion calcula la velocidad del motor y lo comanda para control por volumen sin PID
    */
-  setpointVelocity(VEL_ANG_MAX);                      //Sets maximum speed for inspiration
+  setpointVelocityCalculation();                      //Sets maximum speed for inspiration
   comandoMotor(motorDIR, motorPWM, MOTOR.wSetpoint);  //Sends command to move motor
 
 }
@@ -412,8 +416,20 @@ void Motor_ReturnToHomePosition() {
   comandoMotor(motorDIR, motorPWM, -0.8*VEL_ANG_MAX);     // Sets return speed 
 }
 
-void setpointVelocity(float vel) {
-  MOTOR.wSetpoint = vel;
+void setpointVelocityCalculation() {
+  float motorAdvanceTime = MOTOR.inspirationTime*(1-MOTOR.pausePercentage);
+  float angularVelocity = (MOTOR.inspirationCounts*2.0*PI/encoderCountsPerRev)/motorAdvanceTime;
+
+  if (angularVelocity < VEL_ANG_MIN) {
+    MOTOR.wSetpoint = VEL_ANG_MIN;
+  }
+  else if (angularVelocity > VEL_ANG_MAX) {
+    MOTOR.wSetpoint = VEL_ANG_MAX;
+  }
+  else {
+    MOTOR.wSetpoint = angularVelocity;
+  }
+  
 }
 
 void calculateControlPeriod() {
@@ -433,7 +449,8 @@ void Motor_SetBreathingParams() {
   if (UI.setUpComplete) {
     MOTOR.breathsMinute = UI.breathsMinute;
     MOTOR.tidalVolume = (uint32_t)UI.tidalVolume;
-    MOTOR.inspPercentage =((float)UI.t_i)/100;
+    MOTOR.inspPercentage = ((float)UI.t_i)/100;
+    MOTOR.pausePercentage = ((float)UI.t_p)/100;
     MOTOR.pSetpoint = (double)UI.adjustedPressure;
     MOTOR.modeSet = UI.selectedMode;
   }
