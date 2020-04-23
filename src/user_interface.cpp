@@ -524,15 +524,30 @@ void UI_Task()
       }
       else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
       {
-        UI_DisplayClear();
-        UI_DisplayMessage(0,0,DISPLAY_TIDAL_VOLUME);
-        
-        itoa(tempParam.tidalVolume,stringAux,10);
-        strcat(stringAux, "ml");
-        UI_DisplayMessage(0,1,stringAux);
+        if(tempParam.selectedMode == UI_PRESSURE_CONTROL)
+        {
+          UI_DisplayClear();
+          UI_DisplayMessage(0,0,DISPLAY_ADJUSTED_PRESSURE);
 
-        uiState = UI_SET_TIDAL_VOLUME;
-        UI_Timer(0);         
+          itoa(tempParam.adjustedPressure,stringAux,10);
+          strcat(stringAux, "cm.H2O");
+          UI_DisplayMessage(0,1,stringAux);
+
+          uiState = UI_SET_ADJUSTED_PRESSURE;
+          UI_Timer(0);
+        }
+        else if(tempParam.selectedMode == UI_VOLUME_CONTROL)
+        {
+          UI_DisplayClear();
+          UI_DisplayMessage(0,0,DISPLAY_TIDAL_VOLUME);
+
+          itoa(tempParam.tidalVolume,stringAux,10);
+          strcat(stringAux, "ml");
+          UI_DisplayMessage(0,1,stringAux);
+
+          uiState = UI_SET_TIDAL_VOLUME;
+          UI_Timer(0);
+        }       
       }      
       else if(UI_Timer(TIMEOUT_BLINK))
       {
@@ -568,15 +583,30 @@ void UI_Task()
       }
       else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
       {
-        UI_DisplayClear();
-        UI_DisplayMessage(0,0,DISPLAY_TIDAL_VOLUME);
+        if(tempParam.selectedMode == UI_PRESSURE_CONTROL)
+        {
+          UI_DisplayClear();
+          UI_DisplayMessage(0,0,DISPLAY_ADJUSTED_PRESSURE);
 
-        itoa(tempParam.tidalVolume,stringAux,10);
-        strcat(stringAux, "ml");
-        UI_DisplayMessage(0,1,stringAux);
+          itoa(tempParam.adjustedPressure,stringAux,10);
+          strcat(stringAux, "cm.H2O");
+          UI_DisplayMessage(0,1,stringAux);
 
-        uiState = UI_SET_TIDAL_VOLUME;
-        UI_Timer(0);         
+          uiState = UI_SET_ADJUSTED_PRESSURE;
+          UI_Timer(0);
+        }
+        else if(tempParam.selectedMode == UI_VOLUME_CONTROL)
+        {
+          UI_DisplayClear();
+          UI_DisplayMessage(0,0,DISPLAY_TIDAL_VOLUME);
+
+          itoa(tempParam.tidalVolume,stringAux,10);
+          strcat(stringAux, "ml");
+          UI_DisplayMessage(0,1,stringAux);
+
+          uiState = UI_SET_TIDAL_VOLUME;
+          UI_Timer(0);
+        }    
       }      
       else if(UI_Timer(TIMEOUT_BLINK))
       {
