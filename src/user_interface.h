@@ -7,7 +7,7 @@
  * @section Defines
  */
 
-#define ARDUINO_PIN_QTY   45
+#define ARDUINO_PIN_QTY   53
 
 // LEDS
 #define LED_ALARM_PIN  11
