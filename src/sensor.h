@@ -2,9 +2,7 @@
  * @file sensor.h
  * @brief 
  * @version 0.1
- * 
  */
-
 #ifndef SENSOR_H
 #define SENSOR_H
 
@@ -17,8 +15,8 @@
 
 #define PRESSURE_SENSOR_MAX_VALUE           100 // ToDo
 #define PRESSURE_SENSOR_MIN_VALUE           0   // ToDo
-#define PRESSURE_SENSOR_INVALID_VALUE       ~0   
-#define PRESSURE_SENSOR_PEAK_THRESHOLD      10 // ToDo
+#define PRESSURE_SENSOR_INVALID_VALUE       PRESSURE_SENSOR_MAX_VALUE+1   
+#define PRESSURE_SENSOR_PLATEAU_THRESHOLD   10 // ToDo
 
 #define PRESSURE_SENSOR_ACQUISITION_PERIOD  50
 
@@ -36,18 +34,23 @@ PressureSensorIndexes_e;
 
 typedef struct
 {
-  uint16_t value[PRESSURE_SENSOR_QUEUE_SIZE];
-  uint8_t  pValue;
+  int16_t value[PRESSURE_SENSOR_QUEUE_SIZE];        // Measured value queue
+  uint8_t pValue;                                   // Queue index
+
+  int16_t averageValue;                             // Average value
+
+  int16_t peakValue;                                // Peak value
+  
+  bool plateauDetected;
+  int16_t plateauValue;                             // Plateau value
 }
 PRESSURE_t;
 
-extern PRESSURE_t pressure[PRESSURE_SENSOR_QTY];
-
 typedef enum 
 {
-    SENSOR_IDLE,
-    SENSOR_ACQUIRE,
-    SENSOR_PROCESS
+  SENSOR_IDLE,
+  SENSOR_ACQUIRE,
+  SENSOR_PROCESS
 }
 Sensor_States_e; 
 
@@ -65,18 +68,25 @@ void Sensor_Tasks();
  * @brief 
  * 
  * @param sensorNumber 
- * @return uint16_t 
+ * @return int16_t 
  */
-uint16_t Sensor_GetLastValue(uint8_t sensorNumber);
+int16_t Sensor_GetLastValue(uint8_t sensorNumber);
 
 /**
  * @brief 
  * 
  * @param sensorNumber 
- * @return true 
- * @return false 
+ * @return int16_t 
  */
-bool Sensor_PatientTrigger(uint8_t sensorNumber);
+int16_t Sensor_GetPeakValue(uint8_t sensorNumber);
+
+/**
+ * @brief 
+ * 
+ * @param sensorNumber 
+ * @return int16_t 
+ */
+int16_t Sensor_GetPlateauValue(uint8_t sensorNumber);
 
 /**
  * @brief 
