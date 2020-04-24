@@ -111,6 +111,7 @@ void setPinModes() {
    */
   pinMode(motorPWM, OUTPUT);
   pinMode(motorDIR, OUTPUT);
+  pinMode(endSwitch, INPUT);
   //El seteo de pines de interrupcion lo hace la libreria encoder
   //No hay que setear nada para el analogico
   
@@ -167,14 +168,20 @@ void controlDePresion() {
    * Esta funcion usa un PID para computar la presion de comando para alcanzar 
    * y determina la velocidad del motor para alcanzarla
    */
-   double deltaPresion = 0;
-   double deltaVelocidad = 0; 
-   
-   MOTOR.pMeasure = CTRL.pressure;                    //Actualiza la presion medida
-   presionPID.Compute();                              //Actualiza p_comando en funcion de p_medida y p_setpoint
-   deltaPresion = MOTOR.pSetpoint - MOTOR.pCommand;   //Diferencia de presion para determinar cambio de velocidad
-   deltaVelocidad = map(abs(deltaPresion), 0, PRES_MAX, 0, VEL_ANG_MAX);   //Convierte diferencia de presion a diferencia de velocidad (TURBIO)
-   
+  double deltaPresion = 0;
+  double deltaVelocidad = 0; 
+  
+  MOTOR.pMeasure = CTRL.pressure;                    //Actualiza la presion medida
+  presionPID.Compute();                              //Actualiza p_comando en funcion de p_medida y p_setpoint
+  deltaPresion = MOTOR.pSetpoint - MOTOR.pCommand;   //Diferencia de presion para determinar cambio de velocidad
+  deltaVelocidad = map(abs(deltaPresion), 0, PRES_MAX, 3.5, VEL_ANG_MAX);   //Convierte diferencia de presion a diferencia de velocidad (TURBIO)
+
+  #if MOTOR_PID_LOG
+    Serial.print("MOTOR.pCommand: "); Serial.println(MOTOR.pCommand);
+    Serial.print("MOTOR.pMeasure: "); Serial.println(MOTOR.pMeasure);
+    Serial.print("MOTOR.pSetpoint: "); Serial.println(MOTOR.pSetpoint);
+  #endif
+
    if (deltaPresion >= 0) 
    {
      MOTOR.wCommand += deltaVelocidad;  //Modifica velocidad
@@ -184,7 +191,14 @@ void controlDePresion() {
      MOTOR.wCommand -= deltaVelocidad;
    }
 
-   comandoMotor(motorDIR, motorPWM, MOTOR.wCommand); //Mueve el motor
+  if (MOTOR.wCommand < VEL_ANG_MIN) {
+    MOTOR.wCommand = VEL_ANG_MIN;
+  }
+  else if (MOTOR.wCommand > VEL_ANG_MAX) {
+    MOTOR.wCommand = VEL_ANG_MAX;
+  }
+
+  comandoMotor(motorDIR, motorPWM, MOTOR.wCommand); //Mueve el motor
 }
 
 void controlDeVolumen() {
@@ -195,11 +209,13 @@ void controlDeVolumen() {
   setpointVelocityCalculation();
   calculoVelocidadMedida(MOTOR.Ts);  //Calcula w_medida a partir de periodo (Ts) y encoder
   volumenPID.Compute();        //Actualiza w_comando en funcion de w_medida y w_setpoint
-  /*
-  Serial.print("MOTOR.wCommand: "); Serial.println(MOTOR.wCommand);
-  Serial.print("MOTOR.wMeasure: "); Serial.println(MOTOR.wMeasure);
-  Serial.print("MOTOR.wSetpoint: "); Serial.println(MOTOR.wSetpoint);
-  */
+  
+  #if MOTOR_PID_LOG
+    Serial.print("MOTOR.wCommand: "); Serial.println(MOTOR.wCommand);
+    Serial.print("MOTOR.wMeasure: "); Serial.println(MOTOR.wMeasure);
+    Serial.print("MOTOR.wSetpoint: "); Serial.println(MOTOR.wSetpoint);
+  #endif
+  
   comandoMotor(motorDIR, motorPWM, MOTOR.wCommand); //Mueve el motor
 }
 
@@ -231,18 +247,21 @@ void cuentasEncoderVolumen() {
 
 void Motor_Tasks() {
 
-  switch (motorState)
+  MOTOR.limitSwitch = digitalRead(endSwitch);
+
+  switch (motorState) 
   {
-    
-    #if MOTOR_VERBOSE
-      Serial.println("STATE: POWER ON");
-    #endif
     /*--------------------------POWER ON--------------------------*/
     case MOTOR_POWER_ON:
+
+      #if MOTOR_STATES_LOG
+        Serial.println("STATE: POWER ON");
+      #endif
+
       MOTOR.motorAction = MOTOR_STARTING;
       motorState = MOTOR_RETURN_HOME_POSITION;
 
-      #if MOTOR_VERBOSE
+      #if MOTOR_STATES_LOG
         Serial.println("STATE: RETURN TO HOME");
       #endif
 
@@ -258,20 +277,20 @@ void Motor_Tasks() {
 
       } 
 
-      if (/*!MOTOR.limitSwitch ||*/ (MOTOR.encoderTotal > 0)) {   // Not in home position conditions
+      if ( MOTOR.limitSwitch && (MOTOR.encoderTotal > 0)) {   // Not in home position conditions
         Motor_ReturnToHomePosition();
         lecturaEncoder();        
       }
       else {                                                  // In home position - either by encoder or limit switch
         comandoMotor(motorDIR, motorPWM, 0);
-
+        MOTOR.encoderTotal = 0;
         if (MOTOR.motorAction == MOTOR_STARTING) {
           MOTOR.encoderTotal = 0;
         } 
 
         motorState = MOTOR_IDLE;                              // Back to idle state
         
-        #if MOTOR_VERBOSE
+        #if MOTOR_STATES_LOG
           Serial.println("STATE: IDLE");
         #endif
       }   
@@ -289,7 +308,7 @@ void Motor_Tasks() {
         MOTOR.motorAction = MOTOR_WAITING;                    // Change state variable to waiting
         
         //BEGIN NEW CYCLE
-        if (millis() >= MOTOR.expEndTime || MOTOR.pressureTrigger) {    // Inspiration beginning condition
+        if (millis() >= MOTOR.expEndTime /*|| MOTOR.pressureTrigger*/) {    // Inspiration beginning condition
 
           MOTOR.flagExpEnded = true;
 
@@ -301,13 +320,13 @@ void Motor_Tasks() {
 
           if (MOTOR.modeSet == UI_VOLUME_CONTROL || MOTOR.modeSet == UI_AUTOMATIC_CONTROL) {           // Volume mode
             motorState = MOTOR_VOLUME_CONTROL;
-            #if MOTOR_VERBOSE
+            #if MOTOR_STATES_LOG
               Serial.println("STATE: VOLUME CONTROL");
             #endif
           }
           else if (MOTOR.modeSet == UI_PRESSURE_CONTROL) {    // Pressure mode
             motorState = MOTOR_PRESSURE_CONTROL;
-            #if MOTOR_VERBOSE
+            #if MOTOR_STATES_LOG
               Serial.println("STATE: PRESSURE CONTROL");
             #endif
           }
@@ -322,13 +341,13 @@ void Motor_Tasks() {
           MOTOR.motorAction = MOTOR_WAITING;
           if (MOTOR.modeSet == UI_VOLUME_CONTROL) {             // Volume mode
             motorState = MOTOR_VOLUME_CONTROL;
-            #if MOTOR_VERBOSE
+            #if MOTOR_STATES_LOG
               Serial.println("STATE: VOLUME CONTROL");
             #endif
           }
           else if (MOTOR.modeSet == UI_PRESSURE_CONTROL) {      // Pressure mode
             motorState = MOTOR_PRESSURE_CONTROL;
-            #if MOTOR_VERBOSE
+            #if MOTOR_STATES_LOG
               Serial.println("STATE: PRESSURE CONTROL");
             #endif
           }
@@ -347,8 +366,8 @@ void Motor_Tasks() {
         inspirationFirstIteration();
       }
 
-      if (MOTOR.encoderTotal < MOTOR.inspirationCounts) {       // Piston moving forward
-        
+      if ((MOTOR.encoderTotal < MOTOR.inspirationCounts) && (millis() < MOTOR.inspEndTime) && (CTRL.pressure < UI.maxPressure)) {       // Piston moving forward
+        // Conditions for inspiration: encoder counts not reached, inspiration time not passed and pressure below max
         #if CONTROL_ACTIVO_VOLUMEN 
         { 
           calculateControlPeriod();   
@@ -362,6 +381,19 @@ void Motor_Tasks() {
         #endif
       }
       else {
+
+        #if MOTOR_STATES_LOG
+          if (MOTOR.encoderTotal > MOTOR.inspirationCounts) {
+            Serial.println("Cuentas encoder");
+          }
+          else if (millis() > MOTOR.inspEndTime) {
+            Serial.println("Timeout");
+          }
+          else if (CTRL.pressure > UI.maxPressure) {
+            Serial.println("Presion alta");
+          }
+        #endif
+
         comandoMotor(motorDIR, motorPWM, VEL_PAUSE);
 
         measuredTidalVol = calculateDisplacedVolume();          // Calculate how much volume was displaced from encoder
@@ -369,7 +401,7 @@ void Motor_Tasks() {
         motorState = MOTOR_PAUSE;
         MOTOR.motorAction = MOTOR_STOPPED;
 
-        #if MOTOR_VERBOSE
+        #if MOTOR_STATES_LOG
           Serial.println("STATE: PAUSE");
         #endif
       }
@@ -391,7 +423,7 @@ void Motor_Tasks() {
         measuredTidalVol = calculateDisplacedVolume();          // Calculate how much volume was displaced from encoder
         motorState = MOTOR_RETURN_HOME_POSITION;    
         MOTOR.motorAction = MOTOR_STOPPED;                      // Set to pause to make RETURN state simpler
-        #if MOTOR_VERBOSE
+        #if MOTOR_STATES_LOG
           Serial.println("STATE: RETURN TO HOME");
         #endif
       }
@@ -407,7 +439,7 @@ void Motor_Tasks() {
       }
       else {                                                    // Piston in final position and inspiration time ended
         motorState = MOTOR_RETURN_HOME_POSITION;
-        #if MOTOR_VERBOSE
+        #if MOTOR_STATES_LOG
           Serial.println("STATE: RETURN TO HOME");
         #endif
       }
@@ -520,6 +552,6 @@ float getVolumeMinute() {
 
 void updateControlVariables() {
   CTRL.breathsMinute = getBreathsMinute();
-  CTRL.volume = (uint16_t)getTidalVolume();
-  CTRL.volumeMinute = (uint16_t)getVolumeMinute();
+  CTRL.volume = (int16_t)getTidalVolume();
+  CTRL.volumeMinute = (int16_t)getVolumeMinute();
 }

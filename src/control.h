@@ -22,8 +22,8 @@ typedef struct control
     int16_t plateauPressure;   // Plateau pressure in the last cycle
     int16_t PEEP;              // Measured value of PEEP in the last cycle
 
-    uint16_t volume;            // Actual volume value
-    uint16_t volumeMinute;   // Volume/minute in the last minute
+    int16_t volume;            // Actual volume value
+    int16_t volumeMinute;   // Volume/minute in the last minute
 }
 CTRL_t;
 

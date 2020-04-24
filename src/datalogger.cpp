@@ -12,7 +12,7 @@ void DataLogger_Init()
 {
   Serial.begin(115200);
 
-  logEnable = true;
+  logEnable = false;
   printUserSettings = false;
 
   logTimeoutMillis = DATALOG_STATUS_TIMEOUT;

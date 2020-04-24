@@ -12,20 +12,21 @@
 #include <Arduino.h>
 #include "user_interface.h"
 
-#define MOTOR_VERBOSE false
+#define MOTOR_STATES_LOG true
+#define MOTOR_PID_LOG false
 
 /*Control activo PID*/
 #define CONTROL_ACTIVO_VOLUMEN true
 #define CONTROL_ACTIVO_PRESION true
-#define CONTROL_SAMPLE_RATE 5  // Hz
+#define CONTROL_SAMPLE_RATE 10  // Hz
 
 /*Limite respiraciones minuto*/
 #define BUFFER_SIZE 30
 
 /*Velocidades*/
 #define VEL_ANG_MAX 8.986   // Experimental en rad/s
-#define VEL_ANG_MIN 3.5     // Experimental en rad/s
-#define VEL_PAUSE 3.2       // Probar
+#define VEL_ANG_MIN 5       // Experimental en rad/s
+#define VEL_PAUSE 0         // Probar
 
 /*Presiones*/
 #define PRES_MIN 5          // Minimum control pressure

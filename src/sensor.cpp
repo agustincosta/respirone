@@ -68,7 +68,13 @@ void Sensor_Tasks()
       if (CTRL.pressure<UI.maxPressure)     // High pressure
       {
         UI_SetAlarm(ALARM_HIGH_PRESSURE);
+        //tone(11, 200);
       }  
+      else
+      {
+        //noTone(11);
+      }
+      
       break;    
 
     case SENSOR_PROCESS:
