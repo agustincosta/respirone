@@ -11,6 +11,7 @@
 
 #include "motor.h"
 #include "control.h"
+#include "alarms.h"
 
 //Definicion de motor
 MOTOR_t MOTOR;
@@ -20,6 +21,7 @@ Motor_States_e motorState;
 Measured_t measuredData[BUFFER_SIZE];
 uint32_t measuredCycleTime = 0;
 float measuredTidalVol = 0;
+float measuredCompliance = 0;
 
 //Definicion de encoder
 Encoder encoder(encoderA, encoderB);
@@ -277,7 +279,7 @@ void Motor_Tasks() {
 
       } 
 
-      if ( MOTOR.limitSwitch && (MOTOR.encoderTotal > 0)) {   // Not in home position conditions
+      if (MOTOR.limitSwitch /*&& (MOTOR.encoderTotal > 0)*/) {   // Not in home position conditions
         Motor_ReturnToHomePosition();
         lecturaEncoder();        
       }
@@ -308,12 +310,13 @@ void Motor_Tasks() {
         MOTOR.motorAction = MOTOR_WAITING;                    // Change state variable to waiting
         
         //BEGIN NEW CYCLE
-        if (millis() >= MOTOR.expEndTime /*|| MOTOR.pressureTrigger*/) {    // Inspiration beginning condition
+        if (millis() >= MOTOR.expEndTime || MOTOR.pressureTrigger) {    // Inspiration beginning condition
 
           MOTOR.flagExpEnded = true;
 
           measuredCycleTime = millis() - MOTOR.cycleStart;    // Calculate last cycle time
-          saveRealData(measuredTidalVol, measuredCycleTime);  // Saves cycle time and tidal vol in queue}
+          measuredCompliance = calculateDynamicCompliance();  // Calculate last cycles dynamic compliance
+          saveRealData(measuredTidalVol, measuredCycleTime, measuredCompliance);  // Saves cycle time and tidal vol in queue
           updateControlVariables();
 
           MOTOR.cycleStart = millis();                        // Saves time cycle begins
@@ -382,8 +385,12 @@ void Motor_Tasks() {
       }
       else {
 
+        if (CTRL.pressure > UI.maxPressure) {                     // Set alarm if inspiration interrupted by high pressure
+          UI_SetAlarm(ALARM_HIGH_PRESSURE);
+        }
+
         #if MOTOR_STATES_LOG
-          if (MOTOR.encoderTotal > MOTOR.inspirationCounts) {
+          if (MOTOR.encoderTotal > MOTOR.inspirationCounts) {     // Log why motor advance ended
             Serial.println("Cuentas encoder");
           }
           else if (millis() > MOTOR.inspEndTime) {
@@ -507,7 +514,13 @@ float calculateDisplacedVolume() {
   return volumeDisplaced/ML_TO_MM3;
 }
 
-void saveRealData(float tidalVol, uint32_t cycleTime) {
+float calculateDynamicCompliance() {
+  float deltaP = CTRL.peakPressure - CTRL.PEEP;
+  float deltaV = measuredTidalVol;
+  return deltaV/deltaP;
+}
+
+void saveRealData(float tidalVol, uint32_t cycleTime, float measuredCompliance) {
 
   for (size_t i = BUFFER_SIZE-1; i > 0; i--)          //Moves data one place to the right
   {
@@ -515,6 +528,7 @@ void saveRealData(float tidalVol, uint32_t cycleTime) {
   }
   measuredData[0].cycleTime = cycleTime;              //Always saves data in first spot
   measuredData[0].tidalVolume = tidalVol;
+  measuredData[0].dynamicCompliance = measuredCompliance;
 }
 
 float getTidalVolume() {
@@ -523,18 +537,27 @@ float getTidalVolume() {
 
 uint8_t getBreathsMinute() {
 
-  uint32_t lastCycle = measuredData[0].cycleTime;
   uint8_t iterations = 0;
+  uint32_t timeSum = 0;
 
   for (size_t i = 0; i < BUFFER_SIZE; i++)
   {
-    if(measuredData[i].cycleTime < lastCycle-60000) {
+    timeSum += measuredData[i].cycleTime;
+    if(timeSum > 60000) {
       iterations = i;
       break;
     }
   }
 
+  if (iterations > UI.maxBreathsMinute) {
+    UI_SetAlarm(ALARM_HIGH_BREATHS_PER_MINUTE);
+  }
+  else if (iterations < UI.minBreathsMinute){
+    UI_SetAlarm(ALARM_LOW_BREATHS_PER_MINUTE);
+  }
+
   return iterations; 
+
 }
 
 float getVolumeMinute() {
@@ -546,12 +569,25 @@ float getVolumeMinute() {
   {
     volumeMinute += measuredData[i].tidalVolume;
   }
-  
-  return volumeMinute;
+
+  if (volumeMinute > UI.maxVolumeMinute) {
+    UI_SetAlarm(ALARM_HIGH_VOLUME_PER_MINUTE);
+  }
+  else if (volumeMinute < UI.minVolumeMinute){
+    UI_SetAlarm(ALARM_LOW_VOLUME_PER_MINUTE);
+  }
+
+  return volumeMinute;///ML_TO_L;     //ToDo
+
+}
+
+float getDynamicCompliance() {
+  return measuredCompliance;
 }
 
 void updateControlVariables() {
   CTRL.breathsMinute = getBreathsMinute();
   CTRL.volume = (int16_t)getTidalVolume();
   CTRL.volumeMinute = (int16_t)getVolumeMinute();
+  CTRL.dynamicCompliance = getDynamicCompliance();
 }

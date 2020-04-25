@@ -12,7 +12,7 @@
 #include <Arduino.h>
 #include "user_interface.h"
 
-#define MOTOR_STATES_LOG true
+#define MOTOR_STATES_LOG false
 #define MOTOR_PID_LOG false
 
 /*Control activo PID*/
@@ -50,6 +50,7 @@
 /*Conversiones*/
 #define SEC_TO_MILLIS 1000
 #define ML_TO_MM3 1000
+#define ML_TO_L 1000
 
 typedef enum
 {
@@ -122,8 +123,9 @@ Motor_States_e;
 
 typedef struct 
 {
-    float tidalVolume;           // Volume displaced in a given cycle
+    float tidalVolume;              // Volume displaced in a given cycle
     uint32_t cycleTime;             // Time taken by each cycle
+    float dynamicCompliance;        // Dynamic pulmonar compliance for each cycle
 }
 Measured_t;
 
@@ -243,12 +245,19 @@ void Motor_SetBreathingParams();
 float calculateDisplacedVolume();
 
 /**
+ * @brief Calculates dynamic pulmonary compliance for each cycle
+ * 
+ * @return float 
+ */
+float calculateDynamicCompliance();
+
+/**
  * @brief Saves the measured tidal volume and cycle time in a cicular array
  * 
  * @param measuredTidalVol Measured tidal volume in a cycle
  * @param measuredCycleTime Measured time a cycle takes
  */
-void saveRealData(float tidalVol, uint32_t cycleTime);
+void saveRealData(float tidalVol, uint32_t cycleTime, float measuredCompliance);
 
 /**
  * @brief Returns tidal volume of last cycle
@@ -270,6 +279,13 @@ uint8_t getBreathsMinute();
  * @return float volume/min
  */
 float getVolumeMinute();
+
+/**
+ * @brief Get the Dynamic Compliance 
+ * 
+ * @return float 
+ */
+float getDynamicCompliance();
 
 /**
  * @brief Updates CTRL control structure with BPM, Tidal vol and Vol minute
