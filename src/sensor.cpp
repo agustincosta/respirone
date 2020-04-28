@@ -7,9 +7,13 @@
 #include "control.h"
 #include "motor.h"
 #include "alarms.h"
+#include "analogReadFast.h"
 
 PRESSURE_t pressure[PRESSURE_SENSOR_QTY];
-uint16_t sensorAnalogRead;
+
+float sensorAnalogRead;
+float sensorRead;
+uint8_t sensorReadIndex;
 
 Sensor_States_e sensorState; 
 
@@ -17,10 +21,17 @@ void Sensor_Init()
 {
   sensorState = SENSOR_IDLE;
   // ToDo> Init struct
+
+  sensorRead = 0;
+  sensorReadIndex = 0;  
 }
 
 void Sensor_Tasks()
 {
+  // Update pressure value
+  CTRL.pressure = Sensor_GetLastValue(PRESSURE_SENSOR_1);
+  
+  // Inspiration end
   if (MOTOR.flagInspEnded)
   {
     MOTOR.flagInspEnded = false;
@@ -35,6 +46,7 @@ void Sensor_Tasks()
     }
   }
 
+  // Expiration end
   if (MOTOR.flagExpEnded)
   {
     MOTOR.flagExpEnded = false;
@@ -43,7 +55,7 @@ void Sensor_Tasks()
 			CTRL.PEEP = Sensor_GetPlateauValue(PRESSURE_SENSOR_1);
   }
   
-
+  // Pressure state machine
   switch(sensorState)
   {
     case SENSOR_IDLE:
@@ -55,26 +67,27 @@ void Sensor_Tasks()
       break;
 
     case SENSOR_ACQUIRE:
-      sensorState = SENSOR_PROCESS;
+      // Read, map & add to the moving average queue
+      sensorAnalogRead = analogReadFast(PRESSURE_SENSOR_1_PIN);
+      sensorRead += map(sensorAnalogRead, SENSOR_ADC_MIN, SENSOR_ADC_MAX, PRESSURE_SENSOR_MIN_VALUE, PRESSURE_SENSOR_MAX_VALUE)/PRESSURE_SENSOR_WINDOW_SIZE;
 
-      // Acquire and queue
-      sensorAnalogRead = analogRead(PRESSURE_SENSOR_1_PIN);
-      pressure[PRESSURE_SENSOR_1].value[pressure[PRESSURE_SENSOR_1].pValue] = (uint16_t)map(sensorAnalogRead, PRESSURE_SENSOR_OFFSET_ADC, 1023, PRESSURE_SENSOR_MIN_VALUE, PRESSURE_SENSOR_MAX_VALUE);
-      
-      // Update pressure last value
-      CTRL.pressure = Sensor_GetLastValue(PRESSURE_SENSOR_1);
-      
-      // Check exit conditions
-      if (CTRL.pressure<UI.maxPressure)     // High pressure
+      if (sensorReadIndex==PRESSURE_SENSOR_WINDOW_SIZE-1)
       {
-        UI_SetAlarm(ALARM_HIGH_PRESSURE);
-        //tone(11, 200);
-      }  
+        sensorState = SENSOR_PROCESS;
+         
+        // Increase pointer
+        pressure[PRESSURE_SENSOR_1].pValue = (pressure[PRESSURE_SENSOR_1].pValue+1)%PRESSURE_SENSOR_QUEUE_SIZE;
+        // Queue
+        pressure[PRESSURE_SENSOR_1].value[pressure[PRESSURE_SENSOR_1].pValue] = sensorRead;
+
+        sensorReadIndex = 0;
+        sensorRead = 0;
+      }
       else
       {
-        //noTone(11);
+        sensorState = SENSOR_IDLE;
+        sensorReadIndex++;
       }
-      
       break;    
 
     case SENSOR_PROCESS:
@@ -104,8 +117,6 @@ void Sensor_Tasks()
         pressure[PRESSURE_SENSOR_1].plateauValue = pressure[PRESSURE_SENSOR_1].averageValue;
       }
 
-      // Increase pointer
-      pressure[PRESSURE_SENSOR_1].pValue = (pressure[PRESSURE_SENSOR_1].pValue+1)%PRESSURE_SENSOR_QUEUE_SIZE;
       break;
   }      
 }

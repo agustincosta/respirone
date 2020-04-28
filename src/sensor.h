@@ -11,18 +11,24 @@
 /**
  * @section Module definitions 
  */
+
 #define PRESSURE_SENSOR_1_PIN               A0
 
-#define PRESSURE_SENSOR_MAX_VALUE           600 // ToDo
-#define PRESSURE_SENSOR_MIN_VALUE           0   // ToDo
+#define SENSOR_ADC_MIN                      PRESSURE_SENSOR_OFFSET_ADC // 0
+#define SENSOR_ADC_MAX                      1023
+ 
+#define PRESSURE_SENSOR_MIN_VALUE           0.0   
+#define PRESSURE_SENSOR_MAX_VALUE           60.0
 #define PRESSURE_SENSOR_INVALID_VALUE       PRESSURE_SENSOR_MAX_VALUE+1   
-#define PRESSURE_SENSOR_PLATEAU_THRESHOLD   10 // ToDo
+#define PRESSURE_SENSOR_PLATEAU_THRESHOLD   4.0 
 
-#define PRESSURE_SENSOR_ACQUISITION_PERIOD  50
+#define PRESSURE_SENSOR_ACQUISITION_PERIOD  100
 
-#define PRESSURE_SENSOR_QUEUE_SIZE          10
+#define PRESSURE_SENSOR_WINDOW_SIZE         4
+#define PRESSURE_SENSOR_QUEUE_SIZE          16
 
-#define PRESSURE_SENSOR_OFFSET_ADC          204   // Reemplazar despues con una medida real de la presion atmosferica
+#define PRESSURE_SENSOR_OFFSET_ADC          204   // temporal: 1024/5 = 1V
+
 
 /**
  * @section Module types 
@@ -36,15 +42,15 @@ PressureSensorIndexes_e;
 
 typedef struct
 {
-  int16_t value[PRESSURE_SENSOR_QUEUE_SIZE];        // Measured value queue
-  uint8_t pValue;                                   // Queue index
+  float value[PRESSURE_SENSOR_QUEUE_SIZE];        // Measured value queue
+  uint8_t pValue;                                 // Queue index
 
-  int16_t averageValue;                             // Average value
+  float averageValue;                             // Average value
 
-  int16_t peakValue;                                // Peak value
+  float peakValue;                                // Peak value
   
   bool plateauDetected;
-  int16_t plateauValue;                             // Plateau value
+  float plateauValue;                             // Plateau value
 }
 PRESSURE_t;
 

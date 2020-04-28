@@ -12,8 +12,8 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug",
-            "executable": "C:/Users/agusc/Documents/GIT/respirone/.pio/build/megaatmega2560/firmware.elf",
-            "toolchainBinDir": "C:/Users/agusc/.platformio/packages/toolchain-atmelavr/bin",
+            "executable": "c:/Users/Marco/Documents/PlatformIO/Projects/respirone/.pio/build/megaatmega2560/firmware.elf",
+            "toolchainBinDir": "C:/Users/Marco/.platformio/packages/toolchain-atmelavr/bin",
             "preLaunchTask": {
                 "type": "PlatformIO",
                 "task": "Pre-Debug"
@@ -24,8 +24,8 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (skip Pre-Debug)",
-            "executable": "C:/Users/agusc/Documents/GIT/respirone/.pio/build/megaatmega2560/firmware.elf",
-            "toolchainBinDir": "C:/Users/agusc/.platformio/packages/toolchain-atmelavr/bin",
+            "executable": "c:/Users/Marco/Documents/PlatformIO/Projects/respirone/.pio/build/megaatmega2560/firmware.elf",
+            "toolchainBinDir": "C:/Users/Marco/.platformio/packages/toolchain-atmelavr/bin",
             "internalConsoleOptions": "openOnSessionStart"
         }
     ]
