@@ -17,6 +17,8 @@ uint8_t sensorReadIndex;
 
 Sensor_States_e sensorState; 
 
+float mapf(float val, float in_min, float in_max, float out_min, float out_max);
+
 void Sensor_Init()
 {
   sensorState = SENSOR_IDLE;
@@ -68,8 +70,8 @@ void Sensor_Tasks()
 
     case SENSOR_ACQUIRE:
       // Read, map & add to the moving average queue
-      sensorAnalogRead = analogReadFast(PRESSURE_SENSOR_1_PIN);
-      sensorRead += map(sensorAnalogRead, SENSOR_ADC_MIN, SENSOR_ADC_MAX, PRESSURE_SENSOR_MIN_VALUE, PRESSURE_SENSOR_MAX_VALUE)/PRESSURE_SENSOR_WINDOW_SIZE;
+      sensorAnalogRead = (float)analogReadFast(PRESSURE_SENSOR_1_PIN);
+      sensorRead += mapf(sensorAnalogRead, SENSOR_ADC_MIN, SENSOR_ADC_MAX, PRESSURE_SENSOR_MIN_VALUE, PRESSURE_SENSOR_MAX_VALUE)/PRESSURE_SENSOR_WINDOW_SIZE;
 
       if (sensorReadIndex==PRESSURE_SENSOR_WINDOW_SIZE-1)
       {
@@ -78,7 +80,7 @@ void Sensor_Tasks()
         // Increase pointer
         pressure[PRESSURE_SENSOR_1].pValue = (pressure[PRESSURE_SENSOR_1].pValue+1)%PRESSURE_SENSOR_QUEUE_SIZE;
         // Queue
-        pressure[PRESSURE_SENSOR_1].value[pressure[PRESSURE_SENSOR_1].pValue] = sensorRead;
+        pressure[PRESSURE_SENSOR_1].value[pressure[PRESSURE_SENSOR_1].pValue] = sensorRead;  
 
         sensorReadIndex = 0;
         sensorRead = 0;
@@ -182,4 +184,9 @@ bool Sensor_Timer(uint32_t n)
 	  return true;
   }
   return false;
+}
+
+float mapf(float val, float in_min, float in_max, float out_min, float out_max)
+{
+    return (val - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }

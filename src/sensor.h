@@ -14,20 +14,20 @@
 
 #define PRESSURE_SENSOR_1_PIN               A0
 
-#define SENSOR_ADC_MIN                      PRESSURE_SENSOR_OFFSET_ADC // 0
-#define SENSOR_ADC_MAX                      1023
+#define SENSOR_ADC_MIN                      0.0
+#define SENSOR_ADC_MAX                      1023.0
  
 #define PRESSURE_SENSOR_MIN_VALUE           0.0   
 #define PRESSURE_SENSOR_MAX_VALUE           60.0
-#define PRESSURE_SENSOR_INVALID_VALUE       PRESSURE_SENSOR_MAX_VALUE+1   
+#define PRESSURE_SENSOR_INVALID_VALUE       PRESSURE_SENSOR_MAX_VALUE+1.0   
 #define PRESSURE_SENSOR_PLATEAU_THRESHOLD   4.0 
 
-#define PRESSURE_SENSOR_ACQUISITION_PERIOD  100
+#define PRESSURE_SENSOR_ACQUISITION_PERIOD  1000
 
 #define PRESSURE_SENSOR_WINDOW_SIZE         4
 #define PRESSURE_SENSOR_QUEUE_SIZE          16
 
-#define PRESSURE_SENSOR_OFFSET_ADC          204   // temporal: 1024/5 = 1V
+#define PRESSURE_SENSOR_OFFSET_ADC          204.0   // temporal: 1024/5 = 1V
 
 
 /**
