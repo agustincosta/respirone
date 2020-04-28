@@ -44,8 +44,9 @@
 #define pressureSensor A0
 
 /*Caracteristicas mecanicas*/
-#define pistonArea 12271.8463   //En mm2
-#define crownRadius 31.50       //En mm
+#define pistonArea 12271.8463       //En mm2
+#define crownRadius 32.00           //En mm
+#define maxVolumeEncoderCounts 2880 //Experimental
 
 /*Conversiones*/
 #define SEC_TO_MILLIS 1000

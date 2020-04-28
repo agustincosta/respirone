@@ -36,6 +36,10 @@ PID volumenPID(&MOTOR.wMeasure, &MOTOR.wCommand, &MOTOR.wSetpoint, Kp, Ki, Kd, D
 PID presionPID(&MOTOR.pMeasure,&MOTOR.pCommand,&MOTOR.pSetpoint, Kp, Ki, Kd, DIRECT); //Crea objeto PID
 
 
+long startPeriod = 0;
+long endPeriod = 0;
+
+
 void Motor_Init() {
   //Breathing parameters
   MOTOR.breathsMinute = 0;
@@ -129,6 +133,7 @@ void lecturaEncoder() {
   encoder.write(0);
 
   MOTOR.encoderTotal += MOTOR.encoderCounts;
+  
 }
 
 void calculoVelocidadMedida(long Ts) {
@@ -251,6 +256,16 @@ void Motor_Tasks() {
 
   MOTOR.limitSwitch = digitalRead(endSwitch);
 
+  lecturaEncoder();
+  Serial.println(MOTOR.encoderTotal);
+
+  //Cuenta de período de sistema
+  /*
+  endPeriod = micros() - startPeriod;
+  Serial.print("micros: "); Serial.println(endPeriod);
+  startPeriod = micros();
+  */
+
   switch (motorState) 
   {
     /*--------------------------POWER ON--------------------------*/
@@ -279,14 +294,16 @@ void Motor_Tasks() {
 
       } 
 
-      if (MOTOR.limitSwitch /*&& (MOTOR.encoderTotal > 0)*/) {   // Not in home position conditions
+      if ((MOTOR.limitSwitch && (MOTOR.motorAction == MOTOR_STARTING)) || (MOTOR.encoderTotal > 0)) {   // Not in home position conditions
         Motor_ReturnToHomePosition();
-        lecturaEncoder();        
+        lecturaEncoder();      
       }
       else {                                                  // In home position - either by encoder or limit switch
+        Serial.print("Cuentas encoder: "); Serial.println(MOTOR.encoderTotal);
         comandoMotor(motorDIR, motorPWM, 0);
-        MOTOR.encoderTotal = 0;
         if (MOTOR.motorAction == MOTOR_STARTING) {
+          lecturaEncoder();
+                    
           MOTOR.encoderTotal = 0;
         } 
 
@@ -303,8 +320,6 @@ void Motor_Tasks() {
     case MOTOR_IDLE:
 
       Motor_SetBreathingParams();     //First checks if UI.setUpComplete  
-
-      //Serial.print("MOTOR STATE"); Serial.println(MOTOR.motorAction);
 
       if (MOTOR.motorAction == MOTOR_RETURNING || MOTOR.motorAction == MOTOR_WAITING) {             // If expirating
         MOTOR.motorAction = MOTOR_WAITING;                    // Change state variable to waiting
@@ -367,6 +382,7 @@ void Motor_Tasks() {
       
       if (MOTOR.motorAction == MOTOR_WAITING) {                 // Check if it its the first iteration to save the time
         inspirationFirstIteration();
+        Serial.print("Inspiration Counts: "); Serial.println(MOTOR.inspirationCounts);
       }
 
       if ((MOTOR.encoderTotal < MOTOR.inspirationCounts) && (millis() < MOTOR.inspEndTime) && (CTRL.pressure < UI.maxPressure)) {       // Piston moving forward
@@ -402,7 +418,7 @@ void Motor_Tasks() {
         #endif
 
         comandoMotor(motorDIR, motorPWM, VEL_PAUSE);
-
+        Serial.print("Cuentas encoder: "); Serial.println(MOTOR.encoderTotal);
         measuredTidalVol = calculateDisplacedVolume();          // Calculate how much volume was displaced from encoder
 
         motorState = MOTOR_PAUSE;
@@ -422,12 +438,19 @@ void Motor_Tasks() {
         inspirationFirstIteration();
       }
 
-      if (millis() < MOTOR.inspEndTime) {                       // Piston moving forward
+      if ((millis() < MOTOR.inspEndTime) && (MOTOR.encoderTotal < maxVolumeEncoderCounts)) {     // Piston moving forward
         controlDePresion();
         lecturaEncoder();
       }
       else {                                                    // Piston in final position and inspiration time ended
         measuredTidalVol = calculateDisplacedVolume();          // Calculate how much volume was displaced from encoder
+
+        #if MOTOR_STATES_LOG
+          if(MOTOR.encoderTotal > maxVolumeEncoderCounts) {
+            Serial.print("Volumen excedido: "); Serial.print(measuredTidalVol); Serial.println("ml");
+          }
+        #endif
+
         motorState = MOTOR_RETURN_HOME_POSITION;    
         MOTOR.motorAction = MOTOR_STOPPED;                      // Set to pause to make RETURN state simpler
         #if MOTOR_STATES_LOG
@@ -502,14 +525,22 @@ void Motor_SetBreathingParams() {
     MOTOR.pausePercentage = ((float)UI.t_p)/100;
     MOTOR.pSetpoint = (double)UI.adjustedPressure;
     MOTOR.modeSet = UI.selectedMode;
-    MOTOR.pressureTrigger = (CTRL.pressure < CTRL.PEEP+ UI.TrP);
+    MOTOR.pressureTrigger = (CTRL.pressure < CTRL.PEEP + UI.TrP);
   }
 }
 
 float calculateDisplacedVolume() {
-  float recorridoAngular = MOTOR.encoderTotal*2*PI/encoderCountsPerRev;
+  float recorridoAngular = MOTOR.encoderTotal*2.0*PI/encoderCountsPerRev;
   float recorrido = recorridoAngular*crownRadius;
   float volumeDisplaced = recorrido*pistonArea;
+
+  /*
+  Serial.print("Recorrido: "); Serial.println(recorrido);
+  Serial.print("Angulo: "); Serial.println(recorridoAngular);
+  Serial.print("Cuentas encoder: "); Serial.println(MOTOR.encoderTotal);
+  Serial.print("Volumen calculado: "); Serial.println(volumeDisplaced);
+  Serial.println("");
+  */
 
   return volumeDisplaced/ML_TO_MM3;
 }
@@ -539,20 +570,24 @@ uint8_t getBreathsMinute() {
 
   uint8_t iterations = 0;
   uint32_t timeSum = 0;
+  bool minutePassed = false;
 
   for (size_t i = 0; i < BUFFER_SIZE; i++)
   {
     timeSum += measuredData[i].cycleTime;
+    
     if(timeSum > 60000) {
       iterations = i;
+      minutePassed = true;
       break;
     }
+
   }
 
-  if (iterations > UI.maxBreathsMinute) {
+  if ((iterations > UI.maxBreathsMinute) && minutePassed) {
     UI_SetAlarm(ALARM_HIGH_BREATHS_PER_MINUTE);
   }
-  else if (iterations < UI.minBreathsMinute){
+  else if ((iterations < UI.minBreathsMinute) && minutePassed) {
     UI_SetAlarm(ALARM_LOW_BREATHS_PER_MINUTE);
   }
 
@@ -564,16 +599,30 @@ float getVolumeMinute() {
 
   uint8_t cyclesMinute = getBreathsMinute();
   float volumeMinute = 0;
+  bool minutePassed = false;
+  uint32_t timeSum = 0;
 
   for (size_t i = 0; i < cyclesMinute; i++)
   {
     volumeMinute += measuredData[i].tidalVolume;
   }
 
-  if (volumeMinute > UI.maxVolumeMinute) {
+  //Habria que encontrar una mejor manera de saber si ya paso un minuto
+  for (size_t i = 0; i < BUFFER_SIZE; i++)
+  {
+    timeSum += measuredData[i].cycleTime;
+    
+    if(timeSum > 60000) {
+      minutePassed = true;
+      break;
+    }
+
+  }
+
+  if ((volumeMinute > UI.maxVolumeMinute) && minutePassed) {
     UI_SetAlarm(ALARM_HIGH_VOLUME_PER_MINUTE);
   }
-  else if (volumeMinute < UI.minVolumeMinute){
+  else if ((volumeMinute < UI.minVolumeMinute) && minutePassed) {
     UI_SetAlarm(ALARM_LOW_VOLUME_PER_MINUTE);
   }
 
