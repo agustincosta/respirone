@@ -73,6 +73,9 @@ void Motor_Init() {
   //Flags
   MOTOR.flagInspEnded = false;
   MOTOR.flagExpEnded = false;
+  //Sensors
+  MOTOR.currentConsumption = 0.0;
+  MOTOR.expirationVolume = 0.0;
 
   initPID();
   setPinModes();
@@ -256,15 +259,8 @@ void Motor_Tasks() {
 
   MOTOR.limitSwitch = digitalRead(endSwitch);
 
-  lecturaEncoder();
-  Serial.println(MOTOR.encoderTotal);
-
-  //Cuenta de período de sistema
-  /*
-  endPeriod = micros() - startPeriod;
-  Serial.print("micros: "); Serial.println(endPeriod);
-  startPeriod = micros();
-  */
+  checkMotorOvercurrent();  //Check if current has surpassed the limit
+  //calculateSystemPeriod();  //Prints in console the system period in microseconds 
 
   switch (motorState) 
   {
@@ -299,11 +295,9 @@ void Motor_Tasks() {
         lecturaEncoder();      
       }
       else {                                                  // In home position - either by encoder or limit switch
-        Serial.print("Cuentas encoder: "); Serial.println(MOTOR.encoderTotal);
         comandoMotor(motorDIR, motorPWM, 0);
         if (MOTOR.motorAction == MOTOR_STARTING) {
-          lecturaEncoder();
-                    
+          lecturaEncoder();         
           MOTOR.encoderTotal = 0;
         } 
 
@@ -329,6 +323,10 @@ void Motor_Tasks() {
 
           MOTOR.flagExpEnded = true;
 
+          /*End flow measurement integration*/
+          compareInspExpVolume();
+
+          //Control variables for UI
           measuredCycleTime = millis() - MOTOR.cycleStart;    // Calculate last cycle time
           measuredCompliance = calculateDynamicCompliance();  // Calculate last cycles dynamic compliance
           saveRealData(measuredTidalVol, measuredCycleTime, measuredCompliance);  // Saves cycle time and tidal vol in queue
@@ -382,7 +380,6 @@ void Motor_Tasks() {
       
       if (MOTOR.motorAction == MOTOR_WAITING) {                 // Check if it its the first iteration to save the time
         inspirationFirstIteration();
-        Serial.print("Inspiration Counts: "); Serial.println(MOTOR.inspirationCounts);
       }
 
       if ((MOTOR.encoderTotal < MOTOR.inspirationCounts) && (millis() < MOTOR.inspEndTime) && (CTRL.pressure < UI.maxPressure)) {       // Piston moving forward
@@ -404,6 +401,11 @@ void Motor_Tasks() {
         if (CTRL.pressure > UI.maxPressure) {                     // Set alarm if inspiration interrupted by high pressure
           UI_SetAlarm(ALARM_HIGH_PRESSURE);
         }
+        else if ((millis() < MOTOR.inspEndTime) && (MOTOR.encoderTotal < minInspirationCounts)) { // Alarm if motor is not moving during inspiration
+          //UI_SetAlarm(ALARM_MOTOR_ERROR);
+          motorState = MOTOR_POWER_ON;
+          break;                       
+        }
 
         #if MOTOR_STATES_LOG
           if (MOTOR.encoderTotal > MOTOR.inspirationCounts) {     // Log why motor advance ended
@@ -418,7 +420,7 @@ void Motor_Tasks() {
         #endif
 
         comandoMotor(motorDIR, motorPWM, VEL_PAUSE);
-        Serial.print("Cuentas encoder: "); Serial.println(MOTOR.encoderTotal);
+      
         measuredTidalVol = calculateDisplacedVolume();          // Calculate how much volume was displaced from encoder
 
         motorState = MOTOR_PAUSE;
@@ -443,6 +445,13 @@ void Motor_Tasks() {
         lecturaEncoder();
       }
       else {                                                    // Piston in final position and inspiration time ended
+        
+        if ((millis() < MOTOR.inspEndTime) && (MOTOR.encoderTotal < minInspirationCounts)) { // Alarm if motor is not moving during inspiration
+          //UI_SetAlarm(ALARM_MOTOR_ERROR);
+          motorState = MOTOR_POWER_ON;
+          break;                       
+        }
+        
         measuredTidalVol = calculateDisplacedVolume();          // Calculate how much volume was displaced from encoder
 
         #if MOTOR_STATES_LOG
@@ -456,6 +465,9 @@ void Motor_Tasks() {
         #if MOTOR_STATES_LOG
           Serial.println("STATE: RETURN TO HOME");
         #endif
+
+        /*Start flow measurement integration*/
+
       }
 
       break;        
@@ -472,6 +484,9 @@ void Motor_Tasks() {
         #if MOTOR_STATES_LOG
           Serial.println("STATE: RETURN TO HOME");
         #endif
+
+        /*Start flow measurement integration*/
+
       }
 
       break;
@@ -479,6 +494,7 @@ void Motor_Tasks() {
     /*-------------------------DEFAULT----------------------------*/
     default:
       Serial.println("ESTADO DESCONOCIDO");
+      motorState = MOTOR_IDLE;
       break;
   }
 }
@@ -639,4 +655,23 @@ void updateControlVariables() {
   CTRL.volume = (int16_t)getTidalVolume();
   CTRL.volumeMinute = (int16_t)getVolumeMinute();
   CTRL.dynamicCompliance = getDynamicCompliance();
+}
+
+void checkMotorOvercurrent() {
+  if(MOTOR.currentConsumption >= maxMotorCurrent) {         
+    //UI_SetAlarm(ALARM_MOTOR_HIGH_CURRENT_CONSUMPTION)
+    motorState = MOTOR_POWER_ON;
+  }
+}
+
+void calculateSystemPeriod() {
+  endPeriod = micros() - startPeriod;
+  Serial.print("micros: "); Serial.println(endPeriod);
+  startPeriod = micros();
+}
+
+void compareInspExpVolume() {
+  if (abs(MOTOR.expirationVolume - measuredTidalVol) > maxVolumeDiff) {
+    //UI_SetAlarm(ALARM_AIR_LEAK);
+  }
 }

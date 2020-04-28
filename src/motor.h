@@ -13,27 +13,35 @@
 #include "user_interface.h"
 
 #define MOTOR_STATES_LOG false
-#define MOTOR_PID_LOG false
+#define MOTOR_PID_LOG true
 
 /*Control activo PID*/
 #define CONTROL_ACTIVO_VOLUMEN true
 #define CONTROL_ACTIVO_PRESION true
-#define CONTROL_SAMPLE_RATE 10  // Hz
+#define CONTROL_SAMPLE_RATE 20  // Hz
 
 /*Limite respiraciones minuto*/
 #define BUFFER_SIZE 30
 
 /*Velocidades*/
 #define VEL_ANG_MAX 8.986   // Experimental en rad/s
-#define VEL_ANG_MIN 5       // Experimental en rad/s
+#define VEL_ANG_MIN 3.5     // Experimental en rad/s
 #define VEL_PAUSE 0         // Probar
 
 /*Presiones*/
 #define PRES_MIN 5          // Minimum control pressure
 #define PRES_MAX 35         // Maximum control pressure
 
+/*Volumen*/
+#define maxVolumeDiff 50    // Tolerated measured volume difference between inspiration and expiration in ml
+
 /*Encoder*/
 #define encoderCountsPerRev 8400
+#define maxVolumeEncoderCounts 2880 //Experimental
+#define minInspirationCounts 100    // Encoder counts needed to determine motor has moved
+
+/*Motor*/
+#define maxMotorCurrent 5.0     //Maximum motor current in amps
 
 /*Definicion de pines*/
 #define encoderA 2
@@ -42,11 +50,11 @@
 #define motorPWM 5
 #define endSwitch 6 
 #define pressureSensor A0
+#define currentSensor A1
 
 /*Caracteristicas mecanicas*/
 #define pistonArea 12271.8463       //En mm2
 #define crownRadius 32.00           //En mm
-#define maxVolumeEncoderCounts 2880 //Experimental
 
 /*Conversiones*/
 #define SEC_TO_MILLIS 1000
@@ -103,6 +111,9 @@ typedef struct
     //Flags
     bool flagInspEnded;     // Flag activated when inspiration ends
     bool flagExpEnded;      // Flag activated when expiration ends
+    //Sensors
+    float currentConsumption;   // Current consumed by motor sensed by hall effect sensor
+    float expirationVolume;     // Expiration air flow rate
 }
 MOTOR_t;
 
@@ -293,5 +304,23 @@ float getDynamicCompliance();
  * 
  */
 void updateControlVariables();
+
+/**
+ * @brief Checks if motor current has surpassed limit
+ * 
+ */
+void checkMotorOvercurrent();
+
+/**
+ * @brief Returns system period in microseconds
+ * 
+ */
+void calculateSystemPeriod();
+
+/**
+ * @brief Sets alarm if the volume sent is different from the expired
+ * 
+ */
+void compareInspExpVolume();
 
 #endif
