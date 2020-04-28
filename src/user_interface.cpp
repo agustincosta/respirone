@@ -3,27 +3,22 @@
 #include <LiquidCrystal.h>
 
 // Variables
-// LCD
-UI_states_e uiState;
+UI_states_e uiTask;
+UI_SetParametersStates_e uiState;
 UI_ShowParametersStates_e spState;
+DebounceStates_t debounceState[ARDUINO_PIN_QTY];
+bool buttonState[ARDUINO_PIN_QTY];
+UI_t tempParam;
+UI_t UI;
+CTRL_t showParam;
+
+//LCD
 //UNO
 //LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 //MEGA
 LiquidCrystal lcd(14, 15, 16, 17, 18, 19);
 
-DebounceStates_t debounceState[ARDUINO_PIN_QTY];
-bool buttonState[ARDUINO_PIN_QTY];
-
-UI_t tempParam;
-UI_t UI;
-
-
-// Debug
-// unsigned long t = 0;        
-// const long i = 500;
-
 // User Interface
-
 void UI_Init()
 {
   // Debug
@@ -36,8 +31,9 @@ void UI_Init()
   UI_DisplayMessage(0,0,DISPLAY_PROJECT_NAME);
   UI_DisplayMessage(0,1,DISPLAY_LAUNCH_MENU);
   
-  uiState = UI_WAITING_BUTTON;
-
+  uiTask = UI_WAITING_BUTTON;
+  uiState = UI_SET_MODE_AUTO;
+  
   // Button
   pinMode(BUTTON_UP_PIN,    INPUT_PULLUP); 
   pinMode(BUTTON_DOWN_PIN,  INPUT_PULLUP); 
@@ -69,8 +65,8 @@ void UI_Task()
   char stringAux[16];
 
   stringAux[0] = 0;
-  
-  switch (uiState) 
+
+  switch (uiTask)
   {
     case UI_WAITING_BUTTON:
       if(UI_ButtonDebounce(BUTTON_MENU_PIN))
@@ -78,13 +74,141 @@ void UI_Task()
         UI_DisplayClear();
         UI_DisplayMessage(0,0,DISPLAY_SELECT_MODE);
         UI_DisplayMessage(0,1,DISPLAY_AUTO_MODE);
-        uiState = UI_SET_MODE_AUTO;
+        uiTask = UI_SET_UP_PAREMETERS;
         UI_Timer(0);
       }
       break;
-/////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////// MODE //////
-/////////////////////////////////////////////////////////////////////////////////////////////
+
+    case UI_SET_UP_PAREMETERS:
+
+      UI_SetParametersTask();
+
+      if(UI.setUpComplete)
+      {
+        UI.setUpComplete = false;
+        uiTask = UI_SHOW_PARAMETERS;
+        UI_Timer(0);
+      }
+      else if(UI_ButtonDebounce(BUTTON_MENU_PIN))
+      {
+        uiTask = UI_RESTART_UI;
+        UI_Timer(0);
+      }
+
+      ////////////////////////////////////////////////////////////////////////////////////
+      /////////////////////    ALARMS   //////////////////////////////////////////////////
+      ////////////////////////////////////////////////////////////////////////////////////
+      break;
+
+    case UI_SHOW_PARAMETERS:
+      if(UI_ButtonDebounce(BUTTON_MENU_PIN))
+      {
+        uiTask = UI_RESTART_CONFIG;
+        UI_Timer(0);
+      }
+      else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
+      {
+        if(tempParam.selectedMode == UI_PRESSURE_CONTROL)
+          {
+            UI_DisplayClear();
+            UI_DisplayMessage(0,0,DISPLAY_ADJUSTED_PRESSURE);
+
+            itoa(tempParam.adjustedPressure,stringAux,10);
+            strcat(stringAux, "cm.H2O");
+            UI_DisplayMessage(0,1,stringAux);
+
+            uiState = UI_SET_ADJUSTED_PRESSURE;
+            UI_Timer(0);
+          }
+          else if(tempParam.selectedMode == UI_VOLUME_CONTROL)
+          {
+            UI_DisplayClear();
+            UI_DisplayMessage(0,0,DISPLAY_TIDAL_VOLUME);
+
+            itoa(tempParam.tidalVolume,stringAux,10);
+            strcat(stringAux, "ml");
+            UI_DisplayMessage(0,1,stringAux);
+
+            uiState = UI_SET_TIDAL_VOLUME;
+            UI_Timer(0);
+          }
+          else if(tempParam.selectedMode == UI_AUTOMATIC_CONTROL)
+          {
+            UI_DisplayClear();
+            UI_DisplayMessage(0,0,DISPLAY_SELECT_MODE);
+            UI_DisplayMessage(0,1,DISPLAY_AUTO_MODE);
+            uiState = UI_SET_MODE_AUTO;
+            UI_Timer(0);
+          }
+
+          uiTask = UI_SET_UP_PAREMETERS;
+
+      }
+      else
+      {
+        UI_UpdateControlParam();
+        UI_ShowParametersTask();
+      }
+      break;
+
+
+
+    case UI_RESTART_CONFIG:
+      UI_ButtonDebounce(BUTTON_MENU_PIN);
+
+      if((buttonState[BUTTON_MENU_PIN]) && (UI_Timer(TIMEOUT_RESTART_CONFIG)))
+      {
+        UI_Init();
+      }
+      else if(!buttonState[BUTTON_MENU_PIN])
+      {
+        uiTask = UI_SHOW_PARAMETERS;
+      }
+      ////////////////////////////////////////////////////////////////////////////////////
+      /////////////////////    ALARMS   //////////////////////////////////////////////////
+      ////////////////////////////////////////////////////////////////////////////////////      
+      break;    
+
+    case UI_RESTART_UI:
+      UI_ButtonDebounce(BUTTON_MENU_PIN);
+
+      if((buttonState[BUTTON_MENU_PIN]) && (UI_Timer(TIMEOUT_RESTART_CONFIG)))
+      {
+        UI_Init();
+      }
+      else if(!buttonState[BUTTON_MENU_PIN])
+      {
+        uiTask = UI_SET_UP_PAREMETERS;
+      }
+      ////////////////////////////////////////////////////////////////////////////////////
+      /////////////////////    ALARMS   //////////////////////////////////////////////////
+      ////////////////////////////////////////////////////////////////////////////////////
+      break;      
+
+
+
+    case UI_ALARMS_MANAGEMENT:
+      break;
+
+
+  default:
+    uiTask = UI_WAITING_BUTTON;
+    break;
+  }
+
+}
+
+void UI_SetParametersTask()
+{
+  char stringAux[16];
+
+  stringAux[0] = 0;
+  
+  switch (uiState) 
+  {
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////// MODE ///////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////
     case UI_SET_MODE_AUTO:
         if(UI_ButtonDebounce(BUTTON_UP_PIN))  //pre
         {
@@ -102,12 +226,6 @@ void UI_Task()
           uiState = UI_SET_DEFAULT_PARAMETERS;
           UI_Timer(0);
         }
-        else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
-        {
-          UI_DisplayMessage(0,0,DISPLAY_PROJECT_NAME);
-          UI_DisplayMessage(0,1,DISPLAY_LAUNCH_MENU);
-          uiState = UI_WAITING_BUTTON;        
-        }      
         else if(UI_Timer(TIMEOUT_BLINK))
         {
           uiState = UI_BLINK_AUTO;
@@ -133,12 +251,6 @@ void UI_Task()
         uiState = UI_SET_DEFAULT_PARAMETERS;
         UI_Timer(0);
       }
-      else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
-      {
-        UI_DisplayMessage(0,0,DISPLAY_PROJECT_NAME);
-        UI_DisplayMessage(0,1,DISPLAY_LAUNCH_MENU);
-        uiState = UI_WAITING_BUTTON;        
-      }      
       else if(UI_Timer(TIMEOUT_BLINK/2))
       {
         UI_DisplayMessage(0,1,DISPLAY_AUTO_MODE);
@@ -165,12 +277,6 @@ void UI_Task()
         uiState = UI_DELAY_END_MODE;
         UI_Timer(0);
       }
-      else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
-      {
-        UI_DisplayMessage(0,0,DISPLAY_PROJECT_NAME);
-        UI_DisplayMessage(0,1,DISPLAY_LAUNCH_MENU);
-        uiState = UI_WAITING_BUTTON;        
-      }      
       else if(UI_Timer(TIMEOUT_BLINK))
       {
         uiState = UI_BLINK_VOLUME;
@@ -197,12 +303,6 @@ void UI_Task()
         uiState = UI_DELAY_END_MODE;
         UI_Timer(0);
       }
-      else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
-      {
-        UI_DisplayMessage(0,0,DISPLAY_PROJECT_NAME);
-        UI_DisplayMessage(0,1,DISPLAY_LAUNCH_MENU);
-        uiState = UI_WAITING_BUTTON;        
-      }      
       else if(UI_Timer(TIMEOUT_BLINK/2))
       {
         uiState = UI_SET_MODE_VOLUME;
@@ -229,12 +329,6 @@ void UI_Task()
         uiState = UI_DELAY_END_MODE;
         UI_Timer(0);
       }
-      else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
-      {
-        UI_DisplayMessage(0,0,DISPLAY_PROJECT_NAME);
-        UI_DisplayMessage(0,1,DISPLAY_LAUNCH_MENU);
-        uiState = UI_WAITING_BUTTON;        
-      }      
       else if(UI_Timer(TIMEOUT_BLINK))
       {
         uiState = UI_BLINK_PRESSURE;
@@ -260,12 +354,6 @@ void UI_Task()
         tempParam.selectedMode = UI_PRESSURE_CONTROL;
         uiState = UI_DELAY_END_MODE;
         UI_Timer(0);
-      }
-      else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
-      {
-        UI_DisplayMessage(0,0,DISPLAY_PROJECT_NAME);
-        UI_DisplayMessage(0,1,DISPLAY_LAUNCH_MENU);
-        uiState = UI_WAITING_BUTTON;        
       }
       else if(UI_Timer(TIMEOUT_BLINK/2))
       {
@@ -305,7 +393,7 @@ void UI_Task()
       }
       break;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////// ADJUSTED PRESSURE ///
+/////////////////////////////////////////////////////////////////////////// ADJUSTED PRESSURE //////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////      
 
     case UI_SET_ADJUSTED_PRESSURE:
@@ -408,7 +496,7 @@ void UI_Task()
       break;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////// TIDAL VOLUME ////////
+/////////////////////////////////////////////////////////////////////////// TIDAL VOLUME ///////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////  
 
     case UI_SET_TIDAL_VOLUME:
@@ -1199,7 +1287,7 @@ void UI_Task()
       break;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////// PAUSE TIME ///////////
+/////////////////////////////////////////////////////////////////////////// PAUSE TIME /////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////         
 
     case UI_SET_T_P:
@@ -1309,7 +1397,7 @@ void UI_Task()
       break;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////// MAX PRESSURE ///////////
+/////////////////////////////////////////////////////////////////////////// MAX PRESSURE ///////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////   
 
     case UI_SET_MAX_PRESSURE:
@@ -1419,7 +1507,7 @@ void UI_Task()
       break;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////// MIN PRESSURE ///////////
+/////////////////////////////////////////////////////////////////////////// MIN PRESSURE ///////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////    
 
     case UI_SET_MIN_PRESSURE:
@@ -1529,7 +1617,7 @@ void UI_Task()
       break;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////// TRIGGER PRESSURE ///////
+/////////////////////////////////////////////////////////////////////////// TRIGGER PRESSURE ///////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////  
 
     case UI_SET_TRP:
@@ -1636,7 +1724,7 @@ void UI_Task()
       break;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////// DEFAULT PARAMETERS /////
+/////////////////////////////////////////////////////////////////////////// DEFAULT PARAMETERS /////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////        
 
     case UI_SET_DEFAULT_PARAMETERS:
@@ -1652,7 +1740,7 @@ void UI_Task()
       break;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////// CONFIRMATION ///////////
+/////////////////////////////////////////////////////////////////////////// CONFIRMATION ///////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////  
 
     case UI_CONFIRM_CONFIG_PARAMETERS:
@@ -1662,7 +1750,7 @@ void UI_Task()
 
         UI.setUpComplete = true;
 
-        uiState = UI_SHOW_PARAMETERS;
+        uiState = UI_SET_MODE_AUTO;
 
         UI_DisplayClear();
         UI_Timer(0);
@@ -1704,6 +1792,8 @@ void UI_Task()
         Serial.println(UI.t_p);
         Serial.print("Presión Máx:        ");
         Serial.println(UI.maxPressure);
+        Serial.print("Presión Mín:        ");
+        Serial.println(UI.minPressure);        
         Serial.print("TrP:                ");
         Serial.println(UI.TrP);
       }
@@ -1729,83 +1819,8 @@ void UI_Task()
       }    
       break;
 
-    case UI_SHOW_PARAMETERS:
-      if(UI_ButtonDebounce(BUTTON_MENU_PIN))
-      {
-        uiState = UI_RESTART_CONFIG;
-        UI_Timer(0);
-      }
-      else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
-      {
-        if(tempParam.selectedMode == UI_PRESSURE_CONTROL)
-          {
-            UI_DisplayClear();
-            UI_DisplayMessage(0,0,DISPLAY_ADJUSTED_PRESSURE);
-
-            itoa(tempParam.adjustedPressure,stringAux,10);
-            strcat(stringAux, "cm.H2O");
-            UI_DisplayMessage(0,1,stringAux);
-
-            uiState = UI_SET_ADJUSTED_PRESSURE;
-            UI_Timer(0);
-          }
-          else if(tempParam.selectedMode == UI_VOLUME_CONTROL)
-          {
-            UI_DisplayClear();
-            UI_DisplayMessage(0,0,DISPLAY_TIDAL_VOLUME);
-
-            itoa(tempParam.tidalVolume,stringAux,10);
-            strcat(stringAux, "ml");
-            UI_DisplayMessage(0,1,stringAux);
-
-            uiState = UI_SET_TIDAL_VOLUME;
-            UI_Timer(0);
-          }
-          else if(tempParam.selectedMode == UI_AUTOMATIC_CONTROL)
-          {
-            UI_DisplayClear();
-            UI_DisplayMessage(0,0,DISPLAY_SELECT_MODE);
-            UI_DisplayMessage(0,1,DISPLAY_AUTO_MODE);
-            uiState = UI_SET_MODE_AUTO;
-            UI_Timer(0);
-          }
-      }
-      else
-      {
-        // execute state machine with real time parameters
-        UI_ShowParametersTask();
-
-        // Debug ////////////////////////////////////////////////////////////////////////////////
-        // unsigned long currentMillis = millis();
-        // if (currentMillis - t >= i) 
-        // {
-        //   t = currentMillis;
-        //   (CTRL.breathsMinute < 30) ? CTRL.breathsMinute += 1: CTRL.breathsMinute = 5;
-        //   (CTRL.peakPressure < 50) ? CTRL.peakPressure += 10 : CTRL.peakPressure = 10;
-        //   (CTRL.PEEP < 35) ? CTRL.PEEP+=5 : CTRL.PEEP = 5;
-        //   (CTRL.volume < 800) ? CTRL.volume +=20 : CTRL.volume = 300;
-        //   (CTRL.volumeMinute < 14) ? CTRL.volumeMinute +=1 : CTRL.volumeMinute = 5;
-        //   (CTRL.pressure < 35) ? CTRL.pressure +=5 : CTRL.pressure = 5;
-        // }
-        /////////////////////////////////////////////////////////////////////////////////////////
-      }
-      break;
-
-    case UI_RESTART_CONFIG:
-      UI_ButtonDebounce(BUTTON_MENU_PIN);
-
-      if((buttonState[BUTTON_MENU_PIN]) && (UI_Timer(TIMEOUT_RESTART_CONFIG)))
-      {
-        UI_Init();
-      }
-      else if(!buttonState[BUTTON_MENU_PIN])
-      {
-        uiState = UI_SHOW_PARAMETERS;
-      }
-      break;
-
     default:
-      uiState = UI_WAITING_BUTTON;
+      uiState = UI_SET_MODE_AUTO;
       break;
   }
 }
@@ -1846,7 +1861,7 @@ void UI_ShowParametersTask()
       {
         strcat(stringAux1,"PRE");
       }
-      itoa(CTRL.volume,stringAux2,10);
+      dtostrf(showParam.volume,2,1,stringAux2);
       strcat(stringAux2,"ml ");
       UI_DisplayParameters(DISPLAY_S_MODE,DISPLAY_R_SND_VOL,stringAux1,4,stringAux2,11);
 
@@ -1867,16 +1882,16 @@ void UI_ShowParametersTask()
       {
         itoa(UI.tidalVolume,stringAux1,10);
         strcat(stringAux1,"ml ");
-        itoa(CTRL.volumeMinute,stringAux2,10);
+        dtostrf(showParam.volumeMinute,2,1,stringAux2);
         strcat(stringAux2,"L/m ");
-        UI_DisplayParameters(DISPLAY_S_TIDAL_VOL,DISPLAY_R_VOL_MIN,stringAux1,3,stringAux2,11);
+        UI_DisplayParameters(DISPLAY_S_TIDAL_VOL,DISPLAY_R_VOL_MIN,stringAux1,2,stringAux2,9);
       }
       else if(UI.selectedMode == UI_PRESSURE_CONTROL)
       {
         itoa(UI.adjustedPressure,stringAux1,10);
-        itoa(CTRL.volumeMinute,stringAux2,10);
+        dtostrf(showParam.volumeMinute,2,1,stringAux2);
         strcat(stringAux2,"L/m ");
-        UI_DisplayParameters(DISPLAY_S_ADJ_PRESS,DISPLAY_R_VOL_MIN,stringAux1,4,stringAux2,11);
+        UI_DisplayParameters(DISPLAY_S_ADJ_PRESS,DISPLAY_R_VOL_MIN,stringAux1,4,stringAux2,9);
       }
 
       if(UI_ButtonDebounce(BUTTON_UP_PIN))
@@ -1892,9 +1907,9 @@ void UI_ShowParametersTask()
       break;
 
     case UI_SCREEN_3:
-      itoa(CTRL.pressure,stringAux1,10);
-      itoa(CTRL.PEEP,stringAux2,10);
-      UI_DisplayParameters(DISPLAY_R_PRESSURE,DISPLAY_R_PEEP,stringAux1,5,stringAux2,13);
+      dtostrf(showParam.pressure,2,1,stringAux1);
+      dtostrf(showParam.PEEP,2,1,stringAux2);
+      UI_DisplayParameters(DISPLAY_R_PRESSURE,DISPLAY_R_PEEP,stringAux1,4,stringAux2,12);
 
       if(UI_ButtonDebounce(BUTTON_UP_PIN))
       {
@@ -1910,8 +1925,8 @@ void UI_ShowParametersTask()
 
     case UI_SCREEN_4:
       itoa(UI.maxPressure,stringAux1,10);
-      itoa(CTRL.peakPressure,stringAux2,10);
-      UI_DisplayParameters(DISPLAY_S_MAX_PRESS,DISPLAY_R_PEAK_PRESS,stringAux1,4,stringAux2,13);
+      dtostrf(showParam.peakPressure,2,1,stringAux2);
+      UI_DisplayParameters(DISPLAY_S_MAX_PRESS,DISPLAY_R_PEAK_PRESS,stringAux1,4,stringAux2,12);
 
       if(UI_ButtonDebounce(BUTTON_UP_PIN))
       {
@@ -1926,8 +1941,8 @@ void UI_ShowParametersTask()
       break;
 
     case UI_SCREEN_5:
-      itoa(UI.maxBreathsMinute,stringAux1,10);
-      itoa(CTRL.breathsMinute,stringAux2,10);
+      itoa(UI.breathsMinute,stringAux1,10);
+      dtostrf(showParam.breathsMinute,2,0,stringAux2);
       UI_DisplayParameters(DISPLAY_S_BPM,DISPLAY_R_BPM,stringAux1,4,stringAux2,13);
 
       if(UI_ButtonDebounce(BUTTON_UP_PIN))
@@ -1961,8 +1976,8 @@ void UI_ShowParametersTask()
 
     case UI_SCREEN_7:
       itoa(UI.TrP,stringAux1,10);
-      UI_DisplayParameters(DISPLAY_S_TRP," ",stringAux1,4," ",13);
-
+      dtostrf(showParam.dynamicCompliance,3,2,stringAux2);
+      UI_DisplayParameters(DISPLAY_S_TRP,DISPLAY_R_LUNG_COMP,stringAux1,4,stringAux2,12);
       if(UI_ButtonDebounce(BUTTON_UP_PIN))
       {
         UI_DisplayClear();
@@ -1978,6 +1993,22 @@ void UI_ShowParametersTask()
     default:
       spState = UI_SCREEN_1;
       break;
+  }
+}
+
+void UI_UpdateControlParam()
+{
+  if(UI_Timer(TIMEOUT_UPDATE_CTRL_PARAM))
+  {
+    showParam.breathsMinute     = CTRL.breathsMinute;
+    showParam.dynamicCompliance = CTRL.dynamicCompliance;
+    showParam.peakPressure      = CTRL.peakPressure;
+    showParam.PEEP              = CTRL.PEEP;
+    showParam.plateauPressure   = CTRL.plateauPressure;
+    showParam.pressure          = CTRL.pressure;
+    showParam.volume            = CTRL.volume;
+    showParam.volumeMinute      = CTRL.volumeMinute;
+    UI_Timer(0);
   }
 }
 
@@ -2048,7 +2079,6 @@ bool UI_ButtonDebounce(uint8_t pin)
 
 void UI_SetAlarm(uint8_t alarm)
 {
-
 }
 
 bool UI_Timer(uint32_t n)

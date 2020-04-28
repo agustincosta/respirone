@@ -24,8 +24,9 @@
 // TimeOuts (ms)
 #define INIT_MESSAGE_TIMEOUT        3000   
 #define TIMEOUT_BLINK               500
-#define TIMEOUT_SHOW_SELECTED_PARAM 500  
-#define TIMEOUT_RESTART_CONFIG      5000 
+#define TIMEOUT_SHOW_SELECTED_PARAM 500
+#define TIMEOUT_UPDATE_CTRL_PARAM   500  
+#define TIMEOUT_RESTART_CONFIG      2000 
 
 //Display messages
 //Config
@@ -65,11 +66,21 @@
 #define DISPLAY_S_TI             "SET Ti%"
 #define DISPLAY_S_TP             "SET Tp%"
 #define DISPLAY_S_TRP            "SET TrP"
-
+#define DISPLAY_R_LUNG_COMP      "REAL CP"
 
 typedef enum  
 {
   UI_WAITING_BUTTON,
+  UI_SET_UP_PAREMETERS,
+  UI_SHOW_PARAMETERS,
+  UI_ALARMS_MANAGEMENT,
+  UI_RESTART_CONFIG,
+  UI_RESTART_UI
+} 
+UI_states_e; 
+
+typedef enum  
+{
   UI_SET_MODE_AUTO,
   UI_SET_MODE_VOLUME,
   UI_SET_MODE_PRESSURE,
@@ -115,10 +126,8 @@ typedef enum
   UI_DELAY_END_TRP, 
   UI_CONFIRM_CONFIG_PARAMETERS, 
   UI_SET_DEFAULT_PARAMETERS,
-  UI_SHOW_PARAMETERS,
-  UI_RESTART_CONFIG
 } 
-UI_states_e; 
+UI_SetParametersStates_e; 
 
 typedef enum
 {
@@ -196,6 +205,14 @@ void UI_Init();
  */
 void UI_Task();
 
+/**
+ *  \brief Brief description
+ *  
+ *  \return Return description
+ *  
+ *  \details More details
+ */
+void UI_SetParametersTask();
 
 /**
  *  \brief Brief description
@@ -205,6 +222,16 @@ void UI_Task();
  *  \details More details
  */
 void UI_ShowParametersTask();
+
+/**
+ *  \brief Brief description
+ *  
+ *  \return Return description
+ *  
+ *  \details More details
+ */
+void UI_UpdateControlParam();
+
 
 /**
  *  \brief Brief description
