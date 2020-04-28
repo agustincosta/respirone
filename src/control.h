@@ -25,6 +25,7 @@ typedef struct control
     float volume;             // Actual volume value
     float volumeMinute;       // Volume/minute in the last minute
     float dynamicCompliance;    // Pulmonary compliance (V/P) in each cycle
+    
 }
 CTRL_t;
 
