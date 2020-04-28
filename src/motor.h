@@ -33,7 +33,7 @@
 #define PRES_MAX 35         // Maximum control pressure
 
 /*Volumen*/
-#define maxVolumeDiff 50    // Tolerated measured volume difference between inspiration and expiration in ml
+#define AIR_LEAK_THRESHOLD 50    // Tolerated measured volume difference between inspiration and expiration in ml
 
 /*Encoder*/
 #define encoderCountsPerRev 8400
@@ -78,9 +78,9 @@ typedef struct
 {
     bool limitSwitch;       // Switch status
     //Breathing parameters
-    uint8_t breathsMinute;  // Measured value of breath/minute
-    uint16_t volumeMinute;  // Volume/minute in the last minute
-    uint32_t tidalVolume;   // Tidal volume in ml
+    float breathsMinute;    // Measured value of breath/minute
+    float volumeMinute;     // Volume/minute in the last minute
+    float tidalVolume;      // Tidal volume in ml
     float inspPercentage;   // Percentage of cycle for inspiration
     float pausePercentage;  // Percentage of inspiration for pause
     uint8_t modeSet;        // Breathing mode set by UI
