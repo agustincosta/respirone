@@ -27,7 +27,7 @@ UI_t UI;
 void UI_Init()
 {
   // Debug
-  // //Serial.begin(9600);
+  // Serial.begin(9600);
 
   // Display
   lcd.begin(16,2);               // initialize the lcd 
@@ -49,15 +49,18 @@ void UI_Init()
   UI_Timer(0); 
 
   // Default parameters
-  tempParam.selectedMode = UI_AUTOMATIC_CONTROL;
-  tempParam.tidalVolume = 500;
-  tempParam.maxVolumeMinute = 14;
-  tempParam.minVolumeMinute = 2;
-  tempParam.breathsMinute = 14;
-  tempParam.t_i = 25;
-  tempParam.t_p = 10;
-  tempParam.maxPressure = 30;
-  tempParam.TrP = -4;
+  tempParam.selectedMode     = UI_AUTOMATIC_CONTROL;
+  tempParam.tidalVolume      = 500;
+  tempParam.maxVolumeMinute  = 14;
+  tempParam.minVolumeMinute  = 2;
+  tempParam.breathsMinute    = 14;
+  tempParam.maxBreathsMinute = 30;
+  tempParam.minBreathsMinute = 7; 
+  tempParam.t_i              = 25;
+  tempParam.t_p              = 10;
+  tempParam.maxPressure      = 30;
+  tempParam.minPressure      = 7;
+  tempParam.TrP              = -2;
   tempParam.adjustedPressure = 20;
 }
 
@@ -79,7 +82,9 @@ void UI_Task()
         UI_Timer(0);
       }
       break;
-
+/////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////// MODE //////
+/////////////////////////////////////////////////////////////////////////////////////////////
     case UI_SET_MODE_AUTO:
         if(UI_ButtonDebounce(BUTTON_UP_PIN))  //pre
         {
@@ -299,11 +304,14 @@ void UI_Task()
         }
       }
       break;
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////// ADJUSTED PRESSURE ///
+////////////////////////////////////////////////////////////////////////////////////////////////////////      
 
     case UI_SET_ADJUSTED_PRESSURE:
       if(UI_ButtonDebounce(BUTTON_UP_PIN))  
       {
-        (tempParam.adjustedPressure < 40) ? tempParam.adjustedPressure += 1 : tempParam.adjustedPressure = 40;
+        (tempParam.adjustedPressure < 35) ? tempParam.adjustedPressure += 1 : tempParam.adjustedPressure = 35;
         itoa(tempParam.adjustedPressure,stringAux,10);
         strcat(stringAux, "cm.H2O");
         UI_DisplayMessage(0,1,stringAux);
@@ -311,7 +319,7 @@ void UI_Task()
       } 
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) 
       {
-        (tempParam.adjustedPressure > 5)? tempParam.adjustedPressure -= 1 : tempParam.adjustedPressure = 1;
+        (tempParam.adjustedPressure > 5)? tempParam.adjustedPressure -= 1 : tempParam.adjustedPressure = 5;
         itoa(tempParam.adjustedPressure,stringAux,10);
         strcat(stringAux, "cm.H2O");
         UI_DisplayMessage(0,1,stringAux);
@@ -344,14 +352,14 @@ void UI_Task()
     case UI_BLINK_ADJUSTED_PRESSURE:
       if(UI_ButtonDebounce(BUTTON_UP_PIN))  
       {
-        (tempParam.adjustedPressure < 40) ? tempParam.tidalVolume += 1 : tempParam.tidalVolume = 40;
+        (tempParam.adjustedPressure < 35) ? tempParam.adjustedPressure += 1 : tempParam.adjustedPressure = 35;
         itoa(tempParam.adjustedPressure,stringAux,10);
         strcat(stringAux, "cm.H2O");
         UI_DisplayMessage(0,1,stringAux);
       } 
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) 
       {
-        (tempParam.tidalVolume > 5) ? tempParam.tidalVolume -= 1 : tempParam.tidalVolume = 5;
+        (tempParam.adjustedPressure > 5) ? tempParam.adjustedPressure -= 1 : tempParam.adjustedPressure = 5;
         itoa(tempParam.adjustedPressure,stringAux,10);
         strcat(stringAux, "cm.H2O");
         UI_DisplayMessage(0,1,stringAux);
@@ -398,6 +406,10 @@ void UI_Task()
           UI_Timer(0);
       }
       break;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////// TIDAL VOLUME ////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////  
 
     case UI_SET_TIDAL_VOLUME:
       if(UI_ButtonDebounce(BUTTON_UP_PIN))  
@@ -497,6 +509,10 @@ void UI_Task()
           UI_Timer(0);
       }
       break;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////// MAX VOLUME MINUTE //////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////        
 
     case UI_SET_VOLUME_MINUTE_M:
       if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
@@ -633,7 +649,9 @@ void UI_Task()
           UI_Timer(0);
       }    
       break;
-
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////// MIN VOLUME MINUTE //////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////// 
     case UI_SET_VOLUME_MINUTE_m:
       if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
       {
@@ -740,6 +758,10 @@ void UI_Task()
       }    
       break;
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////// BREATHS MINUTE /////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////       
+
     case UI_SET_RPM:
       if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
       {
@@ -835,6 +857,226 @@ void UI_Task()
       if(UI_Timer(TIMEOUT_SHOW_SELECTED_PARAM))
       {
         UI_DisplayClear();
+        UI_DisplayMessage(0,0,DISPLAY_MAX_BPM);
+
+        itoa(tempParam.maxBreathsMinute,stringAux,10);
+        strcat(stringAux, " ");
+        UI_DisplayMessage(0,1,stringAux);
+
+        uiState = UI_SET_RPM_M;
+        UI_Timer(0);
+      }    
+      break;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////// MAX BREATHS MINUTE /////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////         
+
+    case UI_SET_RPM_M:
+      if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
+      {
+        (tempParam.maxBreathsMinute < 35) ? tempParam.maxBreathsMinute += 1 : tempParam.maxBreathsMinute = 35;
+        itoa(tempParam.maxBreathsMinute,stringAux,10);
+        strcat(stringAux, " ");
+        UI_DisplayMessage(0,1,stringAux);
+      }
+      else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
+      {
+        (tempParam.maxBreathsMinute > 25)? tempParam.maxBreathsMinute -= 1 : tempParam.maxBreathsMinute = 25;
+        itoa(tempParam.maxBreathsMinute,stringAux,10);
+        strcat(stringAux, " ");
+        UI_DisplayMessage(0,1,stringAux);
+      }
+      else if(UI_ButtonDebounce(BUTTON_ENTER_PIN))
+      {
+        itoa(tempParam.maxBreathsMinute,stringAux,10);
+        strcat(stringAux, " ");
+        UI_DisplayMessage(0,1,stringAux);
+        //UI.breathsMinute = tempParam.breathsMinute;
+        uiState = UI_DELAY_END_RPM_M;
+        UI_Timer(0);
+      }
+      else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
+      {
+        UI_DisplayClear();
+        UI_DisplayMessage(0,0,DISPLAY_BPM);
+        
+        itoa(tempParam.breathsMinute,stringAux,10);
+        strcat(stringAux, " ");
+        UI_DisplayMessage(0,1,stringAux);
+
+        uiState = UI_SET_RPM;
+        UI_Timer(0);          
+      }      
+      else if(UI_Timer(TIMEOUT_BLINK))
+      {
+        uiState = UI_BLINK_RPM_M;
+        UI_DisplayMessage(0,1,DISPLAY_EMPTY_LINE);
+        UI_Timer(0);
+      }        
+      break;
+
+    case UI_BLINK_RPM_M:
+      if(UI_ButtonDebounce(BUTTON_UP_PIN))  
+      {
+        (tempParam.maxBreathsMinute < 35) ? tempParam.maxBreathsMinute += 1 : tempParam.maxBreathsMinute = 35;
+        itoa(tempParam.maxBreathsMinute,stringAux,10);
+        strcat(stringAux, " ");
+        UI_DisplayMessage(0,1,stringAux);
+      } 
+      else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) 
+      {
+        (tempParam.maxBreathsMinute > 25)? tempParam.maxBreathsMinute -= 1 : tempParam.maxBreathsMinute = 25;
+        itoa(tempParam.maxBreathsMinute,stringAux,10);
+        strcat(stringAux, " ");
+        UI_DisplayMessage(0,1,stringAux);
+      }
+      else if(UI_ButtonDebounce(BUTTON_ENTER_PIN))
+      {
+        itoa(tempParam.maxBreathsMinute,stringAux,10);
+        strcat(stringAux, " ");
+        UI_DisplayMessage(0,1,stringAux);
+        //UI.breathsMinute = tempParam.breathsMinute;
+        uiState = UI_DELAY_END_RPM_M;
+        UI_Timer(0);
+      }
+      else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
+      {
+        UI_DisplayClear();
+        UI_DisplayMessage(0,0,DISPLAY_BPM);
+        
+        itoa(tempParam.breathsMinute,stringAux,10);
+        strcat(stringAux, " ");
+        UI_DisplayMessage(0,1,stringAux);
+
+        uiState = UI_SET_RPM;
+        UI_Timer(0);        
+      }      
+      else if(UI_Timer(TIMEOUT_BLINK))
+      {
+        itoa(tempParam.maxBreathsMinute,stringAux,10);
+        strcat(stringAux, " ");
+        UI_DisplayMessage(0,1,stringAux);
+
+        uiState = UI_SET_RPM_M;
+        UI_Timer(0);
+      }       
+      break;
+
+    case UI_DELAY_END_RPM_M:
+      if(UI_Timer(TIMEOUT_SHOW_SELECTED_PARAM))
+      {
+        UI_DisplayClear();
+        UI_DisplayMessage(0,0,DISPLAY_MIN_BPM);
+
+        itoa(tempParam.minBreathsMinute,stringAux,10);
+        strcat(stringAux, " ");
+        UI_DisplayMessage(0,1,stringAux);
+
+        uiState = UI_SET_RPM_m;
+        UI_Timer(0);
+      }    
+      break;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////// MIN BREATHS MINUTE /////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////   
+
+    case UI_SET_RPM_m:
+      if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
+      {
+        (tempParam.minBreathsMinute < 10) ? tempParam.minBreathsMinute += 1 : tempParam.minBreathsMinute = 10;
+        itoa(tempParam.minBreathsMinute,stringAux,10);
+        strcat(stringAux, " ");
+        UI_DisplayMessage(0,1,stringAux);
+      }
+      else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
+      {
+        (tempParam.minBreathsMinute > 5)? tempParam.minBreathsMinute -= 1 : tempParam.minBreathsMinute = 5;
+        itoa(tempParam.minBreathsMinute,stringAux,10);
+        strcat(stringAux, " ");
+        UI_DisplayMessage(0,1,stringAux);
+      }
+      else if(UI_ButtonDebounce(BUTTON_ENTER_PIN))
+      {
+        itoa(tempParam.minBreathsMinute,stringAux,10);
+        strcat(stringAux, " ");
+        UI_DisplayMessage(0,1,stringAux);
+        //UI.breathsMinute = tempParam.breathsMinute;
+        uiState = UI_DELAY_END_RPM_m;
+        UI_Timer(0);
+      }
+      else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
+      {
+        UI_DisplayClear();
+        UI_DisplayMessage(0,0,DISPLAY_MAX_BPM);
+
+        itoa(tempParam.maxBreathsMinute,stringAux,10);
+        strcat(stringAux, " ");
+        UI_DisplayMessage(0,1,stringAux);
+
+        uiState = UI_SET_RPM_M;
+        UI_Timer(0);      
+      }      
+      else if(UI_Timer(TIMEOUT_BLINK))
+      {
+        uiState = UI_BLINK_RPM_m;
+        UI_DisplayMessage(0,1,DISPLAY_EMPTY_LINE);
+        UI_Timer(0);
+      }        
+      break;
+
+    case UI_BLINK_RPM_m:
+      if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
+      {
+        (tempParam.minBreathsMinute < 10) ? tempParam.minBreathsMinute += 1 : tempParam.minBreathsMinute = 10;
+        itoa(tempParam.minBreathsMinute,stringAux,10);
+        strcat(stringAux, " ");
+        UI_DisplayMessage(0,1,stringAux);
+      }
+      else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
+      {
+        (tempParam.minBreathsMinute > 5)? tempParam.minBreathsMinute -= 1 : tempParam.minBreathsMinute = 5;
+        itoa(tempParam.minBreathsMinute,stringAux,10);
+        strcat(stringAux, " ");
+        UI_DisplayMessage(0,1,stringAux);
+      }
+      else if(UI_ButtonDebounce(BUTTON_ENTER_PIN))
+      {
+        itoa(tempParam.minBreathsMinute,stringAux,10);
+        strcat(stringAux, " ");
+        UI_DisplayMessage(0,1,stringAux);
+        //UI.breathsMinute = tempParam.breathsMinute;
+        uiState = UI_DELAY_END_RPM_m;
+        UI_Timer(0);
+      }
+      else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
+      {
+        UI_DisplayClear();
+        UI_DisplayMessage(0,0,DISPLAY_MAX_BPM);
+
+        itoa(tempParam.maxBreathsMinute,stringAux,10);
+        strcat(stringAux, " ");
+        UI_DisplayMessage(0,1,stringAux);
+
+        uiState = UI_SET_RPM_M;
+        UI_Timer(0);      
+      }      
+      else if(UI_Timer(TIMEOUT_BLINK))
+      {
+        itoa(tempParam.minBreathsMinute,stringAux,10);
+        strcat(stringAux, " ");
+        UI_DisplayMessage(0,1,stringAux);
+
+        uiState = UI_SET_RPM_m;
+        UI_Timer(0);
+      }       
+      break;
+
+    case UI_DELAY_END_RPM_m:
+      if(UI_Timer(TIMEOUT_SHOW_SELECTED_PARAM))
+      {
+        UI_DisplayClear();
         UI_DisplayMessage(0,0,DISPLAY_T_I);
 
         itoa(tempParam.t_i,stringAux,10);
@@ -845,6 +1087,10 @@ void UI_Task()
         UI_Timer(0);
       }    
       break;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////// INSPIRATION TIME ///////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////   
 
     case UI_SET_T_I:
       if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
@@ -873,13 +1119,13 @@ void UI_Task()
       else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
       {
         UI_DisplayClear();
-        UI_DisplayMessage(0,0,DISPLAY_BPM);
+        UI_DisplayMessage(0,0,DISPLAY_MIN_BPM);
         
-        itoa(tempParam.breathsMinute,stringAux,10);
+        itoa(tempParam.minBreathsMinute,stringAux,10);
         strcat(stringAux, " ");
         UI_DisplayMessage(0,1,stringAux);
 
-        uiState = UI_SET_RPM;
+        uiState = UI_SET_RPM_m;
         UI_Timer(0);          
       }      
       else if(UI_Timer(TIMEOUT_BLINK))
@@ -951,7 +1197,11 @@ void UI_Task()
           UI_Timer(0);
       }    
       break;
-        
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////// PAUSE TIME ///////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////         
+
     case UI_SET_T_P:
       if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
       {
@@ -1058,6 +1308,10 @@ void UI_Task()
       }    
       break;
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////// MAX PRESSURE ///////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////   
+
     case UI_SET_MAX_PRESSURE:
       if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
       {
@@ -1153,6 +1407,116 @@ void UI_Task()
       if(UI_Timer(TIMEOUT_SHOW_SELECTED_PARAM))
       {
           UI_DisplayClear();
+          UI_DisplayMessage(0,0,DISPLAY_MIN_PRESSURE);
+
+          itoa(tempParam.minPressure,stringAux,10);
+          strcat(stringAux, "cm.H2O");
+          UI_DisplayMessage(0,1,stringAux);
+
+          uiState = UI_SET_MIN_PRESSURE;
+          UI_Timer(0);
+      }    
+      break;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////// MIN PRESSURE ///////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////    
+
+    case UI_SET_MIN_PRESSURE:
+      if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
+      {
+        (tempParam.minPressure < 10) ? tempParam.minPressure += 1 : tempParam.minPressure = 10;
+        itoa(tempParam.minPressure,stringAux,10);
+        strcat(stringAux, "cm.H2O");
+        UI_DisplayMessage(0,1,stringAux);
+      }
+      else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
+      {
+        (tempParam.minPressure > 5)? tempParam.minPressure -= 1 : tempParam.minPressure = 5;
+        itoa(tempParam.minPressure,stringAux,10);
+        strcat(stringAux, "cm.H2O");
+        UI_DisplayMessage(0,1,stringAux);
+      }
+      else if(UI_ButtonDebounce(BUTTON_ENTER_PIN))
+      {
+        itoa(tempParam.minPressure,stringAux,10);
+        strcat(stringAux, "cm.H2O");
+        UI_DisplayMessage(0,1,stringAux);
+        //UI.maxPressure = tempParam.maxPressure;
+        uiState = UI_DELAY_END_MIN_PRESSURE;
+        UI_Timer(0);
+      }
+      else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
+      {
+        UI_DisplayClear();
+        UI_DisplayMessage(0,0,DISPLAY_MAX_PRESSURE);
+
+        itoa(tempParam.maxPressure,stringAux,10);
+        strcat(stringAux, "cm.H2O");
+        UI_DisplayMessage(0,1,stringAux);
+
+        uiState = UI_SET_MAX_PRESSURE;
+        UI_Timer(0);         
+      }      
+      else if(UI_Timer(TIMEOUT_BLINK))
+      {
+        uiState = UI_BLINK_MIN_PRESSURE;
+        UI_DisplayMessage(0,1,DISPLAY_EMPTY_LINE);
+        UI_Timer(0);
+      }        
+      break;
+
+    case UI_BLINK_MIN_PRESSURE:
+      if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
+      {
+        (tempParam.minPressure < 10) ? tempParam.minPressure += 1 : tempParam.minPressure = 10;
+        itoa(tempParam.minPressure,stringAux,10);
+        strcat(stringAux, "cm.H2O");
+        UI_DisplayMessage(0,1,stringAux);
+      }
+      else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
+      {
+        (tempParam.minPressure > 5)? tempParam.minPressure -= 1 : tempParam.minPressure = 5;
+        itoa(tempParam.minPressure,stringAux,10);
+        strcat(stringAux, "cm.H2O");
+        UI_DisplayMessage(0,1,stringAux);
+      }
+      else if(UI_ButtonDebounce(BUTTON_ENTER_PIN))
+      {
+        itoa(tempParam.minPressure,stringAux,10);
+        strcat(stringAux, "cm.H2O");
+        UI_DisplayMessage(0,1,stringAux);
+        //UI.maxPressure = tempParam.maxPressure;
+        uiState = UI_DELAY_END_MIN_PRESSURE;
+        UI_Timer(0);
+      }
+      else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
+      {
+        UI_DisplayClear();
+        UI_DisplayMessage(0,0,DISPLAY_MAX_PRESSURE);
+
+        itoa(tempParam.maxPressure,stringAux,10);
+        strcat(stringAux, "cm.H2O");
+        UI_DisplayMessage(0,1,stringAux);
+
+        uiState = UI_SET_MAX_PRESSURE;
+        UI_Timer(0);         
+      }        
+      else if(UI_Timer(TIMEOUT_BLINK))
+      {
+        itoa(tempParam.minPressure,stringAux,10);
+        strcat(stringAux, "cm.H2O");
+        UI_DisplayMessage(0,1,stringAux);
+
+        uiState = UI_SET_MIN_PRESSURE;
+        UI_Timer(0);
+      }       
+      break;
+
+    case UI_DELAY_END_MIN_PRESSURE:
+      if(UI_Timer(TIMEOUT_SHOW_SELECTED_PARAM))
+      {
+          UI_DisplayClear();
           UI_DisplayMessage(0,0,DISPLAY_TRP);
 
           itoa(tempParam.TrP,stringAux,10);
@@ -1164,6 +1528,10 @@ void UI_Task()
       }    
       break;
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////// TRIGGER PRESSURE ///////
+////////////////////////////////////////////////////////////////////////////////////////////////////////  
+
     case UI_SET_TRP:
       if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
       {
@@ -1174,7 +1542,7 @@ void UI_Task()
       }
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
       {
-        (tempParam.TrP > -16)? tempParam.TrP -= 1 : tempParam.TrP = -16;
+        (tempParam.TrP > -18)? tempParam.TrP -= 1 : tempParam.TrP = -18;
         itoa(tempParam.TrP,stringAux,10);
         strcat(stringAux, " ");
         UI_DisplayMessage(0,1,stringAux);
@@ -1191,13 +1559,13 @@ void UI_Task()
       else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
       {
         UI_DisplayClear();
-        UI_DisplayMessage(0,0,DISPLAY_MAX_PRESSURE);
+        UI_DisplayMessage(0,0,DISPLAY_MIN_PRESSURE);
 
-        itoa(tempParam.maxPressure,stringAux,10);
+        itoa(tempParam.minPressure,stringAux,10);
         strcat(stringAux, "cm.H2O");
         UI_DisplayMessage(0,1,stringAux);
 
-        uiState = UI_SET_MAX_PRESSURE;
+        uiState = UI_SET_MIN_PRESSURE;
         UI_Timer(0);          
       }      
       else if(UI_Timer(TIMEOUT_BLINK))
@@ -1218,7 +1586,7 @@ void UI_Task()
       } 
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) 
       {
-        (tempParam.TrP > -16)? tempParam.TrP -= 1 : tempParam.TrP = -16;
+        (tempParam.TrP > -18)? tempParam.TrP -= 1 : tempParam.TrP = -18;
         itoa(tempParam.TrP,stringAux,10);
         strcat(stringAux, " ");
         UI_DisplayMessage(0,1,stringAux);
@@ -1267,6 +1635,10 @@ void UI_Task()
       }    
       break;
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////// DEFAULT PARAMETERS /////
+////////////////////////////////////////////////////////////////////////////////////////////////////////        
+
     case UI_SET_DEFAULT_PARAMETERS:
       if(UI_Timer(TIMEOUT_SHOW_SELECTED_PARAM))
       {
@@ -1279,54 +1651,61 @@ void UI_Task()
       } 
       break;
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////// CONFIRMATION ///////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////  
+
     case UI_CONFIRM_CONFIG_PARAMETERS:
       if(UI_ButtonDebounce(BUTTON_ENTER_PIN))
       {
-
         UI_LoadParam();
 
         UI.setUpComplete = true;
+
         uiState = UI_SHOW_PARAMETERS;
 
         UI_DisplayClear();
-
         UI_Timer(0);
 
         // Debug
-        //Serial.print("MODO:               ");
+        Serial.print("MODO:               ");
         switch(UI.selectedMode)
         {
           case 0:
-            //Serial.println("VOLUMEN");
-            //Serial.print("Volumen Tidal:      ");
-            //Serial.println(UI.tidalVolume);
+            Serial.println("VOLUMEN");
+            Serial.print("Volumen Tidal:      ");
+            Serial.println(UI.tidalVolume);
             break;
           case 1:
-            //Serial.println("PRESION");
-            //Serial.print("Presión Ajustada:   ");
-            //Serial.println(UI.adjustedPressure);
+            Serial.println("PRESION");
+            Serial.print("Presión Ajustada:   ");
+            Serial.println(UI.adjustedPressure);
             break;
           case 2:
-            //Serial.println("AUTOMATICO");
-            //Serial.print("Volumen Tidal:      ");
-            //Serial.println(UI.tidalVolume);
+            Serial.println("AUTOMATICO");
+            Serial.print("Volumen Tidal:      ");
+            Serial.println(UI.tidalVolume);
             break;
         }
 
-        //Serial.print("Volumen minuto Máx: ");
-        //Serial.println(UI.maxVolumeMinute);
-        //Serial.print("Volumen minuto mín: ");
-        //Serial.println(UI.minVolumeMinute);
-        //Serial.print("RPM:                ");
-        //Serial.println(UI.breathsMinute);
-        //Serial.print("TI%                 ");
-        //Serial.println(UI.t_i);
-        //Serial.print("TP%                 ");
-        //Serial.println(UI.t_p);
-        //Serial.print("Presión Máx:        ");
-        //Serial.println(UI.maxPressure);
-        //Serial.print("TrP:                ");
-        //Serial.println(UI.TrP);
+        Serial.print("Volumen minuto Máx: ");
+        Serial.println(UI.maxVolumeMinute);
+        Serial.print("Volumen minuto mín: ");
+        Serial.println(UI.minVolumeMinute);
+        Serial.print("RPM:                ");
+        Serial.println(UI.breathsMinute);
+        Serial.print("MAX RPM:            ");
+        Serial.println(UI.maxBreathsMinute);
+        Serial.print("MIN RPM:            ");
+        Serial.println(UI.minBreathsMinute);
+        Serial.print("TI%                 ");
+        Serial.println(UI.t_i);
+        Serial.print("TP%                 ");
+        Serial.println(UI.t_p);
+        Serial.print("Presión Máx:        ");
+        Serial.println(UI.maxPressure);
+        Serial.print("TrP:                ");
+        Serial.println(UI.TrP);
       }
       else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
       {
@@ -1396,7 +1775,6 @@ void UI_Task()
         // execute state machine with real time parameters
         UI_ShowParametersTask();
 
-
         // Debug ////////////////////////////////////////////////////////////////////////////////
         // unsigned long currentMillis = millis();
         // if (currentMillis - t >= i) 
@@ -1445,10 +1823,8 @@ void UI_LoadParam()
   UI.maxVolumeMinute  = tempParam.maxVolumeMinute;
   UI.minVolumeMinute  = tempParam.minVolumeMinute;
   UI.adjustedPressure = tempParam.adjustedPressure;
-
-  //NOT DEFINED BY USER
-  UI.maxBreathsMinute = 30;
-  UI.minBreathsMinute = 5;
+  UI.maxBreathsMinute = tempParam.maxBreathsMinute;
+  UI.minBreathsMinute = tempParam.minBreathsMinute;
 }
 
 void UI_ShowParametersTask()
@@ -1602,7 +1978,6 @@ void UI_ShowParametersTask()
     default:
       spState = UI_SCREEN_1;
       break;
-            
   }
 }
 

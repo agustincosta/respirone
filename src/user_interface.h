@@ -13,13 +13,13 @@
 #define LED_ALARM_PIN  11
 
 // Buttons
-#define BUTTON_UP_PIN     43   
-#define BUTTON_DOWN_PIN   45
-#define BUTTON_MENU_PIN   47 
-#define BUTTON_ENTER_PIN  49
-#define BUTTON_BACK_PIN   51 
+#define BUTTON_UP_PIN     40   
+#define BUTTON_DOWN_PIN   42
+#define BUTTON_MENU_PIN   44 
+#define BUTTON_ENTER_PIN  46
+#define BUTTON_BACK_PIN   48 
  
-#define EMERGENCY_STOP    53
+#define EMERGENCY_STOP    50
 
 // TimeOuts (ms)
 #define INIT_MESSAGE_TIMEOUT        3000   
@@ -35,17 +35,20 @@
 #define DISPLAY_VOLUME_MODE           "Volumen         "
 #define DISPLAY_PRESSURE_MODE         "Presion         "
 #define DISPLAY_AUTO_MODE             "Automatico      "
+#define DISPLAY_MIN_BPM				        "RPMminimo(RPMm) " 	
+#define DISPLAY_MAX_BPM				        "RPMMaximo (RPMM)"
+#define DISPLAY_ADJUSTED_PRESSURE     "PresAjust (PA)  "
+#define DISPLAY_TIDAL_VOLUME          "VolTidal (VT)   "
+#define DISPLAY_VOLUME_MINUTE_M       "VolMinuMax (VMM)"
+#define DISPLAY_VOLUME_MINUTE_m       "VolMinumin (VMm)"
+#define DISPLAY_BPM                   "Resp/Min  (RPM) "
+#define DISPLAY_T_I                   "%TiempoIns (TI%)"
+#define DISPLAY_T_P                   "%TiempoPau (TP%)"
+#define DISPLAY_MAX_PRESSURE          "PresionMax (PM) "
+#define DISPLAY_MIN_PRESSURE          "PresionMin (Pm) "
+#define DISPLAY_TRP                   "PresionTri (PTr)"	 
 #define DISPLAY_CONFIRMATION          "Confirmar       "
 #define DISPLAY_AUTO_CONFIRMATION     "Confirmar Auto  "
-#define DISPLAY_ADJUSTED_PRESSURE     "PA              "
-#define DISPLAY_TIDAL_VOLUME          "VOL TID         "
-#define DISPLAY_VOLUME_MINUTE_M       "VMM             "
-#define DISPLAY_VOLUME_MINUTE_m       "VMm             "
-#define DISPLAY_BPM                   "RPM             "
-#define DISPLAY_T_I                   "Ti%             "
-#define DISPLAY_T_P                   "Tp%             "
-#define DISPLAY_MAX_PRESSURE          "PMax            "
-#define DISPLAY_TRP                   "TrP             "
 #define DISPLAY_EMPTY_LINE            "                "
 //Show
 #define DISPLAY_S_MODE           "SET MD"
@@ -89,6 +92,12 @@ typedef enum
   UI_SET_RPM,
   UI_BLINK_RPM,
   UI_DELAY_END_RPM,
+  UI_SET_RPM_M,
+  UI_BLINK_RPM_M,
+  UI_DELAY_END_RPM_M,
+  UI_SET_RPM_m,
+  UI_BLINK_RPM_m,
+  UI_DELAY_END_RPM_m,
   UI_SET_T_I,
   UI_BLINK_T_I,
   UI_DELAY_END_T_I,
@@ -98,6 +107,9 @@ typedef enum
   UI_SET_MAX_PRESSURE,
   UI_BLINK_MAX_PRESSURE,
   UI_DELAY_END_MAX_PRESSURE,
+  UI_SET_MIN_PRESSURE,
+  UI_BLINK_MIN_PRESSURE,
+  UI_DELAY_END_MIN_PRESSURE,
   UI_SET_TRP,
   UI_BLINK_TRP,
   UI_DELAY_END_TRP, 
@@ -148,9 +160,9 @@ typedef struct
           maxBreathsMinute,
           minBreathsMinute;    
 
-  int16_t adjustedPressure;  // 
-  int16_t maxPressure;
-  int16_t minPressure;
+  uint16_t adjustedPressure,  // 
+           maxPressure,
+           minPressure;
 
   uint16_t tidalVolume,       //
            maxVolumeMinute,
