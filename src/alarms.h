@@ -15,7 +15,7 @@ typedef struct
   uint8_t  type;                                     // Alarm type
   uint16_t note;                                     // Alarm frequency note (Hz)
   uint16_t duration;                                 // Alarm duration (ms)
-  String   message;                                  // Alarm message to print or display
+  char     message[16+1];                                  // Alarm message to print or display
 } 
 ALARM_t;
 
@@ -129,20 +129,20 @@ const uint16_t alarmDuration[ALARM_QTY] =
 /**
  * @section Display message 	
  */
-#define ALARM_MESSAGE_OFF                              ""									
-#define ALARM_MESSAGE_LOW_BATTERY                      "Batería baja    "
-#define ALARM_MESSAGE_HIGH_PRESSURE                    "Presión alta    "
-#define ALARM_MESSAGE_LOW_PRESSURE                     "Presión baja    "
-#define ALARM_MESSAGE_HIGH_VOLUME_PER_MINUTE           "Vol/min alto    "
-#define ALARM_MESSAGE_LOW_VOLUME_PER_MINUTE            "Vol/min bajo    "
-#define ALARM_MESSAGE_HIGH_BREATHS_PER_MINUTE          "Rsp/min alto    "
-#define ALARM_MESSAGE_LOW_BREATHS_PER_MINUTE           "Rsp/min bajo    "
-#define ALARM_MESSAGE_PRESSURE_SENSOR_ERROR            "Error: presión  "
+#define ALARM_MESSAGE_OFF                              "                "									
+#define ALARM_MESSAGE_LOW_BATTERY                      "Bateria baja    "
+#define ALARM_MESSAGE_HIGH_PRESSURE                    "Presion alta    "
+#define ALARM_MESSAGE_LOW_PRESSURE                     "Presion baja    "
+#define ALARM_MESSAGE_HIGH_VOLUME_PER_MINUTE           "Vol/Min alto    "
+#define ALARM_MESSAGE_LOW_VOLUME_PER_MINUTE            "Vol/Min bajo    "
+#define ALARM_MESSAGE_HIGH_BREATHS_PER_MINUTE          "Rsp/Min alto    "
+#define ALARM_MESSAGE_LOW_BREATHS_PER_MINUTE           "Rsp/Min bajo    "
+#define ALARM_MESSAGE_PRESSURE_SENSOR_ERROR            "Error: presion  "
 #define ALARM_MESSAGE_FLOW_SENSOR_ERROR                "Error: flujo    "
 #define ALARM_MESSAGE_CURRENT_SENSOR_ERROR             "Error: corriente"
 #define ALARM_MESSAGE_MOTOR_ERROR                      "Error: motor    "
 #define ALARM_MESSAGE_MOTOR_HIGH_CURRENT_CONSUMPTION   "Consumo elevado "
-#define ALARM_MESSAGE_ALARM_AIR_LEAK	                 "Pérdida de aire "
+#define ALARM_MESSAGE_ALARM_AIR_LEAK	                 "Perdida de aire "
 
 /**
  * @brief Buffer that stores the display message of each alarm
@@ -150,7 +150,7 @@ const uint16_t alarmDuration[ALARM_QTY] =
  * @example
  *     Print(alarmMessage[ALARM_MOTOR_ERROR]);
  */
-const String alarmMessage[ALARM_QTY] =
+const char alarmMessage[ALARM_QTY][16+1] =
 {
   ALARM_MESSAGE_OFF,        						   
   ALARM_MESSAGE_LOW_BATTERY,						   

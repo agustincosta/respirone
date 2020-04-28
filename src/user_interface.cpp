@@ -1,5 +1,6 @@
 #include "user_interface.h"
 #include "control.h"
+#include <alarms.h>
 #include <LiquidCrystal.h>
 
 // Variables
@@ -17,6 +18,7 @@ bool buttonState[ARDUINO_PIN_QTY];
 UI_t tempParam;
 UI_t UI;
 
+ALARM_t ALARM;
 
 // Debug
 // unsigned long t = 0;        
@@ -1673,7 +1675,15 @@ bool UI_ButtonDebounce(uint8_t pin)
 
 void UI_SetAlarm(uint8_t alarm)
 {
-
+  if (ALARM.enable)
+  {
+    ALARM.newEvent = true;                                 
+    ALARM.type = alarm;                                     
+    ALARM.note = alarmNote[alarm];                                     
+    ALARM.duration = alarmDuration[alarm]; 
+                               
+    strcpy(ALARM.message,alarmMessage[alarm]);    
+  }  
 }
 
 bool UI_Timer(uint32_t n)

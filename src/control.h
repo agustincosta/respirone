@@ -17,14 +17,15 @@ typedef struct control
 {
     float breathsMinute;      // Measured value of breath/minute
 
-    float pressure;           // Actual pressure value
-    float peakPressure;       // Peak pressure in the last cycle
-    float plateauPressure;    // Plateau pressure in the last cycle
-    float PEEP;               // Measured value of PEEP in the last cycle
+    float pressure;           // Actual pressure value (cmH2O)
+    float peakPressure;       // Peak pressure in the last cycle (cmH2O)
+    float plateauPressure;    // Plateau pressure in the last cycle (cmH2O)
+    float PEEP;               // Measured value of PEEP in the last cycle (cmH2O)
 
-    float volume;             // Actual volume value
-    float volumeMinute;       // Volume/minute in the last minute
-    float dynamicCompliance;    // Pulmonary compliance (V/P) in each cycle
+    float volume;             // Actual volume value (mL)
+    float volumeMinute;       // Volume/minute in the last minute (L/m)
+
+    float dynamicCompliance;  // Pulmonary compliance (V/P) in each cycle 
 }
 CTRL_t;
 

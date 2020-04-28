@@ -8,30 +8,66 @@
 #include "motor.h"
 #include "alarms.h"
 #include "analogReadFast.h"
+#include "Wire.h"
 
-PRESSURE_t pressure[PRESSURE_SENSOR_QTY];
+PRESSURE_t pressure;
+float pressureAnalogRead;
+float pressureRead;
+uint8_t pressureReadIndex;
 
-float sensorAnalogRead;
-float sensorRead;
-uint8_t sensorReadIndex;
+FLOW_t flow;
 
-Sensor_States_e sensorState; 
+CURRENT_t current;
+float currentAnalogRead;
 
+// States
+Sensor_States_e pressureState;
+Sensor_States_e flowState;
+Sensor_States_e currentState; 
+
+// Map for floats
 float mapf(float val, float in_min, float in_max, float out_min, float out_max);
 
 void Sensor_Init()
 {
-  sensorState = SENSOR_IDLE;
-  // ToDo> Init struct
-
-  sensorRead = 0;
-  sensorReadIndex = 0;  
+  Sensor_PressureInit();
+  Sensor_FlowInit();
+  Sensor_CurrentInit();
 }
 
 void Sensor_Tasks()
 {
+  Sensor_PressureTasks();
+  Sensor_FlowTasks();
+  Sensor_CurrentTasks();
+}
+
+void Sensor_PressureInit()
+{
+  pressureState = SENSOR_IDLE;
+  // ToDo> Init struct
+
+  pressureRead = 0;
+  pressureReadIndex = 0;  
+}
+
+void Sensor_FlowInit()
+{
+  flowState = SENSOR_IDLE;
+  // ToDo> Init struct
+  Wire.begin();
+}
+
+void Sensor_CurrentInit()
+{
+  currentState = SENSOR_IDLE;
+  // ToDo> Init struct
+}
+
+void Sensor_PressureTasks()
+{
   // Update pressure value
-  CTRL.pressure = Sensor_GetLastValue(PRESSURE_SENSOR_1);
+  CTRL.pressure = Sensor_GetLastValue(PRESSURE_SENSOR);
   
   // Inspiration end
   if (MOTOR.flagInspEnded)
@@ -39,12 +75,12 @@ void Sensor_Tasks()
     MOTOR.flagInspEnded = false;
 
     // Update peak pressure value
-    CTRL.peakPressure = Sensor_GetPeakValue(PRESSURE_SENSOR_1);
+    CTRL.peakPressure = Sensor_GetPeakValue(PRESSURE_SENSOR);
 
     // Update plateau pressure value
-    if (Sensor_PlateauDetected(PRESSURE_SENSOR_1))
+    if (Sensor_PlateauDetected(PRESSURE_SENSOR))
     {
-      CTRL.plateauPressure = Sensor_GetPlateauValue(PRESSURE_SENSOR_1);
+      CTRL.plateauPressure = Sensor_GetPlateauValue(PRESSURE_SENSOR);
     }
   }
 
@@ -53,81 +89,121 @@ void Sensor_Tasks()
   {
     MOTOR.flagExpEnded = false;
     // Update PEEP value
-		if (Sensor_PlateauDetected(PRESSURE_SENSOR_1))
-			CTRL.PEEP = Sensor_GetPlateauValue(PRESSURE_SENSOR_1);
+		if (Sensor_PlateauDetected(PRESSURE_SENSOR))
+			CTRL.PEEP = Sensor_GetPlateauValue(PRESSURE_SENSOR);
   }
   
   // Pressure state machine
-  switch(sensorState)
+  switch(pressureState)
   {
     case SENSOR_IDLE:
-      if (Sensor_Timer(PRESSURE_SENSOR_ACQUISITION_PERIOD))
+      if (Sensor_Timer(PRESSURE_SENSOR_ACQUISITION_PERIOD, PRESSURE_SENSOR))
       {
-        sensorState = SENSOR_ACQUIRE;
-        Sensor_Timer(0);
+        pressureState = SENSOR_ACQUIRE;
+        Sensor_Timer(SENSOR_START_TIMER, PRESSURE_SENSOR);
       }
       break;
 
     case SENSOR_ACQUIRE:
       // Read, map & add to the moving average queue
-      sensorAnalogRead = (float)analogReadFast(PRESSURE_SENSOR_1_PIN);
-      sensorRead += mapf(sensorAnalogRead, SENSOR_ADC_MIN, SENSOR_ADC_MAX, PRESSURE_SENSOR_MIN_VALUE, PRESSURE_SENSOR_MAX_VALUE)/PRESSURE_SENSOR_WINDOW_SIZE;
+      pressureAnalogRead = (float)analogReadFast(PRESSURE_SENSOR_PIN);
+      pressureRead += mapf(pressureAnalogRead, SENSOR_ADC_MIN, SENSOR_ADC_MAX, PRESSURE_SENSOR_MIN_VALUE, PRESSURE_SENSOR_MAX_VALUE)/PRESSURE_SENSOR_WINDOW_SIZE;
 
-      if (sensorReadIndex==PRESSURE_SENSOR_WINDOW_SIZE-1)
+      if (pressureReadIndex==PRESSURE_SENSOR_WINDOW_SIZE-1)
       {
-        sensorState = SENSOR_PROCESS;
+        pressureState = SENSOR_PROCESS;
          
         // Increase pointer
-        pressure[PRESSURE_SENSOR_1].pValue = (pressure[PRESSURE_SENSOR_1].pValue+1)%PRESSURE_SENSOR_QUEUE_SIZE;
+        pressure.pValue = (pressure.pValue+1)%PRESSURE_SENSOR_QUEUE_SIZE;
         // Queue
-        pressure[PRESSURE_SENSOR_1].value[pressure[PRESSURE_SENSOR_1].pValue] = sensorRead;  
+        pressure.value[pressure.pValue] = pressureRead;  
 
-        sensorReadIndex = 0;
-        sensorRead = 0;
+        pressureReadIndex = 0;
+        pressureRead = 0;
       }
       else
       {
-        sensorState = SENSOR_IDLE;
-        sensorReadIndex++;
+        pressureState = SENSOR_IDLE;
+        pressureReadIndex++;
       }
       break;    
 
     case SENSOR_PROCESS:
-      sensorState = SENSOR_IDLE;
+      pressureState = SENSOR_IDLE;
 
       // Average 
-      pressure[PRESSURE_SENSOR_1].averageValue = 0;
+      pressure.average = 0;
       for (uint8_t pressureIndex = 0; pressureIndex < PRESSURE_SENSOR_QUEUE_SIZE; pressureIndex++)
       {
-        pressure[PRESSURE_SENSOR_1].averageValue += pressure[PRESSURE_SENSOR_1].value[pressureIndex];    
+        pressure.average += pressure.value[pressureIndex];    
       }      
-      pressure[PRESSURE_SENSOR_1].averageValue /= PRESSURE_SENSOR_QUEUE_SIZE;
+      pressure.average /= PRESSURE_SENSOR_QUEUE_SIZE;
 
       // Peak
-      pressure[PRESSURE_SENSOR_1].peakValue = max(pressure[PRESSURE_SENSOR_1].peakValue, pressure[PRESSURE_SENSOR_1].value[pressure[PRESSURE_SENSOR_1].pValue]);
+      pressure.peakValue = max(pressure.peakValue, pressure.value[pressure.pValue]);
 
       // Plateau detection
       uint8_t pressureCounter;
       for (pressureCounter = 0; pressureCounter < PRESSURE_SENSOR_QUEUE_SIZE; pressureCounter++)
       {
-        if (abs(pressure[PRESSURE_SENSOR_1].value[pressureCounter]-pressure[PRESSURE_SENSOR_1].averageValue)>PRESSURE_SENSOR_PLATEAU_THRESHOLD)
+        if (abs(pressure.value[pressureCounter]-pressure.average)>PRESSURE_SENSOR_PLATEAU_THRESHOLD)
           break;        
       }
       if (pressureCounter==PRESSURE_SENSOR_QUEUE_SIZE) 
       {
-        pressure[PRESSURE_SENSOR_1].plateauDetected = true;
-        pressure[PRESSURE_SENSOR_1].plateauValue = pressure[PRESSURE_SENSOR_1].averageValue;
+        pressure.plateauDetected = true;
+        pressure.plateauValue = pressure.average;
       }
 
       break;
   }      
 }
 
-int16_t Sensor_GetLastValue(uint8_t sensorNumber)
+void Sensor_FlowTasks()
 {
-  if (sensorNumber<PRESSURE_SENSOR_QTY)
+
+}
+
+void Sensor_CurrentTasks()
+{
+  switch(currentState)
   {
-    return pressure[sensorNumber].value[pressure[sensorNumber].pValue];
+    case SENSOR_IDLE:
+      if (Sensor_Timer(CURRENT_SENSOR_ACQUISITION_PERIOD, CURRENT_SENSOR))
+      {
+        currentState = SENSOR_ACQUIRE;
+        Sensor_Timer(SENSOR_START_TIMER, CURRENT_SENSOR);
+      }
+      break;
+
+    case SENSOR_ACQUIRE:
+	    currentState = SENSOR_PROCESS;
+	  
+	    // Increase pointer
+	    current.pValue = (current.pValue+1)%CURRENT_SENSOR_QUEUE_SIZE;	
+      // Read, map & queue
+      currentAnalogRead = (float)analogReadFast(CURRENT_SENSOR_PIN);
+      current.value[current.pValue] = mapf(currentAnalogRead, SENSOR_ADC_MIN, SENSOR_ADC_MAX, CURRENT_SENSOR_MIN_VALUE, CURRENT_SENSOR_MAX_VALUE)/CURRENT_SENSOR_QUEUE_SIZE;
+      break;    
+
+    case SENSOR_PROCESS:
+      currentState = SENSOR_IDLE;
+
+      // Moving average 
+      current.average = 0;
+      for (uint8_t currentIndex = 0; currentIndex < CURRENT_SENSOR_QUEUE_SIZE; currentIndex++)
+      {
+        current.average += current.value[currentIndex]/= CURRENT_SENSOR_QUEUE_SIZE;    
+      }      
+      break;
+  } 
+}
+
+float Sensor_GetLastValue(uint8_t sensorNumber)
+{
+  if (sensorNumber==PRESSURE_SENSOR)
+  {
+    return pressure.average;
   }
   else
   {
@@ -136,13 +212,13 @@ int16_t Sensor_GetLastValue(uint8_t sensorNumber)
   }
 }
 
-int16_t Sensor_GetPeakValue(uint8_t sensorNumber)
+float Sensor_GetPeakValue(uint8_t sensorNumber)
 {
-  if (sensorNumber<PRESSURE_SENSOR_QTY)
+  if (sensorNumber==PRESSURE_SENSOR)
   {
-    int16_t returnValue = pressure[sensorNumber].peakValue;
+    int16_t returnValue = pressure.peakValue;
 
-    pressure[sensorNumber].peakValue = PRESSURE_SENSOR_MIN_VALUE;
+    pressure.peakValue = PRESSURE_SENSOR_MIN_VALUE;
 
     return returnValue;
   }
@@ -153,12 +229,12 @@ int16_t Sensor_GetPeakValue(uint8_t sensorNumber)
   }
 }
 
-int16_t Sensor_GetPlateauValue(uint8_t sensorNumber)
+float Sensor_GetPlateauValue(uint8_t sensorNumber)
 {
-  if (sensorNumber<PRESSURE_SENSOR_QTY)
+  if (sensorNumber==PRESSURE_SENSOR)
   {
-    pressure[sensorNumber].plateauDetected = false;
-    return pressure[sensorNumber].plateauValue;
+    pressure.plateauDetected = false;
+    return pressure.plateauValue;
   }
   else
   {
@@ -169,18 +245,25 @@ int16_t Sensor_GetPlateauValue(uint8_t sensorNumber)
 
 bool Sensor_PlateauDetected(uint8_t sensorNumber)
 {
-  return pressure[sensorNumber].plateauDetected;
+  if (sensorNumber==PRESSURE_SENSOR)
+    return pressure.plateauDetected;
+  else
+  {
+  // ToDo: report error
+    return PRESSURE_SENSOR_INVALID_VALUE;
+  }
+    
 }
 
-bool Sensor_Timer(uint32_t n)
+bool Sensor_Timer(uint32_t n, uint8_t sensor)
 {
-  static uint32_t initialMillis;
+  static uint32_t initialMillis[SENSORS_QTY];
 
   if(n == 0)
   {
-	  initialMillis = millis();
+	  initialMillis[sensor] = millis();
   }
-  else if((millis() - initialMillis) > n){
+  else if((millis() - initialMillis[sensor]) > n){
 	  return true;
   }
   return false;
