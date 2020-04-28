@@ -402,7 +402,7 @@ void Motor_Tasks() {
           UI_SetAlarm(ALARM_HIGH_PRESSURE);
         }
         else if ((millis() < MOTOR.inspEndTime) && (MOTOR.encoderTotal < minInspirationCounts)) { // Alarm if motor is not moving during inspiration
-          //UI_SetAlarm(ALARM_MOTOR_ERROR);
+          UI_SetAlarm(ALARM_MOTOR_ERROR);
           motorState = MOTOR_POWER_ON;
           break;                       
         }
@@ -447,7 +447,7 @@ void Motor_Tasks() {
       else {                                                    // Piston in final position and inspiration time ended
         
         if ((millis() < MOTOR.inspEndTime) && (MOTOR.encoderTotal < minInspirationCounts)) { // Alarm if motor is not moving during inspiration
-          //UI_SetAlarm(ALARM_MOTOR_ERROR);
+          UI_SetAlarm(ALARM_MOTOR_ERROR);
           motorState = MOTOR_POWER_ON;
           break;                       
         }
@@ -659,7 +659,7 @@ void updateControlVariables() {
 
 void checkMotorOvercurrent() {
   if(MOTOR.currentConsumption >= maxMotorCurrent) {         
-    //UI_SetAlarm(ALARM_MOTOR_HIGH_CURRENT_CONSUMPTION)
+    UI_SetAlarm(ALARM_MOTOR_HIGH_CURRENT_CONSUMPTION);
     motorState = MOTOR_POWER_ON;
   }
 }
@@ -672,6 +672,6 @@ void calculateSystemPeriod() {
 
 void compareInspExpVolume() {
   if (abs(MOTOR.expirationVolume - measuredTidalVol) > maxVolumeDiff) {
-    //UI_SetAlarm(ALARM_AIR_LEAK);
+    UI_SetAlarm(ALARM_AIR_LEAK);
   }
 }

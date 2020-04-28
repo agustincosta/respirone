@@ -16,7 +16,8 @@ enum Alarms
   ALARM_LOW_BREATHS_PER_MINUTE,
   ALARM_PRESSURE_SENSOR_ERROR,
   ALARM_MOTOR_ERROR,
-  ALARM_MOTOR_HIGH_CURRENT_CONSUMPTION
+  ALARM_MOTOR_HIGH_CURRENT_CONSUMPTION,
+  ALARM_AIR_LEAK
 };
 
 /**
@@ -33,6 +34,7 @@ enum Alarms
 #define ALARM_NOTE_PRESSURE_SENSOR_ERROR                100
 #define ALARM_NOTE_MOTOR_ERROR                          100
 #define ALARM_NOTE_MOTOR_HIGH_CURRENT_CONSUMPTION       100
+#define ALARM_NOTE_AIR_LEAK                             100
 
 /**
  * @brief Buffer that stores the frequency note (Hz) of each alarm
@@ -52,7 +54,8 @@ const uint8_t alarmNote[] =
   ALARM_NOTE_LOW_BREATHS_PER_MINUTE,
   ALARM_NOTE_PRESSURE_SENSOR_ERROR,          
   ALARM_NOTE_MOTOR_ERROR,                    
-  ALARM_NOTE_MOTOR_HIGH_CURRENT_CONSUMPTION     
+  ALARM_NOTE_MOTOR_HIGH_CURRENT_CONSUMPTION,
+  ALARM_NOTE_AIR_LEAK    
 };
 
 /**
@@ -69,6 +72,7 @@ const uint8_t alarmNote[] =
 #define ALARM_DURATION_PRESSURE_SENSOR_ERROR            100
 #define ALARM_DURATION_MOTOR_ERROR                      100
 #define ALARM_DURATION_MOTOR_HIGH_CURRENT_CONSUMPTION   100
+#define ALARM_DURATION_AIR_LEAK                         100
 
 /**
  * @brief Buffer that stores the duration of each alarm
@@ -88,7 +92,8 @@ const uint8_t alarmDuration[] =
   ALARM_DURATION_LOW_BREATHS_PER_MINUTE,
   ALARM_DURATION_PRESSURE_SENSOR_ERROR,         
   ALARM_DURATION_MOTOR_ERROR,                   
-  ALARM_DURATION_MOTOR_HIGH_CURRENT_CONSUMPTION    
+  ALARM_DURATION_MOTOR_HIGH_CURRENT_CONSUMPTION,
+  ALARM_DURATION_AIR_LEAK   
 };
 
 #endif
