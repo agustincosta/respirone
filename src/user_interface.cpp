@@ -16,7 +16,7 @@ CTRL_t showParam;
 //UNO
 //LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 //MEGA
-LiquidCrystal lcd(14, 15, 16, 17, 18, 19);
+LiquidCrystal lcd(22, 24, 26, 28, 30, 32);
 
 // User Interface
 void UI_Init()
@@ -33,7 +33,7 @@ void UI_Init()
   
   uiTask = UI_WAITING_BUTTON;
   uiState = UI_SET_MODE_AUTO;
-  
+
   // Button
   pinMode(BUTTON_UP_PIN,    INPUT_PULLUP); 
   pinMode(BUTTON_DOWN_PIN,  INPUT_PULLUP); 

@@ -13,11 +13,12 @@
 #define LED_ALARM_PIN  11
 
 // Buttons
-#define BUTTON_UP_PIN     40   
-#define BUTTON_DOWN_PIN   42
-#define BUTTON_MENU_PIN   44 
-#define BUTTON_ENTER_PIN  46
-#define BUTTON_BACK_PIN   48 
+#define BUTTON_UP_PIN     42   
+#define BUTTON_DOWN_PIN   44
+#define BUTTON_MENU_PIN   46 
+#define BUTTON_ENTER_PIN  48
+#define BUTTON_BACK_PIN   40 
+#define BUTTON_CIRCLE     38
  
 #define EMERGENCY_STOP    50
 
