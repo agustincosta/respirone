@@ -36,24 +36,34 @@ SensorIndexes_e;
 
 // Pressure
 #define PRESSURE_SENSOR_PIN                 A0
-#define PRESSURE_SENSOR_MIN_VALUE           0   
-#define PRESSURE_SENSOR_MAX_VALUE           60
-#define PRESSURE_SENSOR_INVALID_VALUE       PRESSURE_SENSOR_MAX_VALUE+1.0 
+#define PRESSURE_SENSOR_MIN_VALUE           0  // 0mBar
+#define PRESSURE_SENSOR_MAX_VALUE           60 // 60mBar
+#define PRESSURE_SENSOR_INVALID_VALUE       PRESSURE_SENSOR_MAX_VALUE+1 
 #define PRESSURE_SENSOR_PLATEAU_THRESHOLD   4.0 
 #define PRESSURE_SENSOR_ACQUISITION_PERIOD  10
 #define PRESSURE_SENSOR_WINDOW_SIZE         4
 #define PRESSURE_SENSOR_QUEUE_SIZE          16
 
 // Flow
-#define FLOW_SENSOR_ACQUISITION_PERIOD      10 
+#define FLOW_SENSOR_ACQUISITION_PERIOD      10  // At least 10ms
 #define FLOW_SENSOR_QUEUE_SIZE              4
+#define FLOW_SENSOR_INVALID_VALUE           0  
+#define FLOW_SENSOR_FLOW_COEFFICIENT        140
+#define FLOW_SENSOR_OFFSET_VALUE            32000  
+#define FLOW_SENSOR_I2C_ADDRESS             0x40
+#define FLOW_SENSOR_I2C_WRITE_CMD           0x80
+#define FLOW_SENSOR_I2C_READ_CMD            0x81
+#define FLOW_SENSOR_I2C_GETFLOW_H           0x10
+#define FLOW_SENSOR_I2C_GETFLOW_L           0x00
+#define FLOW_SENSOR_CRC8_POLYNOMIAL         0x131
 
 // Current
 #define CURRENT_SENSOR_PIN                  A1
-#define CURRENT_SENSOR_MIN_VALUE            0   
-#define CURRENT_SENSOR_MAX_VALUE            60
-#define CURRENT_SENSOR_INVALID_VALUE        PRESSURE_SENSOR_MAX_VALUE+1.0   
-#define CURRENT_SENSOR_ACQUISITION_PERIOD   50
+#define CURRENT_SENSOR_MIN_VALUE            -2.5    // -2.5A
+#define CURRENT_SENSOR_MAX_VALUE            2.5     // 2.5A
+#define CURRENT_SENSOR_SENSITIVITY          0.185   // V/A
+#define CURRENT_SENSOR_INVALID_VALUE        PRESSURE_SENSOR_MAX_VALUE+1   
+#define CURRENT_SENSOR_ACQUISITION_PERIOD   20
 #define CURRENT_SENSOR_QUEUE_SIZE           4
 
 /**
@@ -145,7 +155,7 @@ void Sensor_CurrentTasks();
  * @param sensorNumber 
  * @return float 
  */
-float Sensor_GetLastValue(uint8_t sensorNumber);
+float Pressure_GetLastValue(uint8_t sensorNumber);
 
 /**
  * @brief 
@@ -153,7 +163,7 @@ float Sensor_GetLastValue(uint8_t sensorNumber);
  * @param sensorNumber 
  * @return float 
  */
-float Sensor_GetPeakValue(uint8_t sensorNumber);
+float Pressure_GetPeakValue(uint8_t sensorNumber);
 
 /**
  * @brief 
@@ -161,7 +171,7 @@ float Sensor_GetPeakValue(uint8_t sensorNumber);
  * @param sensorNumber 
  * @return float 
  */
-float Sensor_GetPlateauValue(uint8_t sensorNumber);
+float Pressure_GetPlateauValue(uint8_t sensorNumber);
 
 /**
  * @brief 
@@ -170,7 +180,24 @@ float Sensor_GetPlateauValue(uint8_t sensorNumber);
  * @return true 
  * @return false 
  */
-bool Sensor_PlateauDetected(uint8_t sensorNumber);
+bool Pressure_PlateauDetected(uint8_t sensorNumber);
+
+/**
+ * @brief 
+ * 
+ * @param sensorNumber 
+ * @return true 
+ * @return false 
+ */
+bool Flow_StartReading(uint8_t sensorNumber);
+
+/**
+ * @brief 
+ * 
+ * @param sensorNumber 
+ * @return float 
+ */
+float Flow_GetReading(uint8_t sensorNumber);
 
 /**
  * @brief 

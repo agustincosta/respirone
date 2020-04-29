@@ -10,13 +10,17 @@
 #include "analogReadFast.h"
 #include "Wire.h"
 
+// Air pressure
 PRESSURE_t pressure;
 float pressureAnalogRead;
 float pressureRead;
 uint8_t pressureReadIndex;
 
+// Air flow
 FLOW_t flow;
+float flowRead;
 
+// Motor current consumption
 CURRENT_t current;
 float currentAnalogRead;
 
@@ -27,6 +31,9 @@ Sensor_States_e currentState;
 
 // Map for floats
 float mapf(float val, float in_min, float in_max, float out_min, float out_max);
+
+// CRC8 calculation
+uint8_t crc8(uint8_t data[], uint8_t length);
 
 void Sensor_Init()
 {
@@ -67,7 +74,7 @@ void Sensor_CurrentInit()
 void Sensor_PressureTasks()
 {
   // Update pressure value
-  CTRL.pressure = Sensor_GetLastValue(PRESSURE_SENSOR);
+  CTRL.pressure = Pressure_GetLastValue(PRESSURE_SENSOR);
   
   // Inspiration end
   if (MOTOR.flagInspEnded)
@@ -75,12 +82,12 @@ void Sensor_PressureTasks()
     MOTOR.flagInspEnded = false;
 
     // Update peak pressure value
-    CTRL.peakPressure = Sensor_GetPeakValue(PRESSURE_SENSOR);
+    CTRL.peakPressure = Pressure_GetPeakValue(PRESSURE_SENSOR);
 
     // Update plateau pressure value
-    if (Sensor_PlateauDetected(PRESSURE_SENSOR))
+    if (Pressure_PlateauDetected(PRESSURE_SENSOR))
     {
-      CTRL.plateauPressure = Sensor_GetPlateauValue(PRESSURE_SENSOR);
+      CTRL.plateauPressure = Pressure_GetPlateauValue(PRESSURE_SENSOR);
     }
   }
 
@@ -89,8 +96,8 @@ void Sensor_PressureTasks()
   {
     MOTOR.flagExpEnded = false;
     // Update PEEP value
-		if (Sensor_PlateauDetected(PRESSURE_SENSOR))
-			CTRL.PEEP = Sensor_GetPlateauValue(PRESSURE_SENSOR);
+		if (Pressure_PlateauDetected(PRESSURE_SENSOR))
+			CTRL.PEEP = Pressure_GetPlateauValue(PRESSURE_SENSOR);
   }
   
   // Pressure state machine
@@ -161,7 +168,50 @@ void Sensor_PressureTasks()
 
 void Sensor_FlowTasks()
 {
+  switch(flowState)
+  {
+    case SENSOR_IDLE:
+      if (Sensor_Timer(FLOW_SENSOR_ACQUISITION_PERIOD, FLOW_SENSOR))
+      {
+        flowState = SENSOR_ACQUIRE;
+        Sensor_Timer(SENSOR_START_TIMER, FLOW_SENSOR);
 
+        // Start reading and check 
+        if (!Flow_StartReading(FLOW_SENSOR)) UI_SetAlarm(ALARM_NOTE_FLOW_SENSOR_ERROR); 
+      }
+      break;
+
+    case SENSOR_ACQUIRE:
+	    flowState = SENSOR_PROCESS;
+
+	    // Increase pointer
+	    flow.pValue = (flow.pValue+1)%FLOW_SENSOR_QUEUE_SIZE;	
+      
+      // Read
+      flowRead = Flow_GetReading(FLOW_SENSOR);
+
+      // Check and queue or set alarm
+      if (flowRead==FLOW_SENSOR_INVALID_VALUE) 
+      {
+        UI_SetAlarm(ALARM_NOTE_FLOW_SENSOR_ERROR);
+      }
+      else
+      {
+        current.value[current.pValue] = (flowRead-FLOW_SENSOR_OFFSET_VALUE)/FLOW_SENSOR_FLOW_COEFFICIENT;
+      }
+      break;    
+
+    case SENSOR_PROCESS:
+      flowState = SENSOR_IDLE;
+
+      // Moving average 
+      flow.average = 0;
+      for (uint8_t flowIndex = 0; flowIndex < FLOW_SENSOR_QUEUE_SIZE; flowIndex++)
+      {
+        flow.average += flow.value[flowIndex]/ FLOW_SENSOR_QUEUE_SIZE;    
+      }      
+      break;
+  }
 }
 
 void Sensor_CurrentTasks()
@@ -183,7 +233,7 @@ void Sensor_CurrentTasks()
 	    current.pValue = (current.pValue+1)%CURRENT_SENSOR_QUEUE_SIZE;	
       // Read, map & queue
       currentAnalogRead = (float)analogReadFast(CURRENT_SENSOR_PIN);
-      current.value[current.pValue] = mapf(currentAnalogRead, SENSOR_ADC_MIN, SENSOR_ADC_MAX, CURRENT_SENSOR_MIN_VALUE, CURRENT_SENSOR_MAX_VALUE)/CURRENT_SENSOR_QUEUE_SIZE;
+      current.value[current.pValue] = mapf(currentAnalogRead, SENSOR_ADC_MIN, SENSOR_ADC_MAX, CURRENT_SENSOR_MIN_VALUE, CURRENT_SENSOR_MAX_VALUE)/CURRENT_SENSOR_SENSITIVITY;
       break;    
 
     case SENSOR_PROCESS:
@@ -193,13 +243,13 @@ void Sensor_CurrentTasks()
       current.average = 0;
       for (uint8_t currentIndex = 0; currentIndex < CURRENT_SENSOR_QUEUE_SIZE; currentIndex++)
       {
-        current.average += current.value[currentIndex]/= CURRENT_SENSOR_QUEUE_SIZE;    
+        current.average += current.value[currentIndex]/CURRENT_SENSOR_QUEUE_SIZE;    
       }      
       break;
   } 
 }
 
-float Sensor_GetLastValue(uint8_t sensorNumber)
+float Pressure_GetLastValue(uint8_t sensorNumber)
 {
   if (sensorNumber==PRESSURE_SENSOR)
   {
@@ -212,7 +262,7 @@ float Sensor_GetLastValue(uint8_t sensorNumber)
   }
 }
 
-float Sensor_GetPeakValue(uint8_t sensorNumber)
+float Pressure_GetPeakValue(uint8_t sensorNumber)
 {
   if (sensorNumber==PRESSURE_SENSOR)
   {
@@ -229,7 +279,7 @@ float Sensor_GetPeakValue(uint8_t sensorNumber)
   }
 }
 
-float Sensor_GetPlateauValue(uint8_t sensorNumber)
+float Pressure_GetPlateauValue(uint8_t sensorNumber)
 {
   if (sensorNumber==PRESSURE_SENSOR)
   {
@@ -243,7 +293,7 @@ float Sensor_GetPlateauValue(uint8_t sensorNumber)
   }
 }
 
-bool Sensor_PlateauDetected(uint8_t sensorNumber)
+bool Pressure_PlateauDetected(uint8_t sensorNumber)
 {
   if (sensorNumber==PRESSURE_SENSOR)
     return pressure.plateauDetected;
@@ -252,7 +302,44 @@ bool Sensor_PlateauDetected(uint8_t sensorNumber)
   // ToDo: report error
     return PRESSURE_SENSOR_INVALID_VALUE;
   }
-    
+}
+
+bool Flow_StartReading(uint8_t sensorNumber)
+{
+  bool retVal;
+
+  Wire.beginTransmission(FLOW_SENSOR_I2C_ADDRESS); 
+  Wire.write(FLOW_SENSOR_I2C_WRITE_CMD);
+  Wire.write(FLOW_SENSOR_I2C_GETFLOW_H);
+  Wire.write(FLOW_SENSOR_I2C_GETFLOW_L);
+  retVal = Wire.endTransmission()?false:true;
+
+  Wire.beginTransmission(FLOW_SENSOR_I2C_ADDRESS); 
+  Wire.write(FLOW_SENSOR_I2C_READ_CMD);
+  retVal &= Wire.endTransmission()?false:true;
+
+  return retVal;
+}
+
+float Flow_GetReading(uint8_t sensorNumber)
+{
+  uint8_t flowBuffer[2], flowRead_crc8;
+  float flowValue;
+
+  Wire.requestFrom(FLOW_SENSOR_I2C_ADDRESS, 3);    
+  if (Wire.available()) flowBuffer[1] = Wire.read(); 
+  if (Wire.available()) flowBuffer[0] = Wire.read(); 
+  if (Wire.available()) flowRead_crc8 = Wire.read(); 
+
+  if (crc8(flowBuffer, 2)==flowRead_crc8)
+  {
+    flowValue = (float)((flowBuffer[1]<<8) & (flowBuffer[0]));
+  }
+  else
+  {
+    flowValue = FLOW_SENSOR_INVALID_VALUE;
+  }
+  return flowValue;
 }
 
 bool Sensor_Timer(uint32_t n, uint8_t sensor)
@@ -272,4 +359,22 @@ bool Sensor_Timer(uint32_t n, uint8_t sensor)
 float mapf(float val, float in_min, float in_max, float out_min, float out_max)
 {
     return (val - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+uint8_t crc8(uint8_t data[], uint8_t length)
+{
+  uint8_t  bit,byte,crc=0x00;
+
+  for(byte=0; byte<length; byte++) 
+  {
+    crc^=(data[byte]);
+    for(bit=8;bit>0;--bit) 
+	{
+    if(crc&0x80) 
+		  crc=(crc<<1)^FLOW_SENSOR_CRC8_POLYNOMIAL; 
+	  else
+      crc=(crc<<1);
+    }
+  }
+  return crc;
 }
