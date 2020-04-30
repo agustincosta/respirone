@@ -1,5 +1,6 @@
 #include "user_interface.h"
 #include "control.h"
+#include <alarms.h>
 #include <LiquidCrystal.h>
 
 // Variables
@@ -17,6 +18,7 @@ CTRL_t showParam;
 //LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 //MEGA
 LiquidCrystal lcd(22, 24, 26, 28, 30, 32);
+ALARM_t ALARM;
 
 // User Interface
 void UI_Init()
@@ -2079,6 +2081,7 @@ bool UI_ButtonDebounce(uint8_t pin)
 
 void UI_SetAlarm(uint8_t alarm)
 {
+
 }
 
 bool UI_Timer(uint32_t n)
