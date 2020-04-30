@@ -74,7 +74,7 @@ void Motor_Init() {
   MOTOR.flagInspEnded = false;
   MOTOR.flagExpEnded = false;
   //Sensors
-  MOTOR.currentConsumption = 0.0;
+  MOTOR.currentConsumption = 2.0;     //Hardcoded para simular sensor siempre bien
   MOTOR.expirationVolume = 0.0;
 
   initPID();
@@ -287,7 +287,6 @@ void Motor_Tasks() {
         MOTOR.expEndTime = millis() + MOTOR.expirationTime;
 
         MOTOR.flagInspEnded = true;
-
       } 
 
       if ((MOTOR.limitSwitch && (MOTOR.motorAction == MOTOR_STARTING)) || (MOTOR.encoderTotal > 0)) {   // Not in home position conditions
@@ -422,6 +421,7 @@ void Motor_Tasks() {
         comandoMotor(motorDIR, motorPWM, VEL_PAUSE);
       
         measuredTidalVol = calculateDisplacedVolume();          // Calculate how much volume was displaced from encoder
+        MOTOR.expirationVolume = measuredTidalVol;    //ToDo tiene que ser medido por sensor de flujo
 
         motorState = MOTOR_PAUSE;
         MOTOR.motorAction = MOTOR_STOPPED;
@@ -451,8 +451,9 @@ void Motor_Tasks() {
           motorState = MOTOR_POWER_ON;
           break;                       
         }
-        
+         
         measuredTidalVol = calculateDisplacedVolume();          // Calculate how much volume was displaced from encoder
+        MOTOR.expirationVolume = measuredTidalVol;    //ToDo tiene que ser medido por sensor de flujo
 
         #if MOTOR_STATES_LOG
           if(MOTOR.encoderTotal > maxVolumeEncoderCounts) {
@@ -642,7 +643,7 @@ float getVolumeMinute() {
     UI_SetAlarm(ALARM_LOW_VOLUME_PER_MINUTE);
   }
 
-  return volumeMinute;///ML_TO_L;     //ToDo
+  return volumeMinute/ML_TO_L;
 
 }
 
@@ -652,8 +653,8 @@ float getDynamicCompliance() {
 
 void updateControlVariables() {
   CTRL.breathsMinute = getBreathsMinute();
-  CTRL.volume = (int16_t)getTidalVolume();
-  CTRL.volumeMinute = (int16_t)getVolumeMinute();
+  CTRL.volume = getTidalVolume();
+  CTRL.volumeMinute = getVolumeMinute();
   CTRL.dynamicCompliance = getDynamicCompliance();
 }
 
@@ -671,7 +672,7 @@ void calculateSystemPeriod() {
 }
 
 void compareInspExpVolume() {
-  if (abs(MOTOR.expirationVolume - measuredTidalVol) > maxVolumeDiff) {
+  if (abs(MOTOR.expirationVolume - measuredTidalVol) > AIR_LEAK_THRESHOLD) {
     UI_SetAlarm(ALARM_AIR_LEAK);
   }
 }

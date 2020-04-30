@@ -24,8 +24,8 @@
 #define BUFFER_SIZE 30
 
 /*Velocidades*/
-#define VEL_ANG_MAX 8.986   // Experimental en rad/s
-#define VEL_ANG_MIN 3.5     // Experimental en rad/s
+#define VEL_ANG_MAX 1.31    // Experimental en rad/s - 8.986 en el motor del rover
+#define VEL_ANG_MIN 0.2     // Experimental en rad/s - 3.5 en el motor del rover
 #define VEL_PAUSE 0         // Probar
 
 /*Presiones*/
@@ -33,11 +33,11 @@
 #define PRES_MAX 35         // Maximum control pressure
 
 /*Volumen*/
-#define maxVolumeDiff 50    // Tolerated measured volume difference between inspiration and expiration in ml
+#define AIR_LEAK_THRESHOLD 50    // Tolerated measured volume difference between inspiration and expiration in ml
 
 /*Encoder*/
-#define encoderCountsPerRev 8400
-#define maxVolumeEncoderCounts 2880 //Experimental
+#define encoderCountsPerRev 16896   //8400 en el motor del rover
+#define maxVolumeEncoderCounts 5793 //Experimental - 2880 en el motor del rover sacado por proporcion respecto al motor anterior - ToDo medirlo bien
 #define minInspirationCounts 100    // Encoder counts needed to determine motor has moved
 
 /*Motor*/
@@ -78,9 +78,9 @@ typedef struct
 {
     bool limitSwitch;       // Switch status
     //Breathing parameters
-    uint8_t breathsMinute;  // Measured value of breath/minute
-    uint16_t volumeMinute;  // Volume/minute in the last minute
-    uint32_t tidalVolume;   // Tidal volume in ml
+    float breathsMinute;    // Measured value of breath/minute
+    float volumeMinute;     // Volume/minute in the last minute
+    float tidalVolume;      // Tidal volume in ml
     float inspPercentage;   // Percentage of cycle for inspiration
     float pausePercentage;  // Percentage of inspiration for pause
     uint8_t modeSet;        // Breathing mode set by UI
