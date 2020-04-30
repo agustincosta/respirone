@@ -6,6 +6,8 @@
 bool logEnable;
 bool printUserSettings;
 
+extern double Kp_v, Ki_v, Kd_v;
+
 uint32_t logTimeoutMillis;
 
 void DataLogger_Init()
@@ -146,6 +148,24 @@ void serialEvent()
       case '-':
         (logTimeoutMillis>50)? (logTimeoutMillis -= 50) : logTimeoutMillis = 0; 
         break; 
+
+
+      //DEBUG PID VOLUMEN
+      case 'p':
+        Kp_v += 0.1;
+        break;
+
+      case 'o':
+        Kp_v -= 0.1;
+        break;
+
+      case 'r':
+        Ki_v += 0.1;
+        break;
+      
+      case 'e':
+        Ki_v -= 0.1;
+        break;
     }
   }
 }

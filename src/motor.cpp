@@ -27,13 +27,14 @@ float measuredCompliance = 0;
 Encoder encoder(encoderA, encoderB);
 
 /*Variables de PID*/ 
-double Kp = 0.35, Ki = 2, Kd = 0.00; //Variables de PID probadas en Rover
+double Kp_v = 4.8, Ki_v = 1.5, Kd_v = 0.00; //Variables experimentales con nuevo motor
+double Kp_p = 4.8, Ki_p = 1.5, Kd_p = 0.00; //ToDo Probar con el sistema entero andando
 
 //PID de control por volumen
-PID volumenPID(&MOTOR.wMeasure, &MOTOR.wCommand, &MOTOR.wSetpoint, Kp, Ki, Kd, DIRECT); //Crea objeto PID
+PID volumenPID(&MOTOR.wMeasure, &MOTOR.wCommand, &MOTOR.wSetpoint, Kp_v, Ki_v, Kd_v, DIRECT); //Crea objeto PID
 
 //PID de control por presion
-PID presionPID(&MOTOR.pMeasure,&MOTOR.pCommand,&MOTOR.pSetpoint, Kp, Ki, Kd, DIRECT); //Crea objeto PID
+PID presionPID(&MOTOR.pMeasure,&MOTOR.pCommand,&MOTOR.pSetpoint, Kp_p, Ki_p, Kd_p, DIRECT); //Crea objeto PID
 
 
 long startPeriod = 0;
@@ -80,7 +81,8 @@ void Motor_Init() {
   initPID();
   setPinModes();
 
-  tone(11, 500, 500);
+  //DEBUG
+  tone(BUZZER_ALARM_PIN, 500, 500);
 
 }
 
@@ -184,9 +186,13 @@ void controlDePresion() {
   MOTOR.pMeasure = CTRL.pressure;                    //Actualiza la presion medida
   presionPID.Compute();                              //Actualiza p_comando en funcion de p_medida y p_setpoint
   deltaPresion = MOTOR.pSetpoint - MOTOR.pCommand;   //Diferencia de presion para determinar cambio de velocidad
-  deltaVelocidad = map(abs(deltaPresion), 0, PRES_MAX, 3.5, VEL_ANG_MAX);   //Convierte diferencia de presion a diferencia de velocidad (TURBIO)
+  deltaVelocidad = map(abs(deltaPresion), 0, PRES_MAX, VEL_ANG_MIN, VEL_ANG_MAX);   //Convierte diferencia de presion a diferencia de velocidad (TURBIO)
 
   #if MOTOR_PID_LOG
+    Serial.print("Kp: "); Serial.print(Kp_p); Serial.print('\t');
+    Serial.print("Ki: "); Serial.print(Ki_p);
+    Serial.println("");
+
     Serial.print("MOTOR.pCommand: "); Serial.println(MOTOR.pCommand);
     Serial.print("MOTOR.pMeasure: "); Serial.println(MOTOR.pMeasure);
     Serial.print("MOTOR.pSetpoint: "); Serial.println(MOTOR.pSetpoint);
@@ -219,8 +225,14 @@ void controlDeVolumen() {
   setpointVelocityCalculation();
   calculoVelocidadMedida(MOTOR.Ts);  //Calcula w_medida a partir de periodo (Ts) y encoder
   volumenPID.Compute();        //Actualiza w_comando en funcion de w_medida y w_setpoint
+
+  
   
   #if MOTOR_PID_LOG
+    Serial.print("Kp: "); Serial.print(Kp_v); Serial.print('\t');
+    Serial.print("Ki: "); Serial.print(Ki_v);
+    Serial.println("");
+
     Serial.print("MOTOR.wCommand: "); Serial.println(MOTOR.wCommand);
     Serial.print("MOTOR.wMeasure: "); Serial.println(MOTOR.wMeasure);
     Serial.print("MOTOR.wSetpoint: "); Serial.println(MOTOR.wSetpoint);
@@ -351,10 +363,14 @@ void Motor_Tasks() {
         }       
       }
       else if (MOTOR.motorAction == MOTOR_STARTING) {           // If starting
+        
         if (UI.setUpComplete) {                                 // Check if setup complete
-          //Serial.println("SETUP COMPLETE");
+          Motor_SetBreathingParams();
+          UI.setUpComplete = false;
+
           MOTOR.motorAction = MOTOR_WAITING;
-          if (MOTOR.modeSet == UI_VOLUME_CONTROL) {             // Volume mode
+          
+          if (MOTOR.modeSet == UI_VOLUME_CONTROL  || MOTOR.modeSet == UI_AUTOMATIC_CONTROL) {             // Volume mode
             motorState = MOTOR_VOLUME_CONTROL;
             #if MOTOR_STATES_LOG
               Serial.println("STATE: VOLUME CONTROL");
@@ -383,6 +399,7 @@ void Motor_Tasks() {
 
       if ((MOTOR.encoderTotal < MOTOR.inspirationCounts) && (millis() < MOTOR.inspEndTime) && (CTRL.pressure < UI.maxPressure)) {       // Piston moving forward
         // Conditions for inspiration: encoder counts not reached, inspiration time not passed and pressure below max
+        
         #if CONTROL_ACTIVO_VOLUMEN 
         { 
           calculateControlPeriod();   
@@ -536,6 +553,9 @@ void inspirationFirstIteration() {
 
 void Motor_SetBreathingParams() {
   if (UI.setUpComplete) {
+    if(MOTOR.motorAction != MOTOR_STARTING) {
+      UI.setUpComplete = false;
+    }
     MOTOR.breathsMinute = UI.breathsMinute;
     MOTOR.tidalVolume = (uint32_t)UI.tidalVolume;
     MOTOR.inspPercentage = ((float)UI.t_i)/100;

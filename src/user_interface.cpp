@@ -87,7 +87,7 @@ void UI_Task()
 
       if(UI.setUpComplete)
       {
-        UI.setUpComplete = false;
+        //UI.setUpComplete = false;
         uiTask = UI_SHOW_PARAMETERS;
         UI_Timer(0);
       }
