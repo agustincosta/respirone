@@ -1,38 +1,40 @@
 #include "user_interface.h"
 #include "control.h"
-#include <alarms.h>
+#include "alarms.h"
+#include "config.h"
 #include <LiquidCrystal.h>
 
-// Variables
+//LCD
+LiquidCrystal lcd(DISPLAY_RS_PIN, DISPLAY_ENABLE_PIN, DISPLAY_D0_PIN, DISPLAY_D1_PIN, DISPLAY_D2_PIN, DISPLAY_D3_PIN);
+
+// UI Variables
+UI_t tempParam;
+UI_t UI;
+
 UI_states_e uiTask;
 UI_SetParametersStates_e uiState;
 UI_ShowParametersStates_e spState;
+
 DebounceStates_t debounceState[ARDUINO_PIN_QTY];
 bool buttonState[ARDUINO_PIN_QTY];
-UI_t tempParam;
-UI_t UI;
+
+// Control
 CTRL_t showParam;
 
-//LCD
-//UNO
-//LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
-//MEGA
-LiquidCrystal lcd(22, 24, 26, 28, 30, 32);
+// Alarm
 ALARM_t ALARM;
 
 // User Interface
 void UI_Init()
 {
-  // Debug
-  // Serial.begin(9600);
-
   // Display
-  lcd.begin(16,2);               // initialize the lcd 
-  lcd.home ();                   // go home
+  lcd.begin(DISPLAY_COLUMNS, DISPLAY_ROWS);   // initialize the lcd 
+  lcd.home ();                                // go home
   UI_DisplayClear();
   UI_DisplayMessage(0,0,DISPLAY_PROJECT_NAME);
   UI_DisplayMessage(0,1,DISPLAY_LAUNCH_MENU);
   
+  // Init FSM
   uiTask = UI_WAITING_BUTTON;
   uiState = UI_SET_MODE_AUTO;
 
@@ -47,24 +49,24 @@ void UI_Init()
   UI_Timer(0); 
 
   // Default parameters
-  tempParam.selectedMode     = UI_AUTOMATIC_CONTROL;
-  tempParam.tidalVolume      = 500;
-  tempParam.maxVolumeMinute  = 14;
-  tempParam.minVolumeMinute  = 2;
-  tempParam.breathsMinute    = 14;
-  tempParam.maxBreathsMinute = 30;
-  tempParam.minBreathsMinute = 7; 
-  tempParam.t_i              = 25;
-  tempParam.t_p              = 10;
-  tempParam.maxPressure      = 30;
-  tempParam.minPressure      = 7;
-  tempParam.TrP              = -2;
-  tempParam.adjustedPressure = 20;
+  tempParam.selectedMode     = DEFAULT_SELECTED_MODE;
+  tempParam.tidalVolume      = DEFAULT_TIDAL_VOLUME;
+  tempParam.maxVolumeMinute  = DEFAULT_MAX_VOLUME_MINUTE;
+  tempParam.minVolumeMinute  = DEFAULT_MIN_VOLUME_MINUTE;
+  tempParam.breathsMinute    = DEFAULT_BREATHS_MINUTE;
+  tempParam.maxBreathsMinute = DEFAULT_MAX_BREATHS_MINUTE;
+  tempParam.minBreathsMinute = DEFAULT_MIN_BREATHS_MINUTE;
+  tempParam.t_i              = DEFAULT_T_INSP;
+  tempParam.t_p              = DEFAULT_T_PAUSE;
+  tempParam.maxPressure      = DEFAULT_MAX_PRESSURE;
+  tempParam.minPressure      = DEFAULT_MIN_PRESSURE;
+  tempParam.TrP              = DEFAULT_TRP;
+  tempParam.adjustedPressure = DEFAULT_ADJUSTED_PRESSURE;
 }
 
 void UI_Task()
 {
-  char stringAux[16];
+  char stringAux[DISPLAY_COLUMNS+1];
 
   stringAux[0] = 0;
 
@@ -87,7 +89,7 @@ void UI_Task()
 
       if(UI.setUpComplete)
       {
-        UI.setUpComplete = false;
+        //UI.setUpComplete = false;
         uiTask = UI_SHOW_PARAMETERS;
         UI_Timer(0);
       }

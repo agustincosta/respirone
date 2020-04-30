@@ -59,8 +59,8 @@ SensorIndexes_e;
 
 // Current
 #define CURRENT_SENSOR_PIN                  A1
-#define CURRENT_SENSOR_MIN_VALUE            -2.5    // -2.5A
-#define CURRENT_SENSOR_MAX_VALUE            2.5     // 2.5A
+#define CURRENT_SENSOR_MIN_VALUE            -20.0    // -20A
+#define CURRENT_SENSOR_MAX_VALUE            20.0     // 20A
 #define CURRENT_SENSOR_SENSITIVITY          0.185   // V/A
 #define CURRENT_SENSOR_INVALID_VALUE        PRESSURE_SENSOR_MAX_VALUE+1   
 #define CURRENT_SENSOR_ACQUISITION_PERIOD   20

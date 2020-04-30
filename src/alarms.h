@@ -5,6 +5,8 @@
 #ifndef ALARMS_H
 #define ALARMS_H
 
+#include "config.h"
+
 /**
  * @brief Alarm data types
  */
@@ -15,7 +17,7 @@ typedef struct
   uint8_t  type;                                     // Alarm type
   uint16_t note;                                     // Alarm frequency note (Hz)
   uint16_t duration;                                 // Alarm duration (ms)
-  char     message[16+1];                                  // Alarm message to print or display
+  char     message[DISPLAY_COLUMNS+1];               // Alarm message to print or display
 } 
 ALARM_t;
 
@@ -150,7 +152,7 @@ const uint16_t alarmDuration[ALARM_QTY] =
  * @example
  *     Print(alarmMessage[ALARM_MOTOR_ERROR]);
  */
-const char alarmMessage[ALARM_QTY][16+1] =
+const char alarmMessage[ALARM_QTY][DISPLAY_COLUMNS+1] =
 {
   ALARM_MESSAGE_OFF,        						   
   ALARM_MESSAGE_LOW_BATTERY,						   

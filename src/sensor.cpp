@@ -266,7 +266,7 @@ float Pressure_GetPeakValue(uint8_t sensorNumber)
 {
   if (sensorNumber==PRESSURE_SENSOR)
   {
-    int16_t returnValue = pressure.peakValue;
+    float returnValue = pressure.peakValue;
 
     pressure.peakValue = PRESSURE_SENSOR_MIN_VALUE;
 

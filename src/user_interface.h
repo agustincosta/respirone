@@ -7,27 +7,52 @@
  * @section Defines
  */
 
-#define ARDUINO_PIN_QTY   53
+#define ARDUINO_PIN_QTY                     53
 
 // LEDS
-#define LED_ALARM_PIN  11
+#define LED_ALARM_PIN                       12
+
+// Buzzer
+#define BUZZER_ALARM_PIN                    11
 
 // Buttons
-#define BUTTON_UP_PIN     42   
-#define BUTTON_DOWN_PIN   44
-#define BUTTON_MENU_PIN   46 
-#define BUTTON_ENTER_PIN  48
-#define BUTTON_BACK_PIN   40 
-#define BUTTON_CIRCLE     38
- 
-#define EMERGENCY_STOP    50
+#define BUTTON_UP_PIN                       42   
+#define BUTTON_DOWN_PIN                     44
+#define BUTTON_MENU_PIN                     46 
+#define BUTTON_ENTER_PIN                    48
+#define BUTTON_BACK_PIN                     40 
+#define BUTTON_CIRCLE                       38
+#define EMERGENCY_STOP                      50
+
+// Display
+#define DISPLAY_RS_PIN						          22
+#define DISPLAY_ENABLE_PIN  				        24
+#define DISPLAY_D0_PIN                      26
+#define DISPLAY_D1_PIN                      28
+#define DISPLAY_D2_PIN                      30
+#define DISPLAY_D3_PIN                      32
+
+// Default parameters
+#define DEFAULT_SELECTED_MODE     			    UI_AUTOMATIC_CONTROL
+#define DEFAULT_TIDAL_VOLUME                500
+#define DEFAULT_MAX_VOLUME_MINUTE           14
+#define DEFAULT_MIN_VOLUME_MINUTE           2
+#define DEFAULT_BREATHS_MINUTE              14
+#define DEFAULT_MAX_BREATHS_MINUTE          30
+#define DEFAULT_MIN_BREATHS_MINUTE          7 
+#define DEFAULT_T_INSP                      25
+#define DEFAULT_T_PAUSE                     10
+#define DEFAULT_MAX_PRESSURE                30
+#define DEFAULT_MIN_PRESSURE                7
+#define DEFAULT_TRP                         -2
+#define DEFAULT_ADJUSTED_PRESSURE           20
 
 // TimeOuts (ms)
-#define INIT_MESSAGE_TIMEOUT        3000   
-#define TIMEOUT_BLINK               500
-#define TIMEOUT_SHOW_SELECTED_PARAM 500
-#define TIMEOUT_UPDATE_CTRL_PARAM   500  
-#define TIMEOUT_RESTART_CONFIG      2000 
+#define INIT_MESSAGE_TIMEOUT                3000   
+#define TIMEOUT_BLINK                       500
+#define TIMEOUT_SHOW_SELECTED_PARAM         500
+#define TIMEOUT_UPDATE_CTRL_PARAM           500  
+#define TIMEOUT_RESTART_CONFIG              2000 
 
 //Display messages
 //Config
@@ -179,10 +204,6 @@ typedef struct
            minVolumeMinute;  
 
   int8_t TrP;                 // Trigger respect PEEP
-
-  //////////////////////////////////////////////////////////////////////////////////////
-  uint8_t i_e;     /////////// SHOULD NOT BE USED ////////////   (just to compile)  ////
-  //////////////////////////////////////////////////////////////////////////////////////
 } 
 UI_t;
 

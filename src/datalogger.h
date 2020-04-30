@@ -3,10 +3,10 @@
 
 #include "Arduino.h"
 
-#define DATALOG_STATUS_TIMEOUT 100
+#define DATALOG_STATUS_TIMEOUT      100
 
-#define FIRMWARE_VERSION_HIGH 01
-#define FIRMWARE_VERSION_LOW  00
+#define DATALOG_DEFAULT_STATUS      true
+#define DATALOG_PRINT_INIT_MESSAGE  false
 
 typedef enum 
 {

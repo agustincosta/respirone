@@ -26,6 +26,8 @@ typedef struct control
     float volumeMinute;       // Volume/minute in the last minute (L/m)
 
     float dynamicCompliance;  // Pulmonary compliance (V/P) in each cycle 
+
+    float currentConsumption; // Motor consumption (A)
 }
 CTRL_t;
 
