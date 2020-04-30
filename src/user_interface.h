@@ -15,6 +15,9 @@
 // Buzzer
 #define BUZZER_ALARM_PIN                    11
 
+//BUZZER
+#define BUZZER_ALARM_PIN  7
+
 // Buttons
 #define BUTTON_UP_PIN                       42   
 #define BUTTON_DOWN_PIN                     44

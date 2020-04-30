@@ -13,12 +13,12 @@
 #include "user_interface.h"
 
 #define MOTOR_STATES_LOG false
-#define MOTOR_PID_LOG true
+#define MOTOR_PID_LOG false
 
 /*Control activo PID*/
 #define CONTROL_ACTIVO_VOLUMEN true
 #define CONTROL_ACTIVO_PRESION true
-#define CONTROL_SAMPLE_RATE 20  // Hz
+#define CONTROL_SAMPLE_RATE 100  // Hz
 
 /*Limite respiraciones minuto*/
 #define BUFFER_SIZE 30
