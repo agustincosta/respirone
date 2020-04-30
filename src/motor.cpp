@@ -74,7 +74,7 @@ void Motor_Init() {
   MOTOR.flagInspEnded = false;
   MOTOR.flagExpEnded = false;
   //Sensors
-  MOTOR.currentConsumption = 0.0;
+  MOTOR.currentConsumption = 2.0;     //Hardcoded para simular sensor siempre bien
   MOTOR.expirationVolume = 0.0;
 
   initPID();
@@ -421,6 +421,7 @@ void Motor_Tasks() {
         comandoMotor(motorDIR, motorPWM, VEL_PAUSE);
       
         measuredTidalVol = calculateDisplacedVolume();          // Calculate how much volume was displaced from encoder
+        MOTOR.expirationVolume = measuredTidalVol;    //ToDo tiene que ser medido por sensor de flujo
 
         motorState = MOTOR_PAUSE;
         MOTOR.motorAction = MOTOR_STOPPED;
@@ -452,6 +453,7 @@ void Motor_Tasks() {
         }
          
         measuredTidalVol = calculateDisplacedVolume();          // Calculate how much volume was displaced from encoder
+        MOTOR.expirationVolume = measuredTidalVol;    //ToDo tiene que ser medido por sensor de flujo
 
         #if MOTOR_STATES_LOG
           if(MOTOR.encoderTotal > maxVolumeEncoderCounts) {

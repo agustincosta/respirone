@@ -24,8 +24,8 @@
 #define BUFFER_SIZE 30
 
 /*Velocidades*/
-#define VEL_ANG_MAX 8.986   // Experimental en rad/s
-#define VEL_ANG_MIN 3.5     // Experimental en rad/s
+#define VEL_ANG_MAX 1.31    // Experimental en rad/s - 8.986 en el motor del rover
+#define VEL_ANG_MIN 0.2     // Experimental en rad/s - 3.5 en el motor del rover
 #define VEL_PAUSE 0         // Probar
 
 /*Presiones*/
@@ -36,8 +36,8 @@
 #define AIR_LEAK_THRESHOLD 50    // Tolerated measured volume difference between inspiration and expiration in ml
 
 /*Encoder*/
-#define encoderCountsPerRev 8400
-#define maxVolumeEncoderCounts 2880 //Experimental
+#define encoderCountsPerRev 16896   //8400 en el motor del rover
+#define maxVolumeEncoderCounts 5793 //Experimental - 2880 en el motor del rover sacado por proporcion respecto al motor anterior - ToDo medirlo bien
 #define minInspirationCounts 100    // Encoder counts needed to determine motor has moved
 
 /*Motor*/
