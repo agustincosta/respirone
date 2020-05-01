@@ -8,20 +8,6 @@
 #include "config.h"
 
 /**
- * @brief Alarm data types
- */
-typedef struct
-{
-  bool     enable;                                   // Alarm enable (disabled when muted)
-  bool     newEvent;                                 // New event flag
-  uint8_t  type;                                     // Alarm type
-  uint16_t note;                                     // Alarm frequency note (Hz)
-  uint16_t duration;                                 // Alarm duration (ms)
-  char     message[DISPLAY_COLUMNS+1];               // Alarm message to print or display
-} 
-ALARM_t;
-
-/**
  * @brief Alarm types
  * 
  */
@@ -43,6 +29,14 @@ enum Alarms
   ALARM_AIR_LEAK,
   ALARM_QTY     
 };
+
+typedef struct
+{
+  bool  enable;                                   // Alarm enable (disabled when muted)
+  bool  newEvent;                                 // New event flag
+  bool  isActive[ALARM_QTY];                      // Alarm vector
+} 
+ALARM_t;
 
 /**
  * @section Frequency notes (Hz)	

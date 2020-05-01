@@ -11,18 +11,20 @@ LiquidCrystal lcd(DISPLAY_RS_PIN, DISPLAY_ENABLE_PIN, DISPLAY_D0_PIN, DISPLAY_D1
 UI_t tempParam;
 UI_t UI;
 
-UI_states_e uiTask;
-UI_SetParametersStates_e uiState;
+UI_states_e               uiTask;
+UI_SetParametersStates_e  uiState;
 UI_ShowParametersStates_e spState;
-
-DebounceStates_t debounceState[ARDUINO_PIN_QTY];
-bool buttonState[ARDUINO_PIN_QTY];
+UI_AlarmStates_e          alarmState;
 
 // Control
 CTRL_t showParam;
 
 // Alarm
 ALARM_t ALARM;
+
+// Button Debounce 
+DebounceStates_t  debounceState[ARDUINO_PIN_QTY];
+bool              buttonState[ARDUINO_PIN_QTY];
 
 // User Interface
 void UI_Init()
@@ -33,6 +35,10 @@ void UI_Init()
   UI_DisplayClear();
   UI_DisplayMessage(0,0,DISPLAY_PROJECT_NAME);
   UI_DisplayMessage(0,1,DISPLAY_LAUNCH_MENU);
+
+  // Alarm
+  pinMode(LED_ALARM_PIN, OUTPUT);
+  pinMode(BUZZER_ALARM_PIN, OUTPUT);
   
   // Init FSM
   uiTask = UI_WAITING_BUTTON;
@@ -87,9 +93,13 @@ void UI_Task()
 
       UI_SetParametersTask();
 
+      if (UI_ActiveAlarms())
+      {
+        uiTask = UI_ALARMS_MANAGEMENT;
+      }
+      else 
       if(UI.setUpComplete)
       {
-        //UI.setUpComplete = false;
         uiTask = UI_SHOW_PARAMETERS;
         UI_Timer(0);
       }
@@ -98,14 +108,15 @@ void UI_Task()
         uiTask = UI_RESTART_UI;
         UI_Timer(0);
       }
-
-      ////////////////////////////////////////////////////////////////////////////////////
-      /////////////////////    ALARMS   //////////////////////////////////////////////////
-      ////////////////////////////////////////////////////////////////////////////////////
       break;
 
     case UI_SHOW_PARAMETERS:
-      if(UI_ButtonDebounce(BUTTON_MENU_PIN))
+      if (UI_ActiveAlarms())
+      {
+        uiTask = UI_ALARMS_MANAGEMENT;
+        digitalWrite(LED_ALARM_PIN, HIGH);
+      }
+      else if(UI_ButtonDebounce(BUTTON_MENU_PIN))
       {
         uiTask = UI_RESTART_CONFIG;
         UI_Timer(0);
@@ -155,28 +166,32 @@ void UI_Task()
       }
       break;
 
-
-
     case UI_RESTART_CONFIG:
       UI_ButtonDebounce(BUTTON_MENU_PIN);
 
-      if((buttonState[BUTTON_MENU_PIN]) && (UI_Timer(TIMEOUT_RESTART_CONFIG)))
+      if (UI_ActiveAlarms())
+      {
+        uiTask = UI_ALARMS_MANAGEMENT;
+        digitalWrite(LED_ALARM_PIN, HIGH);
+      }
+      else if((buttonState[BUTTON_MENU_PIN]) && (UI_Timer(TIMEOUT_RESTART_CONFIG)))
       {
         UI_Init();
       }
       else if(!buttonState[BUTTON_MENU_PIN])
       {
         uiTask = UI_SHOW_PARAMETERS;
-      }
-      ////////////////////////////////////////////////////////////////////////////////////
-      /////////////////////    ALARMS   //////////////////////////////////////////////////
-      ////////////////////////////////////////////////////////////////////////////////////      
+      }    
       break;    
 
     case UI_RESTART_UI:
       UI_ButtonDebounce(BUTTON_MENU_PIN);
 
-      if((buttonState[BUTTON_MENU_PIN]) && (UI_Timer(TIMEOUT_RESTART_CONFIG)))
+      if (UI_ActiveAlarms())
+      {
+        uiTask = UI_ALARMS_MANAGEMENT;
+      }
+      else if((buttonState[BUTTON_MENU_PIN]) && (UI_Timer(TIMEOUT_RESTART_CONFIG)))
       {
         UI_Init();
       }
@@ -184,16 +199,18 @@ void UI_Task()
       {
         uiTask = UI_SET_UP_PAREMETERS;
       }
-      ////////////////////////////////////////////////////////////////////////////////////
-      /////////////////////    ALARMS   //////////////////////////////////////////////////
-      ////////////////////////////////////////////////////////////////////////////////////
       break;      
 
-
-
     case UI_ALARMS_MANAGEMENT:
+      if (UI_ActiveAlarms())
+      {
+        UI_AlarmsTask();
+      }
+      else
+      {
+        uiTask = UI_SHOW_PARAMETERS;
+      }
       break;
-
 
   default:
     uiTask = UI_WAITING_BUTTON;
@@ -2000,6 +2017,50 @@ void UI_ShowParametersTask()
   }
 }
 
+void UI_AlarmsTask()
+{
+  static uint8_t actualAlarm;
+
+  switch(alarmState)
+  {
+    case UI_ALARM_IDLE:
+      alarmState = UI_ALARM_SHOW;
+      actualAlarm = UI_ActiveAlarmFindNext(ALARM_OFF); // Get first alarm
+      break;
+
+    case UI_ALARM_SHOW:
+      alarmState = UI_ALARM_WAIT_FOR_ACK;
+      UI_AlarmDisplay(actualAlarm);
+      break;
+
+    case UI_ALARM_WAIT_FOR_ACK:
+      if(UI_ButtonDebounce(BUTTON_ENTER_PIN))
+      {
+        UI_ActiveAlarmTurnOff(actualAlarm); 
+        if (UI_ActiveAlarms()==false) 
+          alarmState = UI_ALARM_IDLE;
+      } 
+      else if (UI_ActiveAlarmQuantity()>1)
+      {
+        if(UI_ButtonDebounce(BUTTON_UP_PIN))
+        {
+          alarmState = UI_ALARM_SHOW;
+          actualAlarm = UI_ActiveAlarmFindNext(actualAlarm); 
+        }  
+        else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
+        {
+          alarmState = UI_ALARM_SHOW;
+          actualAlarm = UI_ActiveAlarmFindPrevious(actualAlarm); 
+        }  
+      } 
+      break;     
+
+    default:
+      alarmState = UI_ALARM_IDLE;
+      break;
+  }
+}
+
 void UI_UpdateControlParam()
 {
   if(UI_Timer(TIMEOUT_UPDATE_CTRL_PARAM))
@@ -2083,7 +2144,101 @@ bool UI_ButtonDebounce(uint8_t pin)
 
 void UI_SetAlarm(uint8_t alarm)
 {
+  if (ALARM.enable)
+  {
+    ALARM.newEvent = true;                                 
+    ALARM.isActive[alarm] = true;     
+  }
+}
 
+void UI_AlarmDisplay(uint8_t alarm)
+{
+  char strLine[DISPLAY_COLUMNS+1], strAlarmIdx[3], strAlarmQty[3];
+
+  // First line
+  strcpy(strLine, "ALARMA ");
+
+  itoa(UI_ActiveAlarmIndex(alarm),strAlarmIdx,10);
+  strcat(strLine, strAlarmIdx);
+
+  itoa(UI_ActiveAlarmQuantity(),strAlarmQty,10);
+  strcpy(strLine, strAlarmQty);
+
+  UI_DisplayMessage(0,0,strLine);
+
+  // Second line
+  UI_DisplayMessage(0,1,alarmMessage[alarm]);
+}
+
+bool UI_ActiveAlarms()
+{
+  // Check for a new event and short circuit
+  if (ALARM.newEvent)
+  {
+    ALARM.newEvent = false;
+    return true;
+  }
+
+  // Cher for active alarms
+  uint8_t alarmIndex;
+  for (alarmIndex=0;alarmIndex<ALARM_QTY;alarmIndex++)
+  {
+	  if (ALARM.isActive[alarmIndex]) 
+      return true;
+  } 
+  return false;
+}
+
+uint8_t UI_ActiveAlarmFindNext(uint8_t actualAlarm)
+{
+	uint8_t alarmIndex, activeAlarmIndex;
+	for (alarmIndex = 1;alarmIndex<ALARM_QTY+1;alarmIndex++)
+	{
+		activeAlarmIndex = (actualAlarm+alarmIndex)%ALARM_QTY;
+		if (ALARM.isActive[activeAlarmIndex]) 
+      return activeAlarmIndex; 
+	}
+  return activeAlarmIndex; 
+}
+
+uint8_t UI_ActiveAlarmFindPrevious(uint8_t actualAlarm)
+{
+	uint8_t alarmIndex, activeAlarmIndex;
+	for (alarmIndex = 1;alarmIndex<ALARM_QTY+1;alarmIndex++)
+	{
+		activeAlarmIndex = (ALARM_QTY+actualAlarm-alarmIndex)%ALARM_QTY;
+		if (ALARM.isActive[activeAlarmIndex]) 
+      return activeAlarmIndex; 
+	}
+  return activeAlarmIndex;
+}
+
+uint8_t UI_ActiveAlarmQuantity()
+{
+	uint8_t alarmIndex, activeAlarmQuantity = 0;
+	for (alarmIndex = 0;alarmIndex<ALARM_QTY;alarmIndex++)
+	{
+		if (ALARM.isActive[alarmIndex]) 
+      activeAlarmQuantity++; 
+	}
+  return activeAlarmQuantity;
+}
+
+uint8_t UI_ActiveAlarmIndex(uint8_t actualAlarm)
+{
+	uint8_t alarmIndex, activeAlarmIndex = 0;
+	for (alarmIndex = 1;alarmIndex<=actualAlarm;alarmIndex++)
+	{
+		if (ALARM.isActive[alarmIndex]) 
+      activeAlarmIndex++; 
+	}
+  return activeAlarmIndex;
+}
+
+void UI_ActiveAlarmTurnOff(uint8_t actualAlarm)
+{
+  ALARM.isActive[actualAlarm] = false;    
+  // ToDo> return bool and check the alarm is active
 }
 
 bool UI_Timer(uint32_t n)
@@ -2099,4 +2254,3 @@ bool UI_Timer(uint32_t n)
   }
     return false;
 }
-

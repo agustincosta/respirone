@@ -13,10 +13,7 @@
 #define LED_ALARM_PIN                       12
 
 // Buzzer
-#define BUZZER_ALARM_PIN                    11
-
-//BUZZER
-#define BUZZER_ALARM_PIN  7
+#define BUZZER_ALARM_PIN                    7
 
 // Buttons
 #define BUTTON_UP_PIN                       42   
@@ -170,6 +167,14 @@ typedef enum
 }
 UI_ShowParametersStates_e;
 
+typedef enum
+{
+  UI_ALARM_IDLE,
+  UI_ALARM_SHOW,
+  UI_ALARM_WAIT_FOR_ACK
+}
+UI_AlarmStates_e;
+
 typedef enum  
 {
   BUTTON_RELEASED,
@@ -255,8 +260,16 @@ void UI_ShowParametersTask();
  *  
  *  \details More details
  */
-void UI_UpdateControlParam();
+void UI_AlarmsTask();
 
+/**
+ *  \brief Brief description
+ *  
+ *  \return Return description
+ *  
+ *  \details More details
+ */
+void UI_UpdateControlParam();
 
 /**
  *  \brief Brief description
@@ -287,13 +300,11 @@ bool UI_ButtonDebounce(uint8_t);
  */
 void UI_DisplayMessage(uint8_t pos, uint8_t line, const char * message);
 
-
 /**
  * @brief 
  * 
  */
 void UI_DisplayClear();
-
 
 /**
  * @brief 
@@ -313,12 +324,63 @@ void UI_SetAlarm(uint8_t alarm);
 void UI_LoadParam();
 
 /**
- *  \brief Brief description
- *  
- *  \param [in] n Description for n
- *  \return Return description
- *  
- *  \details More details
+ * @brief 
+ * 
+ * @return true 
+ * @return false 
+ */
+bool UI_ActiveAlarms();
+
+/**
+ * @brief 
+ * 
+ * @param alarm 
+ */
+void UI_AlarmDisplay(uint8_t alarm);
+
+/**
+ * @brief 
+ * 
+ * @param actualAlarm 
+ * @return uint8_t 
+ */
+uint8_t UI_ActiveAlarmFindNext(uint8_t actualAlarm);
+
+/**
+ * @brief 
+ * 
+ * @param actualAlarm 
+ * @return uint8_t 
+ */
+uint8_t UI_ActiveAlarmFindPrevious(uint8_t actualAlarm);
+
+/**
+ * @brief 
+ * 
+ * @return uint8_t 
+ */
+uint8_t UI_ActiveAlarmQuantity();
+
+/**
+ * @brief 
+ * 
+ * @return uint8_t 
+ */
+uint8_t UI_ActiveAlarmIndex(uint8_t actualAlarm);
+
+/**
+ * @brief 
+ * 
+ * @param actualAlarm 
+ */
+void UI_ActiveAlarmTurnOff(uint8_t actualAlarm);
+
+/**
+ * @brief 
+ * 
+ * @param n 
+ * @return true 
+ * @return false 
  */
 bool UI_Timer(uint32_t n);
 
