@@ -15,8 +15,10 @@
 #define MOTOR_STATES_LOG false
 #define MOTOR_PID_LOG false
 
+#define MOTOR_GAP_CORRECTION true   // Includes two states to compensate the time it takes for motors to change direction
+
 /*Control activo PID*/
-#define CONTROL_ACTIVO_VOLUMEN true
+#define CONTROL_ACTIVO_VOLUMEN false
 #define CONTROL_ACTIVO_PRESION true
 #define CONTROL_SAMPLE_RATE 100  // Hz
 
@@ -25,7 +27,7 @@
 
 /*Velocidades*/
 #define VEL_ANG_MAX 1.31    // Experimental en rad/s - 8.986 en el motor del rover
-#define VEL_ANG_MIN 0.2     // Experimental en rad/s - 3.5 en el motor del rover
+#define VEL_ANG_MIN 0.7     // Experimental en rad/s - 3.5 en el motor del rover
 #define VEL_PAUSE 0         // Probar
 
 /*Presiones*/
@@ -39,6 +41,12 @@
 #define encoderCountsPerRev 16896   //8400 en el motor del rover
 #define maxVolumeEncoderCounts 5793 //Experimental - 2880 en el motor del rover sacado por proporcion respecto al motor anterior - ToDo medirlo bien
 #define minInspirationCounts 100    // Encoder counts needed to determine motor has moved
+
+#if MOTOR_GAP_CORRECTION
+    #define preparationCounts 400
+#else
+    #define preparationCounts 0
+#endif
 
 /*Motor*/
 #define maxMotorCurrent 5.0     //Maximum motor current in amps
@@ -54,7 +62,7 @@
 
 /*Caracteristicas mecanicas*/
 #define pistonArea 12271.8463       //En mm2
-#define crownRadius 32.00           //En mm
+#define crownRadius 60.00           //En mm
 
 /*Conversiones*/
 #define SEC_TO_MILLIS 1000
@@ -100,10 +108,12 @@ typedef struct
     //Times
     float inspirationTime;  // Duration of inspiration in seconds
     float expirationTime;   // Duration of expiration in seconds
+    float advanceTime;      // Duration of motor movement in seconds (inspiration-pause)
     uint32_t Ts;            // Control loop time period
     uint32_t tAct;          // Auxiliary time variable
     uint32_t tPrev;         // Auxiliary time variable
     uint32_t inspEndTime;   // Time in millis inspiration ends
+    uint32_t pauseEndTime;  // Time in millis pause ends
     uint32_t expEndTime;    // Time in millis expiration ends
     uint32_t cycleStart;    // Time in millis a cycle starts
     //Motor state
@@ -127,9 +137,12 @@ typedef enum
     MOTOR_POWER_ON,                 // First state when system starts, does not return to it
     MOTOR_IDLE,                     // Waiting for next cycle to begin
     MOTOR_RETURN_HOME_POSITION,     // Return to home after inspiration or power on
+    MOTOR_PREPARE_INSPIRATION,      // Prepare to start inspiration 
     MOTOR_VOLUME_CONTROL,           // Inspiration by volume control
     MOTOR_PRESSURE_CONTROL,         // Inspiration by pressure control
+    MOTOR_PREPARE_EXPIRATION,       // Prepare to start expiration
     MOTOR_PAUSE,                    // Pause during inspiration after control condition met (volume displaced) before expiration
+
 }
 Motor_States_e; 
 

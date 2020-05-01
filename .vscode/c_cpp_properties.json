@@ -8,6 +8,7 @@
             "includePath": [
                 "C:/Users/agusc/Documents/GIT/respirone/include",
                 "C:/Users/agusc/Documents/GIT/respirone/src",
+                "C:/Users/agusc/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                 "C:/Users/agusc/.platformio/lib/PID_ID2",
                 "C:/Users/agusc/.platformio/lib/Encoder_ID129",
                 "C:/Users/agusc/.platformio/lib/Encoder_ID129/utility",
@@ -17,7 +18,6 @@
                 "C:/Users/agusc/.platformio/packages/framework-arduino-avr/libraries/HID/src",
                 "C:/Users/agusc/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
                 "C:/Users/agusc/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
-                "C:/Users/agusc/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                 "C:/Users/agusc/.platformio/packages/tool-unity",
                 ""
             ],
@@ -26,6 +26,7 @@
                 "path": [
                     "C:/Users/agusc/Documents/GIT/respirone/include",
                     "C:/Users/agusc/Documents/GIT/respirone/src",
+                    "C:/Users/agusc/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                     "C:/Users/agusc/.platformio/lib/PID_ID2",
                     "C:/Users/agusc/.platformio/lib/Encoder_ID129",
                     "C:/Users/agusc/.platformio/lib/Encoder_ID129/utility",
@@ -35,7 +36,6 @@
                     "C:/Users/agusc/.platformio/packages/framework-arduino-avr/libraries/HID/src",
                     "C:/Users/agusc/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
                     "C:/Users/agusc/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
-                    "C:/Users/agusc/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                     "C:/Users/agusc/.platformio/packages/tool-unity",
                     ""
                 ]

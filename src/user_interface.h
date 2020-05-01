@@ -13,7 +13,7 @@
 #define LED_ALARM_PIN                       12
 
 // Buzzer
-#define BUZZER_ALARM_PIN                    11
+//#define BUZZER_ALARM_PIN                    11 VERSION PCB ToDo
 
 //BUZZER
 #define BUZZER_ALARM_PIN  7

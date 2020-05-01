@@ -8,6 +8,7 @@ bool logEnable;
 bool printUserSettings;
 
 extern double Kp_v, Ki_v, Kd_v;
+extern double Kp_p, Ki_p, Kd_p;
 
 uint32_t logTimeoutMillis;
 
@@ -149,19 +150,19 @@ void serialEvent()
 
       //DEBUG PID VOLUMEN
       case 'p':
-        Kp_v += 0.1;
+        Kp_p += 0.1;
         break;
 
       case 'o':
-        Kp_v -= 0.1;
+        Kp_p -= 0.1;
         break;
 
       case 'r':
-        Ki_v += 0.1;
+        Ki_p += 0.1;
         break;
       
       case 'e':
-        Ki_v -= 0.1;
+        Ki_p -= 0.1;
         break;
     }
   }
