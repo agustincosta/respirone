@@ -63,6 +63,7 @@ void Motor_Init() {
   MOTOR.encoderCounts = 0;
   MOTOR.encoderTotal = 0;
   MOTOR.inspirationCounts = 0;
+  MOTOR.pauseCounts = 0;
   //Times
   MOTOR.inspirationTime = 0;
   MOTOR.expirationTime = 0;
@@ -429,7 +430,7 @@ void Motor_Tasks() {
 
     /*-----------------------VOLUME CONTROL-----------------------*/
     case MOTOR_VOLUME_CONTROL:
-      
+    
       if (MOTOR.motorAction == MOTOR_WAITING) {                 // Check if it its the first iteration to save the time
         inspirationFirstIteration();
       }
@@ -477,10 +478,17 @@ void Motor_Tasks() {
         measuredTidalVol = calculateDisplacedVolume();          // Calculate how much volume was displaced from encoder
         MOTOR.expirationVolume = measuredTidalVol;    //ToDo tiene que ser medido por sensor de flujo
 
-        motorState = MOTOR_PREPARE_EXPIRATION;
-        #if MOTOR_STATES_LOG
-          Serial.println("STATE: PAUSE");
-        #endif        
+        #if MOTOR_PAUSE_DECELERATION 
+          motorState = MOTOR_PAUSE;
+          #if MOTOR_STATES_LOG
+            Serial.println("STATE: PAUSE");
+          #endif 
+        #else
+          motorState = MOTOR_PREPARE_EXPIRATION;
+          #if MOTOR_STATES_LOG
+            Serial.println("STATE: PREPARE EXPIRATION");
+          #endif 
+        #endif               
       }
 
       break;    
@@ -528,46 +536,63 @@ void Motor_Tasks() {
 
     /*---------------------PREPARE EXPIRATION--------------------*/
     case MOTOR_PREPARE_EXPIRATION:
-      if (MOTOR.encoderTotal > MOTOR.inspirationCounts) {
+      Serial.println("_A_A_A_A_A_A_A_A_A_A_A_A_A");
+      if (MOTOR.encoderTotal > MOTOR.inspirationCounts + MOTOR.pauseCounts) {
         comandoMotor(motorDIR, motorPWM, -0.8*VEL_ANG_MAX);
         lecturaEncoder();
-        
       }
       else {
         comandoMotor(motorDIR, motorPWM, 0);
-        motorState = MOTOR_PAUSE;
-        
-        #if MOTOR_STATES_LOG
-          Serial.println("STATE: RETURN TO HOME");
-        #endif
+
+        #if MOTOR_PAUSE_DECELERATION
+          motorState = MOTOR_RETURN_HOME_POSITION;
+          #if MOTOR_STATES_LOG
+            Serial.println("STATE: RETURN TO HOME");
+          #endif
+        #else
+          motorState = MOTOR_PAUSE;
+          #if MOTOR_STATES_LOG
+            Serial.println("STATE: PAUSE");
+          #endif
+        #endif  
       }
     /*--------------------PAUSE IN INSPIRATION--------------------*/
     case MOTOR_PAUSE:
 
       if(MOTOR.motorAction == MOTOR_ADVANCING) {
-        calculateDecelerationCurve();                            // Calculates MOTOR.wDecrement
-        MOTOR.motorAction = MOTOR_STOPPED;
+        calculateDecelerationCurve();                             // Calculates MOTOR.wDecrement
+        MOTOR.motorAction = MOTOR_STOPPED;                        // Changes motor to stopped
+        MOTOR.pauseCounts = 0;                                    // Resets pause encoder counts
       }
 
-      if (millis() < MOTOR.pauseEndTime) {                       // Piston reached final position but time remains in inspiration 
-        /*
-        if (millis()-prevPauseTime >= PAUSE_CONTROL_PERIOD) {
-          MOTOR.wCommand -= MOTOR.wDecrement;
-          comandoMotor(motorDIR, motorPWM, MOTOR.wCommand);
-          prevPauseTime = millis(); 
-        } 
-        */
-        comandoMotor(motorDIR, motorPWM, VEL_PAUSE);
-             
+      if (millis() < MOTOR.pauseEndTime) {                        // Piston reached final position but time remains in inspiration 
+        
+        #if MOTOR_PAUSE_DECELERATION
+          if (millis()-prevPauseTime >= PAUSE_CONTROL_PERIOD) {
+            Serial.print("MOTOR.wCommand PAUSE: "); Serial.println(MOTOR.wCommand);
+            Serial.print("MOTOR.wDecrement: "); Serial.println(MOTOR.wDecrement);
+            MOTOR.wCommand -= MOTOR.wDecrement;                   // Reduces speed
+            if (MOTOR.wCommand < VEL_ANG_MIN) {
+              MOTOR.wSetpoint = VEL_ANG_MIN;
+            } 
+            lecturaEncoder();                                     // Get encoder value
+            MOTOR.pauseCounts += MOTOR.encoderCounts;             // Save pause counts to return to home correctly
+            comandoMotor(motorDIR, motorPWM, MOTOR.wCommand);
+            prevPauseTime = millis(); 
+          }
+        #else
+          comandoMotor(motorDIR, motorPWM, VEL_PAUSE); 
+        #endif     
       }
       else {                                                    // Piston in final position and inspiration time ended
         comandoMotor(motorDIR, motorPWM, 0);
-        motorState = MOTOR_RETURN_HOME_POSITION;
-        /*
+        Serial.println(MOTOR.pauseCounts);
+        
         #if MOTOR_GAP_CORRECTION
           motorState = MOTOR_PREPARE_EXPIRATION;
           #if MOTOR_STATES_LOG
             Serial.println("STATE: PREPARE EXPIRATION");
+            Serial.println(motorState);
           #endif
         #else
           motorState = MOTOR_RETURN_HOME_POSITION;
@@ -575,12 +600,16 @@ void Motor_Tasks() {
             Serial.println("STATE: RETURN TO HOME");
           #endif
         #endif
-        */
+        
         /*Start flow measurement integration*/
 
       }
       break;
     
+    case MOTOR_NOTHING:
+      Serial.println("NOTHING");
+      break;
+
     /*-------------------------DEFAULT----------------------------*/
     default:
       Serial.println("ESTADO DESCONOCIDO");

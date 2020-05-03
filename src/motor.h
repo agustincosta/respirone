@@ -15,10 +15,11 @@
 #define MOTOR_STATES_LOG true
 #define MOTOR_PID_LOG false
 
-#define MOTOR_GAP_CORRECTION true   // Includes two states to compensate the time it takes for motors to change direction
+#define MOTOR_GAP_CORRECTION true       // Includes two states to compensate the time it takes for motors to change direction
+#define MOTOR_PAUSE_DECELERATION true   // Decreases speed progressively to a complete stop during pause time
 
 /*Control activo PID*/
-#define CONTROL_ACTIVO_VOLUMEN false
+#define CONTROL_ACTIVO_VOLUMEN true
 #define CONTROL_ACTIVO_PRESION true
 #define CONTROL_SAMPLE_RATE 100  // Hz
 
@@ -29,7 +30,7 @@
 #define VEL_ANG_MAX 2.54    // Experimental en rad/s - 8.986 en el motor del rover ---- 1.52 rad/s a 12V, 1.77 rad/s a 13V, 2.07 rad/s a 14V, 2.54 rad/s a 15V
 #define VEL_ANG_MIN 0.7     // Experimental en rad/s - 3.5 en el motor del rover
 #define VEL_PAUSE 0         // Probar
-#define PAUSE_CONTROL_PERIOD    50  // Periodo de control de desaceleracion en pausa en millis
+#define PAUSE_CONTROL_PERIOD    10  // Periodo de control de desaceleracion en pausa en millis
 
 /*Presiones*/
 #define PRES_MIN 5          // Minimum control pressure
@@ -107,6 +108,7 @@ typedef struct
     long encoderCounts;     // Counts by encoder in a set period, reset every iteration
     long encoderTotal;      // Total counts by encoder in whole movement
     long inspirationCounts; // Encoder counts to displace tidal volume
+    long pauseCounts;       // Encoder counts during pause deceleration
     //Times
     float inspirationTime;  // Duration of inspiration in seconds
     float expirationTime;   // Duration of expiration in seconds
@@ -137,14 +139,15 @@ extern MOTOR_t MOTOR;
  */
 typedef enum 
 {
-    MOTOR_POWER_ON,                 // First state when system starts, does not return to it
+    MOTOR_POWER_ON = 0,                 // First state when system starts, does not return to it
     MOTOR_IDLE,                     // Waiting for next cycle to begin
     MOTOR_RETURN_HOME_POSITION,     // Return to home after inspiration or power on
     MOTOR_PREPARE_INSPIRATION,      // Prepare to start inspiration 
     MOTOR_VOLUME_CONTROL,           // Inspiration by volume control
     MOTOR_PRESSURE_CONTROL,         // Inspiration by pressure control
     MOTOR_PREPARE_EXPIRATION,       // Prepare to start expiration
-    MOTOR_PAUSE,                    // Pause during inspiration after control condition met (volume displaced) before expiration
+    MOTOR_NOTHING,
+    MOTOR_PAUSE                    // Pause during inspiration after control condition met (volume displaced) before expiration  
 
 }
 Motor_States_e; 
