@@ -29,11 +29,7 @@ Sensor_States_e pressureState;
 Sensor_States_e flowState;
 Sensor_States_e currentState; 
 
-// Map for floats
-float mapf(float val, float in_min, float in_max, float out_min, float out_max);
 
-// CRC8 calculation
-uint8_t crc8(uint8_t data[], uint8_t length);
 
 void Sensor_Init()
 {

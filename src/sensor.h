@@ -209,4 +209,10 @@ float Flow_GetReading(uint8_t sensorNumber);
  */
 bool Sensor_Timer(uint32_t n, uint8_t sensor);
 
+// Map for floats
+float mapf(float val, float in_min, float in_max, float out_min, float out_max);
+
+// CRC8 calculation
+uint8_t crc8(uint8_t data[], uint8_t length);
+
 #endif

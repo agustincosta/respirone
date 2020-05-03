@@ -1760,6 +1760,7 @@ void UI_SetParametersTask()
         UI_Timer(0);
 
         // Debug
+        /*
         Serial.print("MODO:               ");
         switch(UI.selectedMode)
         {
@@ -1800,7 +1801,9 @@ void UI_SetParametersTask()
         Serial.println(UI.minPressure);        
         Serial.print("TrP:                ");
         Serial.println(UI.TrP);
+        */
       }
+      
       else if(UI_ButtonDebounce(BUTTON_BACK_PIN))
       {
         if(UI.selectedMode != UI_AUTOMATIC_CONTROL)

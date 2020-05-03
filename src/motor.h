@@ -12,7 +12,7 @@
 #include <Arduino.h>
 #include "user_interface.h"
 
-#define MOTOR_STATES_LOG false
+#define MOTOR_STATES_LOG true
 #define MOTOR_PID_LOG false
 
 #define MOTOR_GAP_CORRECTION true   // Includes two states to compensate the time it takes for motors to change direction
@@ -26,9 +26,10 @@
 #define BUFFER_SIZE 30
 
 /*Velocidades*/
-#define VEL_ANG_MAX 1.31    // Experimental en rad/s - 8.986 en el motor del rover
+#define VEL_ANG_MAX 2.54    // Experimental en rad/s - 8.986 en el motor del rover ---- 1.52 rad/s a 12V, 1.77 rad/s a 13V, 2.07 rad/s a 14V, 2.54 rad/s a 15V
 #define VEL_ANG_MIN 0.7     // Experimental en rad/s - 3.5 en el motor del rover
 #define VEL_PAUSE 0         // Probar
+#define PAUSE_CONTROL_PERIOD    50  // Periodo de control de desaceleracion en pausa en millis
 
 /*Presiones*/
 #define PRES_MIN 5          // Minimum control pressure
@@ -39,7 +40,7 @@
 
 /*Encoder*/
 #define encoderCountsPerRev 16896   //8400 en el motor del rover
-#define maxVolumeEncoderCounts 5793 //Experimental - 2880 en el motor del rover sacado por proporcion respecto al motor anterior - ToDo medirlo bien
+#define maxVolumeEncoderCounts 4100 //Experimental - 2880 en el motor del rover sacado por proporcion respecto al motor anterior - ToDo medirlo bien
 #define minInspirationCounts 100    // Encoder counts needed to determine motor has moved
 
 #if MOTOR_GAP_CORRECTION
@@ -97,6 +98,7 @@ typedef struct
     double wSetpoint;       // Angular velocity setpoint for motor 
     double wMeasure;        // Angular velocity measured by encoder in a given period
     double wCommand;        // Angular velocity calculated by PID to minimise error in velocity - Used to drive the motor
+    double wDecrement;      // Angular velocity decrement steps to stop motor at the end of pause
     //Pressure
     double pSetpoint;       // Pressure setpoint in Pressure Control Mode
     double pMeasure;        // Pressure measured by sensor in patient airway relative to ambient
@@ -109,6 +111,7 @@ typedef struct
     float inspirationTime;  // Duration of inspiration in seconds
     float expirationTime;   // Duration of expiration in seconds
     float advanceTime;      // Duration of motor movement in seconds (inspiration-pause)
+    float pauseTime;        // Duration of pause in inspiration in seconds
     uint32_t Ts;            // Control loop time period
     uint32_t tAct;          // Auxiliary time variable
     uint32_t tPrev;         // Auxiliary time variable
@@ -335,5 +338,11 @@ void calculateSystemPeriod();
  * 
  */
 void compareInspExpVolume();
+
+/**
+ * @brief Calculate speed decrements to stop motor at the end of pause
+ * 
+ */
+void calculateDecelerationCurve();
 
 #endif

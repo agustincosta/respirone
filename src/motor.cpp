@@ -12,6 +12,7 @@
 #include "motor.h"
 #include "control.h"
 #include "alarms.h"
+#include "sensor.h"
 
 //Definicion de motor
 MOTOR_t MOTOR;
@@ -28,7 +29,7 @@ Encoder encoder(encoderA, encoderB);
 
 /*Variables de PID*/ 
 double Kp_v = 4.8, Ki_v = 1.5, Kd_v = 0.00; //Variables experimentales con nuevo motor
-double Kp_p = 0.5, Ki_p = 1.0, Kd_p = 0.00; //ToDo Probar con el sistema entero andando
+double Kp_p = 4.8, Ki_p = 1.5, Kd_p = 0.00; //ToDo Probar con el sistema entero andando
 
 //PID de control por volumen
 PID volumenPID(&MOTOR.wMeasure, &MOTOR.wCommand, &MOTOR.wSetpoint, Kp_v, Ki_v, Kd_v, DIRECT); //Crea objeto PID
@@ -39,6 +40,7 @@ PID presionPID(&MOTOR.pMeasure,&MOTOR.pCommand,&MOTOR.pSetpoint, Kp_p, Ki_p, Kd_
 
 long startPeriod = 0;
 long endPeriod = 0;
+long prevPauseTime = 0;
 
 
 void Motor_Init() {
@@ -52,6 +54,7 @@ void Motor_Init() {
   MOTOR.wSetpoint = 0;
   MOTOR.wMeasure = 0;
   MOTOR.wCommand = 0;
+  MOTOR.wDecrement = 0;
   //Pressure
   MOTOR.pSetpoint = 0;
   MOTOR.pMeasure = 0;
@@ -64,6 +67,7 @@ void Motor_Init() {
   MOTOR.inspirationTime = 0;
   MOTOR.expirationTime = 0;
   MOTOR.advanceTime = 0;
+  MOTOR.pauseTime = 0;
   MOTOR.Ts = 0;
   MOTOR.tAct = 0;
   MOTOR.tPrev = 0;
@@ -180,16 +184,17 @@ void controlDePresion() {
    * y determina la velocidad del motor para alcanzarla
    */
   double deltaPresion = 0;
-  double deltaVelocidad = 0; 
+  float deltaVelocidad = 0; 
   
   MOTOR.pMeasure = CTRL.pressure;                    //Actualiza la presion medida
   presionPID.Compute();                              //Actualiza p_comando en funcion de p_medida y p_setpoint
-  deltaPresion = MOTOR.pSetpoint - MOTOR.pMeasure;   //Diferencia de presion para determinar cambio de velocidad
-  deltaVelocidad = map(abs(deltaPresion), 0, PRES_MAX, VEL_ANG_MIN, VEL_ANG_MAX);   //Convierte diferencia de presion a diferencia de velocidad (TURBIO)
+  deltaPresion = MOTOR.pCommand - MOTOR.pSetpoint;   //Diferencia de presion para determinar cambio de velocidad
+  deltaVelocidad = mapf((float)abs(deltaPresion), PRES_MIN, PRES_MAX, VEL_ANG_MIN, VEL_ANG_MAX);   //Convierte diferencia de presion a diferencia de velocidad (TURBIO)
 
-
-  Serial.println("Constantes: "); 
-  Serial.print(Kp_p); Serial.print('\t'); Serial.println(Ki_p); Serial.println("");
+  /*
+  Serial.println("CONSTANTES:");
+  Serial.print(Kp_p); Serial.print('\t'); Serial.println(Ki_p);
+  */
 
   #if MOTOR_PID_LOG
     Serial.print("Kp: "); Serial.print(Kp_p); Serial.print('\t');
@@ -201,14 +206,14 @@ void controlDePresion() {
     Serial.print("MOTOR.pSetpoint: "); Serial.println(MOTOR.pSetpoint);
   #endif
 
-   if (deltaPresion >= 0) 
-   {
-     MOTOR.wCommand += deltaVelocidad;  //Modifica velocidad
-   }
-   else 
-   {
-     MOTOR.wCommand -= deltaVelocidad;
-   }
+  if (deltaPresion >= 0) 
+  {
+    MOTOR.wCommand += deltaVelocidad;  //Modifica velocidad
+  }
+  else 
+  {
+    MOTOR.wCommand -= deltaVelocidad;
+  }
 
   if (MOTOR.wCommand < VEL_ANG_MIN) {
     MOTOR.wCommand = VEL_ANG_MIN;
@@ -217,12 +222,13 @@ void controlDePresion() {
     MOTOR.wCommand = VEL_ANG_MAX;
   }
 
+  /*
   Serial.println("PRESIONES: "); 
   Serial.print(MOTOR.pCommand); Serial.print('\t'); Serial.print(MOTOR.pMeasure); Serial.print('\t'); Serial.println(MOTOR.pSetpoint); Serial.println("");
   
   Serial.println("VELOCIDADES: "); 
   Serial.print(MOTOR.wCommand); Serial.print('\t'); Serial.print(MOTOR.wMeasure); Serial.print('\t'); Serial.println(MOTOR.wSetpoint); Serial.println("");
-
+  */
 
   comandoMotor(motorDIR, motorPWM, MOTOR.wCommand); //Mueve el motor
 }
@@ -265,6 +271,7 @@ void tiemposInspExp() {
   MOTOR.inspirationTime = (MINUTE_MS/MOTOR.breathsMinute)*MOTOR.inspPercentage; //En milisegundos
   MOTOR.expirationTime = (MINUTE_MS/MOTOR.breathsMinute)*(1-MOTOR.inspPercentage); //En milisegundos
   MOTOR.advanceTime = MOTOR.inspirationTime*(1-MOTOR.pausePercentage);  //En milisegundos
+  MOTOR.pauseTime = MOTOR.inspirationTime*MOTOR.pausePercentage;
 }
 
 void cuentasEncoderVolumen() {
@@ -281,7 +288,7 @@ void Motor_Tasks() {
   MOTOR.limitSwitch = digitalRead(endSwitch);
 
   checkMotorOvercurrent();  //Check if current has surpassed the limit
-  //calculateSystemPeriod();  //Prints in console the system period in microseconds 
+  //calculateSystemPeriod();  //Prints in console the system period in microseconds
 
   switch (motorState) 
   {
@@ -315,7 +322,7 @@ void Motor_Tasks() {
         lecturaEncoder();      
       }
       else {                                                  // In home position - either by encoder or limit switch 
-        Serial.print("MOTOR.encoderTotal: "); Serial.println(MOTOR.encoderTotal);
+
         comandoMotor(motorDIR, motorPWM, 0);                  // Stops motor for a brief moment before gap correction
         if (MOTOR.motorAction == MOTOR_STARTING) {  
           lecturaEncoder();         
@@ -443,8 +450,6 @@ void Motor_Tasks() {
         #endif
       }
       else {
-        
-        Serial.print("MOTOR.encoderTotal: "); Serial.println(MOTOR.encoderTotal);
 
         if (CTRL.pressure > UI.maxPressure) {                     // Set alarm if inspiration interrupted by high pressure
           UI_SetAlarm(ALARM_HIGH_PRESSURE);
@@ -467,23 +472,14 @@ void Motor_Tasks() {
           }
         #endif
 
-        comandoMotor(motorDIR, motorPWM, VEL_PAUSE);
+        //comandoMotor(motorDIR, motorPWM, VEL_PAUSE);
       
         measuredTidalVol = calculateDisplacedVolume();          // Calculate how much volume was displaced from encoder
         MOTOR.expirationVolume = measuredTidalVol;    //ToDo tiene que ser medido por sensor de flujo
 
-        MOTOR.motorAction = MOTOR_STOPPED;
-
-        #if MOTOR_GAP_CORRECTION
-          motorState = MOTOR_PREPARE_EXPIRATION;
-          #if MOTOR_STATES_LOG
-            Serial.println("STATE: PREPARE EXPIRATION");
-          #endif
-        #else
-          motorState = MOTOR_PAUSE;
-          #if MOTOR_STATES_LOG
-            Serial.println("STATE: PAUSE");
-          #endif
+        motorState = MOTOR_PREPARE_EXPIRATION;
+        #if MOTOR_STATES_LOG
+          Serial.println("STATE: PAUSE");
         #endif        
       }
 
@@ -535,27 +531,51 @@ void Motor_Tasks() {
       if (MOTOR.encoderTotal > MOTOR.inspirationCounts) {
         comandoMotor(motorDIR, motorPWM, -0.8*VEL_ANG_MAX);
         lecturaEncoder();
+        
       }
       else {
         comandoMotor(motorDIR, motorPWM, 0);
         motorState = MOTOR_PAUSE;
+        
         #if MOTOR_STATES_LOG
-          Serial.println("STATE: PAUSE");
+          Serial.println("STATE: RETURN TO HOME");
         #endif
       }
     /*--------------------PAUSE IN INSPIRATION--------------------*/
     case MOTOR_PAUSE:
 
-      if (millis() < MOTOR.pauseEndTime) {                       // Piston reached final position but time remains in inspiration
-        comandoMotor(motorDIR, motorPWM, VEL_PAUSE); 
+      if(MOTOR.motorAction == MOTOR_ADVANCING) {
+        calculateDecelerationCurve();                            // Calculates MOTOR.wDecrement
         MOTOR.motorAction = MOTOR_STOPPED;
       }
-      else {                                                    // Piston in final position and inspiration time ended
-        motorState = MOTOR_RETURN_HOME_POSITION;
-        #if MOTOR_STATES_LOG
-          Serial.println("STATE: RETURN TO HOME");
-        #endif
 
+      if (millis() < MOTOR.pauseEndTime) {                       // Piston reached final position but time remains in inspiration 
+        /*
+        if (millis()-prevPauseTime >= PAUSE_CONTROL_PERIOD) {
+          MOTOR.wCommand -= MOTOR.wDecrement;
+          comandoMotor(motorDIR, motorPWM, MOTOR.wCommand);
+          prevPauseTime = millis(); 
+        } 
+        */
+        comandoMotor(motorDIR, motorPWM, VEL_PAUSE);
+             
+      }
+      else {                                                    // Piston in final position and inspiration time ended
+        comandoMotor(motorDIR, motorPWM, 0);
+        motorState = MOTOR_RETURN_HOME_POSITION;
+        /*
+        #if MOTOR_GAP_CORRECTION
+          motorState = MOTOR_PREPARE_EXPIRATION;
+          #if MOTOR_STATES_LOG
+            Serial.println("STATE: PREPARE EXPIRATION");
+          #endif
+        #else
+          motorState = MOTOR_RETURN_HOME_POSITION;
+          #if MOTOR_STATES_LOG
+            Serial.println("STATE: RETURN TO HOME");
+          #endif
+        #endif
+        */
         /*Start flow measurement integration*/
 
       }
@@ -750,4 +770,8 @@ void compareInspExpVolume() {
   if (abs(MOTOR.expirationVolume - measuredTidalVol) > AIR_LEAK_THRESHOLD) {
     UI_SetAlarm(ALARM_AIR_LEAK);
   }
+}
+
+void calculateDecelerationCurve() {
+  MOTOR.wDecrement = (MOTOR.wCommand-VEL_ANG_MIN)/(MOTOR.pauseTime/PAUSE_CONTROL_PERIOD);
 }
