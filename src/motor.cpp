@@ -455,10 +455,10 @@ void Motor_Tasks() {
       else {
 
         if (CTRL.pressure > UI.maxPressure) {                     // Set alarm if inspiration interrupted by high pressure
-          UI_SetAlarm(ALARM_HIGH_PRESSURE);
+          UI_SetMedicalAlarm(ALARM_HIGH_PRESSURE, CTRL.pressure, UI.maxPressure);
         }
         else if ((millis() < MOTOR.inspEndTime) && (MOTOR.encoderTotal < minInspirationCounts + preparationCounts)) { // Alarm if motor is not moving during inspiration
-          UI_SetAlarm(ALARM_MOTOR_ERROR);
+          UI_SetSystemAlarm(ALARM_MOTOR_ERROR);
           motorState = MOTOR_POWER_ON;
           break;                       
         }
@@ -509,7 +509,7 @@ void Motor_Tasks() {
       else {                                                    // Piston in final position and inspiration time ended
         
         if ((millis() < MOTOR.inspEndTime) && (MOTOR.encoderTotal < minInspirationCounts + preparationCounts)) { // Alarm if motor is not moving during inspiration
-          UI_SetAlarm(ALARM_MOTOR_ERROR);
+          UI_SetSystemAlarm(ALARM_MOTOR_ERROR);
           motorState = MOTOR_POWER_ON;
           break;                       
         }
@@ -572,8 +572,7 @@ void Motor_Tasks() {
         
         #if MOTOR_PAUSE_DECELERATION
           if (millis()-prevPauseTime >= PAUSE_CONTROL_PERIOD) {
-            Serial.print("MOTOR.wCommand PAUSE: "); Serial.println(MOTOR.wCommand);
-            Serial.print("MOTOR.wDecrement: "); Serial.println(MOTOR.wDecrement);
+
             MOTOR.wCommand -= MOTOR.wDecrement;                   // Reduces speed
             if (MOTOR.wCommand < VEL_ANG_MIN) {
               MOTOR.wSetpoint = VEL_ANG_MIN;
@@ -589,7 +588,6 @@ void Motor_Tasks() {
       }
       else {                                                    // Piston in final position and inspiration time ended
         comandoMotor(motorDIR, motorPWM, 0);
-        Serial.println(MOTOR.pauseCounts);
         
         #if MOTOR_GAP_CORRECTION
           motorState = MOTOR_PREPARE_EXPIRATION;
@@ -717,10 +715,10 @@ uint8_t getBreathsMinute() {
   }
 
   if ((iterations > UI.maxBreathsMinute) && minutePassed) {
-    UI_SetAlarm(ALARM_HIGH_BREATHS_PER_MINUTE);
+    UI_SetMedicalAlarm(ALARM_HIGH_BREATHS_PER_MINUTE, iterations, UI.maxBreathsMinute);
   }
   else if ((iterations < UI.minBreathsMinute) && minutePassed) {
-    UI_SetAlarm(ALARM_LOW_BREATHS_PER_MINUTE);
+    UI_SetMedicalAlarm(ALARM_LOW_BREATHS_PER_MINUTE, iterations, UI.minBreathsMinute);
   }
 
   return iterations; 
@@ -752,10 +750,10 @@ float getVolumeMinute() {
   }
 
   if ((volumeMinute > UI.maxVolumeMinute) && minutePassed) {
-    UI_SetAlarm(ALARM_HIGH_VOLUME_PER_MINUTE);
+    UI_SetMedicalAlarm(ALARM_HIGH_VOLUME_PER_MINUTE, volumeMinute, UI.maxVolumeMinute);
   }
   else if ((volumeMinute < UI.minVolumeMinute) && minutePassed) {
-    UI_SetAlarm(ALARM_LOW_VOLUME_PER_MINUTE);
+    UI_SetMedicalAlarm(ALARM_LOW_VOLUME_PER_MINUTE, volumeMinute, UI.minVolumeMinute);
   }
 
   return volumeMinute/ML_TO_L;
@@ -775,7 +773,7 @@ void updateControlVariables() {
 
 void checkMotorOvercurrent() {
   if(MOTOR.currentConsumption >= maxMotorCurrent) {         
-    UI_SetAlarm(ALARM_MOTOR_HIGH_CURRENT_CONSUMPTION);
+    UI_SetSystemAlarm(ALARM_MOTOR_HIGH_CURRENT_CONSUMPTION);
     motorState = MOTOR_POWER_ON;
   }
 }
@@ -788,7 +786,7 @@ void calculateSystemPeriod() {
 
 void compareInspExpVolume() {
   if (abs(MOTOR.expirationVolume - measuredTidalVol) > AIR_LEAK_THRESHOLD) {
-    UI_SetAlarm(ALARM_AIR_LEAK);
+    UI_SetMedicalAlarm(ALARM_AIR_LEAK, MOTOR.expirationVolume-measuredTidalVol, AIR_LEAK_THRESHOLD);
   }
 }
 

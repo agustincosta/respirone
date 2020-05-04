@@ -173,7 +173,7 @@ void Sensor_FlowTasks()
         Sensor_Timer(SENSOR_START_TIMER, FLOW_SENSOR);
 
         // Start reading and check 
-        if (!Flow_StartReading(FLOW_SENSOR)) UI_SetAlarm(ALARM_NOTE_FLOW_SENSOR_ERROR); 
+        if (!Flow_StartReading(FLOW_SENSOR)) UI_SetSystemAlarm(ALARM_FLOW_SENSOR_ERROR); 
       }
       break;
 
@@ -189,7 +189,7 @@ void Sensor_FlowTasks()
       // Check and queue or set alarm
       if (flowRead==FLOW_SENSOR_INVALID_VALUE) 
       {
-        UI_SetAlarm(ALARM_NOTE_FLOW_SENSOR_ERROR);
+        UI_SetSystemAlarm(ALARM_FLOW_SENSOR_ERROR);
       }
       else
       {
