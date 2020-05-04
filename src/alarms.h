@@ -11,157 +11,150 @@
  * @brief Alarm types
  * 
  */
-enum Alarms
+enum MedicalAlarms
 {
-  ALARM_OFF,        						   
-  ALARM_LOW_BATTERY,						   
+  ALARM_MEDICAL_OFF,        						   
+
   ALARM_HIGH_PRESSURE,             
   ALARM_LOW_PRESSURE,              
   ALARM_HIGH_VOLUME_PER_MINUTE,    
   ALARM_LOW_VOLUME_PER_MINUTE,     
   ALARM_HIGH_BREATHS_PER_MINUTE,   
   ALARM_LOW_BREATHS_PER_MINUTE,
+  ALARM_AIR_LEAK,
+
+  ALARM_MEDICAL_QTY     
+};
+
+enum SystemAlarms
+{
+  ALARM_SYSTEM_OFF,        						   
+
+  // Critical system alarms
   ALARM_PRESSURE_SENSOR_ERROR,  
   ALARM_FLOW_SENSOR_ERROR,
   ALARM_CURRENT_SENSOR_ERROR,        
   ALARM_MOTOR_ERROR,                    
   ALARM_MOTOR_HIGH_CURRENT_CONSUMPTION,
-  ALARM_AIR_LEAK,
-  ALARM_QTY     
+
+  // Non critical system alarms
+  ALARM_LOW_BATTERY,
+
+  ALARM_SYSTEM_QTY     
 };
 
 typedef struct
 {
-  bool  enable;                                   // Alarm enable (disabled when muted)
-  bool  newEvent;                                 // New event flag
-  bool  isActive[ALARM_QTY];                      // Alarm vector
+  bool  isActive;                                 // 
+  float triggerValue;                             // Trigger value
+  float thresholdValue;                           // Threshold value
+} 
+MedicalAlarm_t;
+
+typedef struct
+{
+  bool  isActive;                                 // 
+} 
+SystemAlarm_t;
+
+typedef struct
+{
+  bool            enable;                         // Alarm enable (disabled when muted)
+
+  bool            newMedicalEvent;                // New event flag
+  MedicalAlarm_t  medical[ALARM_MEDICAL_QTY];     // Medical alarm vector
+
+  bool            newSystemEvent;                 // New event flag
+  SystemAlarm_t   system[ALARM_SYSTEM_QTY];       // System alarm vector
 } 
 ALARM_t;
 
 /**
- * @section Frequency notes (Hz)	
+ * @section Display message for medical alarms	
  */
-#define ALARM_NOTE_OFF        						              0
-#define ALARM_NOTE_LOW_BATTERY						              100
-#define ALARM_NOTE_HIGH_PRESSURE                        100
-#define ALARM_NOTE_LOW_PRESSURE                         100
-#define ALARM_NOTE_HIGH_VOLUME_PER_MINUTE               100
-#define ALARM_NOTE_LOW_VOLUME_PER_MINUTE                100
-#define ALARM_NOTE_HIGH_BREATHS_PER_MINUTE              100
-#define ALARM_NOTE_LOW_BREATHS_PER_MINUTE               100
-#define ALARM_NOTE_PRESSURE_SENSOR_ERROR                100
-#define ALARM_NOTE_FLOW_SENSOR_ERROR                    100
-#define ALARM_NOTE_CURRENT_SENSOR_ERROR                 100
-#define ALARM_NOTE_MOTOR_ERROR                          100
-#define ALARM_MOTOR_HIGH_CURRENT_CONSUMPTION            100
-#define ALARM_NOTE_ALARM_AIR_LEAK	                      100
+#define ALARM_MESSAGE_TRIGGER_OFF                               "    "	
+#define ALARM_MESSAGE_TRIGGER_HIGH_PRESSURE                     "Pr  "
+#define ALARM_MESSAGE_TRIGGER_LOW_PRESSURE                      "Pr  "
+#define ALARM_MESSAGE_TRIGGER_HIGH_VOLUME_PER_MINUTE            "RPM "
+#define ALARM_MESSAGE_TRIGGER_LOW_VOLUME_PER_MINUTE             "RPM "
+#define ALARM_MESSAGE_TRIGGER_HIGH_BREATHS_PER_MINUTE           "VM  "
+#define ALARM_MESSAGE_TRIGGER_LOW_BREATHS_PER_MINUTE            "VM  "
+#define ALARM_MESSAGE_TRIGGER_ALARM_AIR_LEAK	                  "VT  "
 
-/**
- * @brief Buffer that stores the frequency note (Hz) of each alarm
- * 
- * @example
- *     buzzerFrequency = alarmNote[ALARM_MOTOR_HIGH_CURRENT_CONSUMPTION];
- */
-const uint16_t alarmNote[ALARM_QTY] =
-{
-  ALARM_NOTE_OFF,        						   
-  ALARM_NOTE_LOW_BATTERY,						   
-  ALARM_NOTE_HIGH_PRESSURE,             
-  ALARM_NOTE_LOW_PRESSURE,              
-  ALARM_NOTE_HIGH_VOLUME_PER_MINUTE,    
-  ALARM_NOTE_LOW_VOLUME_PER_MINUTE,     
-  ALARM_NOTE_HIGH_BREATHS_PER_MINUTE,   
-  ALARM_NOTE_LOW_BREATHS_PER_MINUTE,
-  ALARM_NOTE_PRESSURE_SENSOR_ERROR,  
-  ALARM_NOTE_FLOW_SENSOR_ERROR,
-  ALARM_NOTE_CURRENT_SENSOR_ERROR,        
-  ALARM_NOTE_MOTOR_ERROR,                    
-  ALARM_MOTOR_HIGH_CURRENT_CONSUMPTION,
-  ALARM_NOTE_ALARM_AIR_LEAK     
-};
-
-/**
- * @section Duration (ms)	
- */
-#define ALARM_DURATION_OFF                              100									
-#define ALARM_DURATION_LOW_BATTERY                      100
-#define ALARM_DURATION_HIGH_PRESSURE                    100
-#define ALARM_DURATION_LOW_PRESSURE                     100
-#define ALARM_DURATION_HIGH_VOLUME_PER_MINUTE           100
-#define ALARM_DURATION_LOW_VOLUME_PER_MINUTE            100
-#define ALARM_DURATION_HIGH_BREATHS_PER_MINUTE          100
-#define ALARM_DURATION_LOW_BREATHS_PER_MINUTE           100
-#define ALARM_DURATION_PRESSURE_SENSOR_ERROR            100
-#define ALARM_DURATION_FLOW_SENSOR_ERROR                100
-#define ALARM_DURATION_CURRENT_SENSOR_ERROR             100
-#define ALARM_DURATION_MOTOR_ERROR                      100
-#define ALARM_DURATION_MOTOR_HIGH_CURRENT_CONSUMPTION   100
-#define ALARM_DURATION_ALARM_AIR_LEAK	                  100
-
-/**
- * @brief Buffer that stores the duration of each alarm
- * 
- * @example
- *     timeout = alarmDuration[ALARM_MOTOR_ERROR];
- */
-const uint16_t alarmDuration[ALARM_QTY] =
-{
-  ALARM_DURATION_OFF,        						   
-  ALARM_DURATION_LOW_BATTERY,						   
-  ALARM_DURATION_HIGH_PRESSURE,             
-  ALARM_DURATION_LOW_PRESSURE,              
-  ALARM_DURATION_HIGH_VOLUME_PER_MINUTE,    
-  ALARM_DURATION_LOW_VOLUME_PER_MINUTE,     
-  ALARM_DURATION_HIGH_BREATHS_PER_MINUTE,   
-  ALARM_DURATION_LOW_BREATHS_PER_MINUTE,
-  ALARM_DURATION_PRESSURE_SENSOR_ERROR,  
-  ALARM_DURATION_FLOW_SENSOR_ERROR,  
-  ALARM_DURATION_CURRENT_SENSOR_ERROR,         
-  ALARM_DURATION_MOTOR_ERROR,                   
-  ALARM_DURATION_MOTOR_HIGH_CURRENT_CONSUMPTION,
-  ALARM_DURATION_ALARM_AIR_LEAK    
-};
-
-/**
- * @section Display message 	
- */
-#define ALARM_MESSAGE_OFF                              "                "									
-#define ALARM_MESSAGE_LOW_BATTERY                      "Bateria baja    "
-#define ALARM_MESSAGE_HIGH_PRESSURE                    "Presion alta    "
-#define ALARM_MESSAGE_LOW_PRESSURE                     "Presion baja    "
-#define ALARM_MESSAGE_HIGH_VOLUME_PER_MINUTE           "Vol/Min alto    "
-#define ALARM_MESSAGE_LOW_VOLUME_PER_MINUTE            "Vol/Min bajo    "
-#define ALARM_MESSAGE_HIGH_BREATHS_PER_MINUTE          "Rsp/Min alto    "
-#define ALARM_MESSAGE_LOW_BREATHS_PER_MINUTE           "Rsp/Min bajo    "
-#define ALARM_MESSAGE_PRESSURE_SENSOR_ERROR            "Error: presion  "
-#define ALARM_MESSAGE_FLOW_SENSOR_ERROR                "Error: flujo    "
-#define ALARM_MESSAGE_CURRENT_SENSOR_ERROR             "Error: corriente"
-#define ALARM_MESSAGE_MOTOR_ERROR                      "Error: motor    "
-#define ALARM_MESSAGE_MOTOR_HIGH_CURRENT_CONSUMPTION   "Consumo elevado "
-#define ALARM_MESSAGE_ALARM_AIR_LEAK	                 "Perdida de aire "
+#define ALARM_MESSAGE_THRESHOLD_OFF                             "      "	
+#define ALARM_MESSAGE_THRESHOLD_HIGH_PRESSURE                   " PM   "
+#define ALARM_MESSAGE_THRESHOLD_LOW_PRESSURE                    " Pm   "
+#define ALARM_MESSAGE_THRESHOLD_HIGH_VOLUME_PER_MINUTE          " RPMM "
+#define ALARM_MESSAGE_THRESHOLD_LOW_VOLUME_PER_MINUTE           " RPMm "
+#define ALARM_MESSAGE_THRESHOLD_HIGH_BREATHS_PER_MINUTE         " VMM  "
+#define ALARM_MESSAGE_THRESHOLD_LOW_BREATHS_PER_MINUTE          " VMm  "
+#define ALARM_MESSAGE_THRESHOLD_ALARM_AIR_LEAK	                " VTm  "
 
 /**
  * @brief Buffer that stores the display message of each alarm
  * 
  * @example
- *     Print(alarmMessage[ALARM_MOTOR_ERROR]);
+ *     Print(alarmTriggerMedicalMessage[ALARM_MESSAGE_HIGH_PRESSURE]);
  */
-const char alarmMessage[ALARM_QTY][DISPLAY_COLUMNS+1] =
+const char alarmTriggerMedicalMessage[ALARM_MEDICAL_QTY][5] =
 {
-  ALARM_MESSAGE_OFF,        						   
-  ALARM_MESSAGE_LOW_BATTERY,						   
-  ALARM_MESSAGE_HIGH_PRESSURE,             
-  ALARM_MESSAGE_LOW_PRESSURE,              
-  ALARM_MESSAGE_HIGH_VOLUME_PER_MINUTE,    
-  ALARM_MESSAGE_LOW_VOLUME_PER_MINUTE,     
-  ALARM_MESSAGE_HIGH_BREATHS_PER_MINUTE,   
-  ALARM_MESSAGE_LOW_BREATHS_PER_MINUTE,
+  ALARM_MESSAGE_TRIGGER_OFF,     
+  ALARM_MESSAGE_TRIGGER_HIGH_PRESSURE,             
+  ALARM_MESSAGE_TRIGGER_LOW_PRESSURE,              
+  ALARM_MESSAGE_TRIGGER_HIGH_VOLUME_PER_MINUTE,    
+  ALARM_MESSAGE_TRIGGER_LOW_VOLUME_PER_MINUTE,     
+  ALARM_MESSAGE_TRIGGER_HIGH_BREATHS_PER_MINUTE,   
+  ALARM_MESSAGE_TRIGGER_LOW_BREATHS_PER_MINUTE,
+  ALARM_MESSAGE_TRIGGER_ALARM_AIR_LEAK
+};
+
+/**
+ * @brief Buffer that stores the display message of each alarm
+ * 
+ * @example
+ *     Print(alarmTriggerMedicalMessage[ALARM_MESSAGE_HIGH_PRESSURE]);
+ */
+const char alarmThresholdMedicalMessage[ALARM_MEDICAL_QTY][7] =
+{
+  ALARM_MESSAGE_THRESHOLD_OFF,     
+  ALARM_MESSAGE_THRESHOLD_HIGH_PRESSURE,             
+  ALARM_MESSAGE_THRESHOLD_LOW_PRESSURE,              
+  ALARM_MESSAGE_THRESHOLD_HIGH_VOLUME_PER_MINUTE,    
+  ALARM_MESSAGE_THRESHOLD_LOW_VOLUME_PER_MINUTE,     
+  ALARM_MESSAGE_THRESHOLD_HIGH_BREATHS_PER_MINUTE,   
+  ALARM_MESSAGE_THRESHOLD_LOW_BREATHS_PER_MINUTE,
+  ALARM_MESSAGE_THRESHOLD_ALARM_AIR_LEAK
+};
+
+/**
+ * @section Display message for system alarms	
+ */
+#define ALARM_MESSAGE_OFF                                       "                "
+#define ALARM_MESSAGE_PRESSURE_SENSOR_ERROR                     "Codigo: #001    "
+#define ALARM_MESSAGE_FLOW_SENSOR_ERROR                         "Codigo: #002    "
+#define ALARM_MESSAGE_CURRENT_SENSOR_ERROR                      "Codigo: #003    "
+#define ALARM_MESSAGE_MOTOR_ERROR                               "Codigo: #004    "
+#define ALARM_MESSAGE_MOTOR_HIGH_CURRENT_CONSUMPTION            "Codigo: #005    "
+
+#define ALARM_MESSAGE_LOW_BATTERY                               "Bateria baja    "
+
+/**
+ * @brief Buffer that stores the display message of each alarm
+ * 
+ * @example
+ *     Print(alarmSystemMessage[ALARM_MESSAGE_MOTOR_ERROR]);
+ */
+const char alarmSystemMessage[ALARM_SYSTEM_QTY][DISPLAY_COLUMNS+1] =
+{
+  ALARM_MESSAGE_OFF,     
+
   ALARM_MESSAGE_PRESSURE_SENSOR_ERROR,        
   ALARM_MESSAGE_FLOW_SENSOR_ERROR,
   ALARM_MESSAGE_CURRENT_SENSOR_ERROR, 
   ALARM_MESSAGE_MOTOR_ERROR,                   
   ALARM_MESSAGE_MOTOR_HIGH_CURRENT_CONSUMPTION,
-  ALARM_MESSAGE_ALARM_AIR_LEAK
+  
+  ALARM_MESSAGE_LOW_BATTERY
 };
 
 #endif
