@@ -29,7 +29,7 @@ Encoder encoder(encoderA, encoderB);
 
 /*Variables de PID*/ 
 double Kp_v = 4.8, Ki_v = 1.5, Kd_v = 0.00; //Variables experimentales con nuevo motor
-double Kp_p = 4.8, Ki_p = 1.5, Kd_p = 0.00; //ToDo Probar con el sistema entero andando
+double Kp_p = 3.0, Ki_p = 3.0, Kd_p = 0.00; //ToDo Probar con el sistema entero andando
 
 //PID de control por volumen
 PID volumenPID(&MOTOR.wMeasure, &MOTOR.wCommand, &MOTOR.wSetpoint, Kp_v, Ki_v, Kd_v, DIRECT); //Crea objeto PID
@@ -490,6 +490,7 @@ void Motor_Tasks() {
       
       if (MOTOR.motorAction == MOTOR_WAITING) {                               // Check if it its the first iteration to save the time
         inspirationFirstIteration();
+        comandoMotor(motorDIR, motorPWM, (VEL_ANG_MAX+VEL_ANG_MIN)/2);
       }
 
       if ((millis() < MOTOR.inspEndTime) && (MOTOR.encoderTotal < maxVolumeEncoderCounts)) {     // Piston moving forward
@@ -645,14 +646,6 @@ float calculateDisplacedVolume() {
   float recorridoAngular = (MOTOR.encoderTotal-preparationCounts)*2.0*PI/encoderCountsPerRev;
   float recorrido = recorridoAngular*crownRadius;
   float volumeDisplaced = recorrido*pistonArea;
-
-  /*
-  Serial.print("Recorrido: "); Serial.println(recorrido);
-  Serial.print("Angulo: "); Serial.println(recorridoAngular);
-  Serial.print("Cuentas encoder: "); Serial.println(MOTOR.encoderTotal);
-  Serial.print("Volumen calculado: "); Serial.println(volumeDisplaced);
-  Serial.println("");
-  */
 
   return volumeDisplaced/ML_TO_MM3;
 }

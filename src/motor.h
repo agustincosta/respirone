@@ -12,7 +12,7 @@
 #include <Arduino.h>
 #include "user_interface.h"
 
-#define MOTOR_STATES_LOG true
+#define MOTOR_STATES_LOG false
 #define MOTOR_PID_LOG false
 
 #define MOTOR_GAP_CORRECTION true   // Includes two states to compensate the time it takes for motors to change direction
@@ -26,7 +26,7 @@
 #define BUFFER_SIZE 30
 
 /*Velocidades*/
-#define VEL_ANG_MAX 2.54    // Experimental en rad/s - 8.986 en el motor del rover ---- 1.52 rad/s a 12V, 1.77 rad/s a 13V, 2.07 rad/s a 14V, 2.54 rad/s a 15V
+#define VEL_ANG_MAX 1.52    // Experimental en rad/s - 8.986 en el motor del rover ---- 1.52 rad/s a 12V, 1.77 rad/s a 13V, 2.07 rad/s a 14V, 2.54 rad/s a 15V
 #define VEL_ANG_MIN 0.7     // Experimental en rad/s - 3.5 en el motor del rover
 #define VEL_PAUSE 0         // Probar
 #define PAUSE_CONTROL_PERIOD    50  // Periodo de control de desaceleracion en pausa en millis
