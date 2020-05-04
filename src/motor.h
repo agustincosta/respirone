@@ -26,7 +26,7 @@
 #define BUFFER_SIZE 30
 
 /*Velocidades*/
-#define VEL_ANG_MAX 1.52    // Experimental en rad/s - 8.986 en el motor del rover ---- 1.52 rad/s a 12V, 1.77 rad/s a 13V, 2.07 rad/s a 14V, 2.54 rad/s a 15V
+#define VEL_ANG_MAX 2.07    // Experimental en rad/s - 8.986 en el motor del rover ---- 1.52 rad/s a 12V, 1.77 rad/s a 13V, 2.07 rad/s a 14V, 2.54 rad/s a 15V
 #define VEL_ANG_MIN 0.7     // Experimental en rad/s - 3.5 en el motor del rover
 #define VEL_PAUSE 0         // Probar
 #define PAUSE_CONTROL_PERIOD    50  // Periodo de control de desaceleracion en pausa en millis
@@ -40,11 +40,11 @@
 
 /*Encoder*/
 #define encoderCountsPerRev 16896   //8400 en el motor del rover
-#define maxVolumeEncoderCounts 4100 //Experimental - 2880 en el motor del rover sacado por proporcion respecto al motor anterior - ToDo medirlo bien
+#define maxVolumeEncoderCounts 4000 //Experimental - 2880 en el motor del rover sacado por proporcion respecto al motor anterior - ToDo medirlo bien
 #define minInspirationCounts 100    // Encoder counts needed to determine motor has moved
 
 #if MOTOR_GAP_CORRECTION
-    #define preparationCounts 400
+    #define preparationCounts 300
 #else
     #define preparationCounts 0
 #endif

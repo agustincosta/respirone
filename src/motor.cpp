@@ -29,7 +29,7 @@ Encoder encoder(encoderA, encoderB);
 
 /*Variables de PID*/ 
 double Kp_v = 4.8, Ki_v = 1.5, Kd_v = 0.00; //Variables experimentales con nuevo motor
-double Kp_p = 3.0, Ki_p = 3.0, Kd_p = 0.00; //ToDo Probar con el sistema entero andando
+double Kp_p = 5.0, Ki_p = 0.5, Kd_p = 0.00; //ToDo Probar con el sistema entero andando
 
 //PID de control por volumen
 PID volumenPID(&MOTOR.wMeasure, &MOTOR.wCommand, &MOTOR.wSetpoint, Kp_v, Ki_v, Kd_v, DIRECT); //Crea objeto PID
@@ -189,7 +189,7 @@ void controlDePresion() {
   MOTOR.pMeasure = CTRL.pressure;                    //Actualiza la presion medida
   presionPID.Compute();                              //Actualiza p_comando en funcion de p_medida y p_setpoint
   deltaPresion = MOTOR.pCommand - MOTOR.pSetpoint;   //Diferencia de presion para determinar cambio de velocidad
-  deltaVelocidad = mapf((float)abs(deltaPresion), PRES_MIN, PRES_MAX, VEL_ANG_MIN, VEL_ANG_MAX);   //Convierte diferencia de presion a diferencia de velocidad (TURBIO)
+  deltaVelocidad = mapf((float)MOTOR.pCommand, PRES_MIN, PRES_MAX, VEL_ANG_MIN, VEL_ANG_MAX);   //Convierte diferencia de presion a diferencia de velocidad (TURBIO)
 
   /*
   Serial.println("CONSTANTES:");
@@ -221,6 +221,8 @@ void controlDePresion() {
   else if (MOTOR.wCommand > VEL_ANG_MAX) {
     MOTOR.wCommand = VEL_ANG_MAX;
   }
+
+  Serial.print(MOTOR.pCommand); Serial.print('\t'); Serial.print(MOTOR.pMeasure); Serial.print('\t'); Serial.print(MOTOR.pSetpoint); Serial.print('\t'); Serial.println(MOTOR.wCommand);
 
   /*
   Serial.println("PRESIONES: "); 
@@ -490,7 +492,7 @@ void Motor_Tasks() {
       
       if (MOTOR.motorAction == MOTOR_WAITING) {                               // Check if it its the first iteration to save the time
         inspirationFirstIteration();
-        comandoMotor(motorDIR, motorPWM, (VEL_ANG_MAX+VEL_ANG_MIN)/2);
+        comandoMotor(motorDIR, motorPWM, VEL_ANG_MAX);
       }
 
       if ((millis() < MOTOR.inspEndTime) && (MOTOR.encoderTotal < maxVolumeEncoderCounts)) {     // Piston moving forward
@@ -513,6 +515,8 @@ void Motor_Tasks() {
             Serial.print("Volumen excedido: "); Serial.print(measuredTidalVol); Serial.println("ml");
           }
         #endif
+
+        comandoMotor(motorDIR, motorPWM, VEL_PAUSE);
 
         motorState = MOTOR_RETURN_HOME_POSITION;    
         MOTOR.motorAction = MOTOR_STOPPED;                      // Set to pause to make RETURN state simpler
