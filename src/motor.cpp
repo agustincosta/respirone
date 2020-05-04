@@ -358,6 +358,7 @@ void Motor_Tasks() {
           Serial.println("STATE: IDLE");
         #endif
       }  
+      break;
 
     /*----------------------------IDLE----------------------------*/
     case MOTOR_IDLE:
@@ -425,7 +426,6 @@ void Motor_Tasks() {
           }
         }         
       }
-
       break;
 
     /*-----------------------VOLUME CONTROL-----------------------*/
@@ -490,7 +490,6 @@ void Motor_Tasks() {
           #endif 
         #endif               
       }
-
       break;    
       
     /*----------------------PRESSURE CONTROL----------------------*/
@@ -530,13 +529,10 @@ void Motor_Tasks() {
         /*Start flow measurement integration*/
 
       }
-
       break;        
-
 
     /*---------------------PREPARE EXPIRATION--------------------*/
     case MOTOR_PREPARE_EXPIRATION:
-      Serial.println("_A_A_A_A_A_A_A_A_A_A_A_A_A");
       if (MOTOR.encoderTotal > MOTOR.inspirationCounts + MOTOR.pauseCounts) {
         comandoMotor(motorDIR, motorPWM, -0.8*VEL_ANG_MAX);
         lecturaEncoder();
@@ -556,6 +552,8 @@ void Motor_Tasks() {
           #endif
         #endif  
       }
+      break;
+
     /*--------------------PAUSE IN INSPIRATION--------------------*/
     case MOTOR_PAUSE:
 
@@ -606,10 +604,6 @@ void Motor_Tasks() {
       }
       break;
     
-    case MOTOR_NOTHING:
-      Serial.println("NOTHING");
-      break;
-
     /*-------------------------DEFAULT----------------------------*/
     default:
       Serial.println("ESTADO DESCONOCIDO");

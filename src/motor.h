@@ -12,7 +12,7 @@
 #include <Arduino.h>
 #include "user_interface.h"
 
-#define MOTOR_STATES_LOG true
+#define MOTOR_STATES_LOG false
 #define MOTOR_PID_LOG false
 
 #define MOTOR_GAP_CORRECTION true       // Includes two states to compensate the time it takes for motors to change direction
@@ -146,7 +146,6 @@ typedef enum
     MOTOR_VOLUME_CONTROL,           // Inspiration by volume control
     MOTOR_PRESSURE_CONTROL,         // Inspiration by pressure control
     MOTOR_PREPARE_EXPIRATION,       // Prepare to start expiration
-    MOTOR_NOTHING,
     MOTOR_PAUSE                    // Pause during inspiration after control condition met (volume displaced) before expiration  
 
 }
