@@ -11,18 +11,22 @@ LiquidCrystal lcd(DISPLAY_RS_PIN, DISPLAY_ENABLE_PIN, DISPLAY_D0_PIN, DISPLAY_D1
 UI_t tempParam;
 UI_t UI;
 
-UI_states_e uiTask;
-UI_SetParametersStates_e uiState;
+UI_states_e               uiTask;
+UI_SetParametersStates_e  uiState;
 UI_ShowParametersStates_e spState;
-
-DebounceStates_t debounceState[ARDUINO_PIN_QTY];
-bool buttonState[ARDUINO_PIN_QTY];
+UI_AlarmMedicalStates_e   alarmMedicalState;
+UI_AlarmSystemStates_e    alarmSystemState;
 
 // Control
 CTRL_t showParam;
 
 // Alarm
 ALARM_t ALARM;
+uint8_t actualAlarm; 
+
+// Button Debounce 
+DebounceStates_t  debounceState[ARDUINO_PIN_QTY];
+bool              buttonState[ARDUINO_PIN_QTY];
 
 // User Interface
 void UI_Init()
@@ -33,6 +37,14 @@ void UI_Init()
   UI_DisplayClear();
   UI_DisplayMessage(0,0,DISPLAY_PROJECT_NAME);
   UI_DisplayMessage(0,1,DISPLAY_LAUNCH_MENU);
+
+  // Alarm
+  pinMode(LED_MEDICAL_ALARM_PIN, OUTPUT);
+  pinMode(BUZZER_ALARM_PIN, OUTPUT);
+
+  ALARM.enable = true;
+
+  tone(BUZZER_ALARM_PIN, 500, 500);
   
   // Init FSM
   uiTask = UI_WAITING_BUTTON;
@@ -87,9 +99,15 @@ void UI_Task()
 
       UI_SetParametersTask();
 
+      //if (UI_ActiveMedicalAlarms()||UI_ActiveSystemAlarms())
+      //{
+      //  uiTask = UI_ALARMS_MANAGEMENT;
+      //}
+      //else 
       if(UI.setUpComplete)
       {
-        //UI.setUpComplete = false;
+        UI.setUpComplete = false; //debug
+
         uiTask = UI_SHOW_PARAMETERS;
         UI_Timer(0);
       }
@@ -98,14 +116,15 @@ void UI_Task()
         uiTask = UI_RESTART_UI;
         UI_Timer(0);
       }
-
-      ////////////////////////////////////////////////////////////////////////////////////
-      /////////////////////    ALARMS   //////////////////////////////////////////////////
-      ////////////////////////////////////////////////////////////////////////////////////
       break;
 
     case UI_SHOW_PARAMETERS:
-      if(UI_ButtonDebounce(BUTTON_MENU_PIN))
+      if (UI_ActiveMedicalAlarms()||UI_ActiveSystemAlarms())
+      {
+        uiTask = UI_ALARMS_MANAGEMENT;
+        digitalWrite(LED_MEDICAL_ALARM_PIN, HIGH);
+      }
+      else if(UI_ButtonDebounce(BUTTON_MENU_PIN))
       {
         uiTask = UI_RESTART_CONFIG;
         UI_Timer(0);
@@ -155,8 +174,6 @@ void UI_Task()
       }
       break;
 
-
-
     case UI_RESTART_CONFIG:
       UI_ButtonDebounce(BUTTON_MENU_PIN);
 
@@ -167,10 +184,7 @@ void UI_Task()
       else if(!buttonState[BUTTON_MENU_PIN])
       {
         uiTask = UI_SHOW_PARAMETERS;
-      }
-      ////////////////////////////////////////////////////////////////////////////////////
-      /////////////////////    ALARMS   //////////////////////////////////////////////////
-      ////////////////////////////////////////////////////////////////////////////////////      
+      }    
       break;    
 
     case UI_RESTART_UI:
@@ -184,16 +198,23 @@ void UI_Task()
       {
         uiTask = UI_SET_UP_PAREMETERS;
       }
-      ////////////////////////////////////////////////////////////////////////////////////
-      /////////////////////    ALARMS   //////////////////////////////////////////////////
-      ////////////////////////////////////////////////////////////////////////////////////
       break;      
 
-
-
     case UI_ALARMS_MANAGEMENT:
-      break;
 
+      if (UI_ActiveSystemAlarms())
+      {
+        UI_SystemAlarmTask();
+      }
+      else if (UI_ActiveMedicalAlarms())
+      {
+        UI_MedicalAlarmTask();
+      }
+      else
+      {
+        uiTask = UI_SHOW_PARAMETERS;
+      }
+      break;
 
   default:
     uiTask = UI_WAITING_BUTTON;
@@ -2003,6 +2024,366 @@ void UI_ShowParametersTask()
   }
 }
 
+void UI_MedicalAlarmTask()
+{
+  static uint8_t lastActiveAlarmQty;
+
+  // Display tasks
+  switch(alarmMedicalState)
+  {
+    case UI_ALARM_MEDICAL_IDLE:
+      alarmMedicalState = UI_ALARM_MEDICAL_SHOW;
+      actualAlarm = UI_MedAlarmNextActive(ALARM_MEDICAL_OFF); // Get first alarm
+
+      digitalWrite(LED_MEDICAL_ALARM_PIN, HIGH);
+      break;
+
+    case UI_ALARM_MEDICAL_SHOW:
+      alarmMedicalState = UI_ALARM_MEDICAL_WAIT_FOR_ACK;
+      
+      UI_MedicalAlarmDisplay(actualAlarm);
+      lastActiveAlarmQty = UI_MedAlarmActiveQty();
+      break;
+
+    case UI_ALARM_MEDICAL_WAIT_FOR_ACK:      
+      if (lastActiveAlarmQty != UI_MedAlarmActiveQty())
+      {
+        alarmMedicalState = UI_ALARM_MEDICAL_SHOW;
+      }
+      else if(UI_ButtonDebounce(BUTTON_ENTER_PIN))
+      {
+        UI_MedAlarmActiveTurnOff(actualAlarm); 
+        
+        if (UI_ActiveMedicalAlarms()) 
+        {
+          alarmMedicalState = UI_ALARM_MEDICAL_SHOW;
+          actualAlarm = UI_MedAlarmNextActive(actualAlarm);
+          
+          //Serial.print(UI_MedAlarmActiveQty()); Serial.print(" "); Serial.println((uint8_t)actualAlarm);
+        }
+        else
+        {
+          alarmMedicalState = UI_ALARM_MEDICAL_IDLE;
+          digitalWrite(LED_MEDICAL_ALARM_PIN, LOW);
+          UI_DisplayClear();
+        }         
+      } 
+      else if (UI_MedAlarmActiveQty()>1)
+      {
+        if(UI_ButtonDebounce(BUTTON_UP_PIN))
+        {
+          alarmMedicalState = UI_ALARM_MEDICAL_SHOW;
+          actualAlarm = UI_MedAlarmNextActive(actualAlarm); 
+          //Serial.print("FN "); Serial.println((uint8_t)actualAlarm);
+        }  
+        else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
+        {
+          alarmMedicalState = UI_ALARM_MEDICAL_SHOW;
+          actualAlarm = UI_MedAlarmPrevActive(actualAlarm); 
+          //Serial.print("FP "); Serial.println((uint8_t)actualAlarm);
+        }  
+      } 
+      break;          
+
+    default:
+      alarmMedicalState = UI_ALARM_MEDICAL_IDLE;
+      break;
+  }
+
+  // Buzzer tasks
+  if (UI_AlarmBuzzerTimer(1000)) // todo
+  {
+    UI_AlarmBuzzerTimer(0);
+
+    tone(BUZZER_ALARM_PIN, 1000, 150);
+  }
+}
+
+void UI_SystemAlarmTask()
+{
+  static uint8_t actualAlarm;
+
+  // Display tasks
+  switch(alarmSystemState)
+  {
+    case UI_ALARM_SYSTEM_IDLE:
+      alarmSystemState = UI_ALARM_SYSTEM_SHOW_ERROR_CODE;
+      actualAlarm = UI_SysAlarmNextActive(ALARM_SYSTEM_OFF); // Get first system alarm   
+
+      digitalWrite(LED_MEDICAL_ALARM_PIN, HIGH);     
+      break;
+
+    case UI_ALARM_SYSTEM_SHOW_ERROR_CODE:
+      if (UI_AlarmDisplayTimer(1000))
+      {
+        UI_AlarmDisplayTimer(0);
+        alarmSystemState = UI_ALARM_SYSTEM_SHOW_CALL_SUPPLIER;
+      
+        UI_SystemAlarmDisplayErrorCode(actualAlarm);
+      }
+      break;
+
+    case UI_ALARM_SYSTEM_SHOW_CALL_SUPPLIER:    
+      if (UI_AlarmDisplayTimer(1000))
+      {
+        UI_AlarmDisplayTimer(0);
+        alarmSystemState = UI_ALARM_SYSTEM_SHOW_ERROR_CODE;
+
+        UI_SystemAlarmDisplayCallSupplier(actualAlarm);
+      }    
+      break;        
+
+    default:
+      alarmSystemState = UI_ALARM_SYSTEM_IDLE;
+      break;
+  }
+
+  // Buzzer tasks
+  if (UI_AlarmBuzzerTimer(1000)) //todo
+  {
+    UI_AlarmBuzzerTimer(0); //todo
+    
+    tone(BUZZER_ALARM_PIN, 500, 200); //todo
+  }  
+}
+
+void UI_SetMedicalAlarm(uint8_t alarm, float triggerValue, float thresholdValue)
+{
+  if (ALARM.enable)
+  {
+    ALARM.newMedicalEvent = true; 
+
+    ALARM.medical[alarm].isActive = true;    
+    ALARM.medical[alarm].triggerValue = triggerValue;
+    ALARM.medical[alarm].thresholdValue = thresholdValue;
+  }
+}
+
+void UI_SetSystemAlarm(uint8_t alarm)
+{
+  if (ALARM.enable)
+  {
+    ALARM.newSystemEvent = true; 
+
+    ALARM.system[alarm].isActive = true;    
+  }
+}
+
+void UI_MedicalAlarmDisplay(uint8_t alarm)
+{
+  char strLine[DISPLAY_COLUMNS+1], strAlarmIdx[3], strAlarmQty[3];
+
+  // Clear
+  UI_DisplayClear();
+
+  // First line
+  strcpy(strLine, "Alarma ");  // todo macro
+  itoa(UI_MedAlarmActiveIdx(alarm),strAlarmIdx,10);
+  strcat(strLine, strAlarmIdx);
+  strcat(strLine, "/");
+  itoa(UI_MedAlarmActiveQty(),strAlarmQty,10);
+  strcat(strLine, strAlarmQty);
+
+  UI_DisplayMessage(0,0,strLine);
+
+  // Second line
+  char strAlarmTrg[5], strAlarmThld[5];
+
+  // Trigger
+  if (ALARM.medical[alarm].triggerValue>=10)
+  {
+    dtostrf(ALARM.medical[alarm].triggerValue,3,0,strAlarmTrg);
+  }
+  else
+  {
+    dtostrf(ALARM.medical[alarm].triggerValue,1,1,strAlarmTrg);
+  }
+
+  // Threshold
+  if (ALARM.medical[alarm].thresholdValue>=10)
+  {
+    dtostrf(ALARM.medical[alarm].thresholdValue,3,0,strAlarmThld);
+  }
+  else
+  {
+    dtostrf(ALARM.medical[alarm].thresholdValue,1,1,strAlarmThld);
+  }
+
+  strcpy(strLine, alarmTriggerMedicalMessage[alarm]);  
+  strcat(strLine, strAlarmTrg);
+
+  UI_DisplayMessage(0,1,strLine);
+
+  strcpy(strLine, alarmThresholdMedicalMessage[alarm]);
+  strcat(strLine, strAlarmThld);
+
+  UI_DisplayMessage(7,1,strLine);
+}
+
+void UI_SystemAlarmDisplayErrorCode(uint8_t alarm)
+{
+  char strLine[DISPLAY_COLUMNS+1]; 
+  // First line
+  strcpy(strLine, "Error:          "); // todo macro
+
+  UI_DisplayMessage(0,0,strLine);
+
+  // Second line
+  UI_DisplayMessage(0,1,alarmSystemMessage[alarm]);
+}
+
+void UI_SystemAlarmDisplayCallSupplier(uint8_t alarm)
+{
+  UI_DisplayMessage(0,0,"LLamar a        ");  // todo macro
+  UI_DisplayMessage(0,1,"servicio tecnico");  // todo macro
+}
+
+bool UI_ActiveMedicalAlarms()
+{
+  // Check for a new event and short circuit
+  if (ALARM.newMedicalEvent)
+  {
+    ALARM.newMedicalEvent = false;
+    return true;
+  }
+
+  // Cher for active alarms
+  uint8_t alarmIndex;
+  for (alarmIndex=0;alarmIndex<ALARM_MEDICAL_QTY;alarmIndex++)
+  {
+	  if (ALARM.medical[alarmIndex].isActive) 
+      return true;
+  } 
+  return false;
+}
+
+bool UI_ActiveSystemAlarms()
+{
+  // Check for a new event and short circuit
+  if (ALARM.newSystemEvent)
+  {
+    ALARM.newSystemEvent = false;
+    return true;
+  }
+
+  // Check for active alarms
+  uint8_t alarmIndex;
+  for (alarmIndex=0;alarmIndex<ALARM_SYSTEM_QTY;alarmIndex++)
+  {
+	  if (ALARM.system[alarmIndex].isActive) 
+      return true;
+  } 
+  return false;
+}
+
+uint8_t UI_MedAlarmNextActive(uint8_t actualAlarm)
+{
+	uint8_t alarmIndex, activeAlarmIndex;
+	for (alarmIndex = 1;alarmIndex<ALARM_MEDICAL_QTY+1;alarmIndex++)
+	{
+		activeAlarmIndex = (actualAlarm+alarmIndex)%ALARM_MEDICAL_QTY;
+		if (ALARM.medical[activeAlarmIndex].isActive) 
+      return activeAlarmIndex; 
+	}
+  return activeAlarmIndex; 
+}
+
+uint8_t UI_SysAlarmNextActive(uint8_t actualAlarm)
+{
+	uint8_t alarmIndex, activeAlarmIndex;
+	for (alarmIndex = 1;alarmIndex<ALARM_SYSTEM_QTY+1;alarmIndex++)
+	{
+		activeAlarmIndex = (actualAlarm+alarmIndex)%ALARM_SYSTEM_QTY;
+		if (ALARM.system[activeAlarmIndex].isActive) 
+      return activeAlarmIndex; 
+	}
+  return activeAlarmIndex; 
+}
+
+uint8_t UI_MedAlarmPrevActive(uint8_t actualAlarm)
+{
+	uint8_t alarmIndex, activeAlarmIndex;
+	for (alarmIndex = 1;alarmIndex<ALARM_MEDICAL_QTY+1;alarmIndex++)
+	{
+		activeAlarmIndex = (ALARM_MEDICAL_QTY+actualAlarm-alarmIndex)%ALARM_MEDICAL_QTY;
+		if (ALARM.medical[activeAlarmIndex].isActive) 
+      return activeAlarmIndex; 
+	}
+  
+  return activeAlarmIndex;
+}
+
+uint8_t UI_SysAlarmPrevActive(uint8_t actualAlarm)
+{
+	uint8_t alarmIndex, activeAlarmIndex;
+	for (alarmIndex = 1;alarmIndex<ALARM_SYSTEM_QTY+1;alarmIndex++)
+	{
+		activeAlarmIndex = (ALARM_SYSTEM_QTY+actualAlarm-alarmIndex)%ALARM_SYSTEM_QTY;
+		if (ALARM.system[activeAlarmIndex].isActive) 
+      return activeAlarmIndex; 
+	}
+
+  return activeAlarmIndex;
+}
+
+uint8_t UI_MedAlarmActiveQty()
+{
+	uint8_t alarmIndex, activeAlarmQuantity = 0;
+	for (alarmIndex = 0;alarmIndex<ALARM_MEDICAL_QTY;alarmIndex++)
+	{
+		if (ALARM.medical[alarmIndex].isActive) 
+      activeAlarmQuantity++; 
+	}
+  return activeAlarmQuantity;
+}
+
+uint8_t UI_SysAlarmActiveQty()
+{
+	uint8_t alarmIndex, activeAlarmQuantity = 0;
+	for (alarmIndex = 0;alarmIndex<ALARM_SYSTEM_QTY;alarmIndex++)
+	{
+		if (ALARM.system[alarmIndex].isActive) 
+      activeAlarmQuantity++; 
+	}
+  return activeAlarmQuantity;
+}
+
+uint8_t UI_MedAlarmActiveIdx(uint8_t actualAlarm)
+{
+	uint8_t alarmIndex, activeAlarmIndex = 0;
+	for (alarmIndex = 1;alarmIndex<=actualAlarm;alarmIndex++)
+	{
+		if (ALARM.medical[alarmIndex].isActive) 
+      activeAlarmIndex++; 
+	}
+  return activeAlarmIndex;
+}
+
+uint8_t UI_SysAlarmActiveIdx(uint8_t actualAlarm)
+{
+	uint8_t alarmIndex, activeAlarmIndex = 0;
+	for (alarmIndex = 1;alarmIndex<=actualAlarm;alarmIndex++)
+	{
+		if (ALARM.system[alarmIndex].isActive) 
+      activeAlarmIndex++; 
+	}
+  return activeAlarmIndex;
+}
+
+void UI_MedAlarmActiveTurnOff(uint8_t actualAlarm)
+{
+  ALARM.medical[actualAlarm].isActive = false;  
+  
+  //uint8_t alarmIndex;
+	//for (alarmIndex = 0;alarmIndex<ALARM_MEDICAL_QTY;alarmIndex++) 
+  //{ 
+  //  Serial.print(ALARM.medical[alarmIndex].isActive);
+  //}
+  //Serial.println();
+
+  // ToDo> return bool and check the alarm is active
+}
+
 void UI_UpdateControlParam()
 {
   if(UI_Timer(TIMEOUT_UPDATE_CTRL_PARAM))
@@ -2084,11 +2465,6 @@ bool UI_ButtonDebounce(uint8_t pin)
   return false;
 }
 
-void UI_SetAlarm(uint8_t alarm)
-{
-
-}
-
 bool UI_Timer(uint32_t n)
 {
   static uint32_t initialMillis;
@@ -2103,3 +2479,30 @@ bool UI_Timer(uint32_t n)
     return false;
 }
 
+bool UI_AlarmDisplayTimer(uint32_t n)
+{
+  static uint32_t initialMillis;
+
+  if(n == 0)
+  {
+	  initialMillis = millis();
+  }
+  else if((millis() - initialMillis) > n){
+	  return true;
+  }
+    return false;
+}
+
+bool UI_AlarmBuzzerTimer(uint32_t n)
+{
+  static uint32_t initialMillis;
+
+  if(n == 0)
+  {
+	  initialMillis = millis();
+  }
+  else if((millis() - initialMillis) > n){
+	  return true;
+  }
+    return false;
+}

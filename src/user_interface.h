@@ -2,6 +2,7 @@
 #define USER_INTERFACE_H
 
 #include "Arduino.h"
+#include "alarms.h"
 
 /**
  * @section Defines
@@ -10,13 +11,10 @@
 #define ARDUINO_PIN_QTY                     53
 
 // LEDS
-#define LED_ALARM_PIN                       12
+#define LED_MEDICAL_ALARM_PIN               12
 
 // Buzzer
-//#define BUZZER_ALARM_PIN                    11 VERSION PCB ToDo
-
-//BUZZER
-#define BUZZER_ALARM_PIN  7
+#define BUZZER_ALARM_PIN                    7
 
 // Buttons
 #define BUTTON_UP_PIN                       42   
@@ -59,43 +57,43 @@
 
 //Display messages
 //Config
-#define DISPLAY_PROJECT_NAME          "RESPIRONE       "
-#define DISPLAY_LAUNCH_MENU           "Presione Menu   "
-#define DISPLAY_SELECT_MODE           "Seleccionar Modo"
-#define DISPLAY_VOLUME_MODE           "Volumen         "
-#define DISPLAY_PRESSURE_MODE         "Presion         "
-#define DISPLAY_AUTO_MODE             "Automatico      "
-#define DISPLAY_MIN_BPM				        "RPMminimo(RPMm) " 	
-#define DISPLAY_MAX_BPM				        "RPMMaximo (RPMM)"
-#define DISPLAY_ADJUSTED_PRESSURE     "PresAjust (PA)  "
-#define DISPLAY_TIDAL_VOLUME          "VolTidal (VT)   "
-#define DISPLAY_VOLUME_MINUTE_M       "VolMinuMax (VMM)"
-#define DISPLAY_VOLUME_MINUTE_m       "VolMinumin (VMm)"
-#define DISPLAY_BPM                   "Resp/Min  (RPM) "
-#define DISPLAY_T_I                   "%TiempoIns (TI%)"
-#define DISPLAY_T_P                   "%TiempoPau (TP%)"
-#define DISPLAY_MAX_PRESSURE          "PresionMax (PM) "
-#define DISPLAY_MIN_PRESSURE          "PresionMin (Pm) "
-#define DISPLAY_TRP                   "PresionTri (PTr)"	 
-#define DISPLAY_CONFIRMATION          "Confirmar       "
-#define DISPLAY_AUTO_CONFIRMATION     "Confirmar Auto  "
-#define DISPLAY_EMPTY_LINE            "                "
+#define DISPLAY_PROJECT_NAME                "RESPIRONE       "
+#define DISPLAY_LAUNCH_MENU                 "Presione Menu   "
+#define DISPLAY_SELECT_MODE                 "Seleccionar Modo"
+#define DISPLAY_VOLUME_MODE                 "Volumen         "
+#define DISPLAY_PRESSURE_MODE               "Presion         "
+#define DISPLAY_AUTO_MODE                   "Automatico      "
+#define DISPLAY_MIN_BPM				              "RPMminimo(RPMm) " 	
+#define DISPLAY_MAX_BPM				              "RPMMaximo (RPMM)"
+#define DISPLAY_ADJUSTED_PRESSURE           "PresAjust (PA)  "
+#define DISPLAY_TIDAL_VOLUME                "VolTidal (VT)   "
+#define DISPLAY_VOLUME_MINUTE_M             "VolMinuMax (VMM)"
+#define DISPLAY_VOLUME_MINUTE_m             "VolMinumin (VMm)"
+#define DISPLAY_BPM                         "Resp/Min  (RPM) "
+#define DISPLAY_T_I                         "%TiempoIns (TI%)"
+#define DISPLAY_T_P                         "%TiempoPau (TP%)"
+#define DISPLAY_MAX_PRESSURE                "PresionMax (PM) "
+#define DISPLAY_MIN_PRESSURE                "PresionMin (Pm) "
+#define DISPLAY_TRP                         "PresionTri (PTr)"	 
+#define DISPLAY_CONFIRMATION                "Confirmar       "
+#define DISPLAY_AUTO_CONFIRMATION           "Confirmar Auto  "
+#define DISPLAY_EMPTY_LINE                  "                "
 //Show
-#define DISPLAY_S_MODE           "SET MD"
-#define DISPLAY_R_SND_VOL        "REAL VEn"
-#define DISPLAY_S_TIDAL_VOL      "SET VT"
-#define DISPLAY_S_ADJ_PRESS      "SET PA"
-#define DISPLAY_R_VOL_MIN        "REAL V/m"
-#define DISPLAY_R_PRESSURE       "REAL Pr"
-#define DISPLAY_R_PEEP           "REAL PP"
-#define DISPLAY_S_MAX_PRESS      "SET PM"
-#define DISPLAY_R_PEAK_PRESS     "REAL Ppi"
-#define DISPLAY_S_BPM            "SET RPM"
-#define DISPLAY_R_BPM            "REAL RPM"
-#define DISPLAY_S_TI             "SET Ti%"
-#define DISPLAY_S_TP             "SET Tp%"
-#define DISPLAY_S_TRP            "SET TrP"
-#define DISPLAY_R_LUNG_COMP      "REAL CP"
+#define DISPLAY_S_MODE                      "SET MD"
+#define DISPLAY_R_SND_VOL                   "REAL VEn"
+#define DISPLAY_S_TIDAL_VOL                 "SET VT"
+#define DISPLAY_S_ADJ_PRESS                 "SET PA"
+#define DISPLAY_R_VOL_MIN                   "REAL V/m"
+#define DISPLAY_R_PRESSURE                  "REAL Pr"
+#define DISPLAY_R_PEEP                      "REAL PP"
+#define DISPLAY_S_MAX_PRESS                 "SET PM"
+#define DISPLAY_R_PEAK_PRESS                "REAL Ppi"
+#define DISPLAY_S_BPM                       "SET RPM"
+#define DISPLAY_R_BPM                       "REAL RPM"
+#define DISPLAY_S_TI                        "SET Ti%"
+#define DISPLAY_S_TP                        "SET Tp%"
+#define DISPLAY_S_TRP                       "SET TrP"
+#define DISPLAY_R_LUNG_COMP                 "REAL CP"
 
 typedef enum  
 {
@@ -170,6 +168,22 @@ typedef enum
 }
 UI_ShowParametersStates_e;
 
+typedef enum
+{
+  UI_ALARM_MEDICAL_IDLE,
+  UI_ALARM_MEDICAL_SHOW,
+  UI_ALARM_MEDICAL_WAIT_FOR_ACK,
+}
+UI_AlarmMedicalStates_e;
+
+typedef enum
+{
+  UI_ALARM_SYSTEM_IDLE,
+  UI_ALARM_SYSTEM_SHOW_ERROR_CODE,
+  UI_ALARM_SYSTEM_SHOW_CALL_SUPPLIER
+}
+UI_AlarmSystemStates_e;
+
 typedef enum  
 {
   BUTTON_RELEASED,
@@ -211,6 +225,8 @@ typedef struct
 UI_t;
 
 extern UI_t UI;
+
+extern ALARM_t ALARM;
 
 /**
  *  \brief Brief description
@@ -255,8 +271,25 @@ void UI_ShowParametersTask();
  *  
  *  \details More details
  */
-void UI_UpdateControlParam();
+void UI_MedicalAlarmTask();
 
+/**
+ *  \brief Brief description
+ *  
+ *  \return Return description
+ *  
+ *  \details More details
+ */
+void UI_SystemAlarmTask();
+
+/**
+ *  \brief Brief description
+ *  
+ *  \return Return description
+ *  
+ *  \details More details
+ */
+void UI_UpdateControlParam();
 
 /**
  *  \brief Brief description
@@ -287,20 +320,11 @@ bool UI_ButtonDebounce(uint8_t);
  */
 void UI_DisplayMessage(uint8_t pos, uint8_t line, const char * message);
 
-
 /**
  * @brief 
  * 
  */
 void UI_DisplayClear();
-
-
-/**
- * @brief 
- * 
- * @param alarm 
- */
-void UI_SetAlarm(uint8_t alarm);
 
 /**
  *  \brief Brief description
@@ -313,14 +337,151 @@ void UI_SetAlarm(uint8_t alarm);
 void UI_LoadParam();
 
 /**
- *  \brief Brief description
- *  
- *  \param [in] n Description for n
- *  \return Return description
- *  
- *  \details More details
+ * @brief 
+ * 
+ * @param alarm 
+ * @param triggerValue 
+ */
+void UI_SetMedicalAlarm(uint8_t alarm, float triggerValue, float thresholdValue);
+
+/**
+ * @brief 
+ * 
+ * @param alarm 
+ */
+void UI_SetSystemAlarm(uint8_t alarm);
+
+/**
+ * @brief 
+ * 
+ * @return true 
+ * @return false 
+ */
+bool UI_ActiveMedicalAlarms();
+
+/**
+ * @brief 
+ * 
+ * @return true 
+ * @return false 
+ */
+bool UI_ActiveSystemAlarms();
+
+/**
+ * @brief 
+ * 
+ * @param alarm 
+ */
+void UI_MedicalAlarmDisplay(uint8_t alarm);
+
+/**
+ * @brief 
+ * 
+ * @param alarm 
+ */
+void UI_SystemAlarmDisplayErrorCode(uint8_t alarm);
+
+/**
+ * @brief 
+ * 
+ * @param alarm 
+ */
+void UI_SystemAlarmDisplayCallSupplier(uint8_t alarm);
+
+
+/**
+ * @brief 
+ * 
+ * @param actualAlarm 
+ * @return uint8_t 
+ */
+uint8_t UI_MedAlarmNextActive(uint8_t actualAlarm);
+
+/**
+ * @brief 
+ * 
+ * @param actualAlarm 
+ * @return uint8_t 
+ */
+uint8_t UI_SysAlarmNextActive(uint8_t actualAlarm);
+
+/**
+ * @brief 
+ * 
+ * @param actualAlarm 
+ * @return uint8_t 
+ */
+uint8_t UI_MedAlarmPrevActive(uint8_t actualAlarm);
+
+/**
+ * @brief 
+ * 
+ * @param actualAlarm 
+ * @return uint8_t 
+ */
+uint8_t UI_SysAlarmPrevActive(uint8_t actualAlarm);
+
+/**
+ * @brief 
+ * 
+ * @return uint8_t 
+ */
+uint8_t UI_MedAlarmActiveQty();
+
+/**
+ * @brief 
+ * 
+ * @return uint8_t 
+ */
+uint8_t UI_SysAlarmActiveQty();
+
+/**
+ * @brief 
+ * 
+ * @return uint8_t 
+ */
+uint8_t UI_MedAlarmActiveIdx(uint8_t actualAlarm);
+
+/**
+ * @brief 
+ * 
+ * @return uint8_t 
+ */
+uint8_t UI_SysAlarmActiveIdx(uint8_t actualAlarm);
+
+/**
+ * @brief 
+ * 
+ * @param actualAlarm 
+ */
+void UI_MedAlarmActiveTurnOff(uint8_t actualAlarm);
+
+
+/**
+ * @brief 
+ * 
+ * @param n 
+ * @return true 
+ * @return false 
  */
 bool UI_Timer(uint32_t n);
 
+/**
+ * @brief 
+ * 
+ * @param n 
+ * @return true 
+ * @return false 
+ */
+bool UI_AlarmDisplayTimer(uint32_t n);
+
+/**
+ * @brief 
+ * 
+ * @param n 
+ * @return true 
+ * @return false 
+ */
+bool UI_AlarmBuzzerTimer(uint32_t n);
 
 #endif // USER_INTERFACE_H
