@@ -106,7 +106,7 @@ void UI_Task()
       //else 
       if(UI.setUpComplete)
       {
-        UI.setUpComplete = false; //debug
+        //UI.setUpComplete = false; //debug
 
         uiTask = UI_SHOW_PARAMETERS;
         UI_Timer(0);
@@ -2152,7 +2152,7 @@ void UI_SetMedicalAlarm(uint8_t alarm, float triggerValue, float thresholdValue)
   if (ALARM.enable)
   {
     ALARM.newMedicalEvent = true; 
-
+    Serial.print(alarm); Serial.print('\t'); Serial.print(triggerValue); Serial.print('\t'); Serial.println(thresholdValue);
     ALARM.medical[alarm].isActive = true;    
     ALARM.medical[alarm].triggerValue = triggerValue;
     ALARM.medical[alarm].thresholdValue = thresholdValue;

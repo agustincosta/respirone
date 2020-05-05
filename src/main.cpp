@@ -15,7 +15,6 @@ void setup()
   Control_Init();
   DataLogger_Init();
   LedInit();
-  Serial.println("MOTOR.pCommand,MOTOR.pMeasure,MOTOR.pSetpoint,MOTOR.wCommand");
 }
 
 void loop()
