@@ -22,7 +22,7 @@
 #define BUTTON_MENU_PIN                     46 
 #define BUTTON_ENTER_PIN                    48
 #define BUTTON_BACK_PIN                     40 
-#define BUTTON_CIRCLE_PIN                   38
+#define BUTTON_CIRCLE                       38
 #define EMERGENCY_STOP                      50
 
 // Display
@@ -44,7 +44,7 @@
 #define DEFAULT_T_INSP                      25
 #define DEFAULT_T_PAUSE                     10
 #define DEFAULT_MAX_PRESSURE                30
-#define DEFAULT_MIN_PRESSURE                10
+#define DEFAULT_MIN_PRESSURE                7
 #define DEFAULT_TRP                         -2
 #define DEFAULT_ADJUSTED_PRESSURE           20
 
@@ -54,8 +54,6 @@
 #define TIMEOUT_SHOW_SELECTED_PARAM         500
 #define TIMEOUT_UPDATE_CTRL_PARAM           500  
 #define TIMEOUT_RESTART_CONFIG              2000 
-#define TIMEOUT_CANCEL_EDIT                 2000
-#define TIMEOUT_CANCEL_STOP                 5000
 
 //Display messages
 //Config
@@ -79,9 +77,7 @@
 #define DISPLAY_TRP                         "PresionTri (PTr)"	 
 #define DISPLAY_CONFIRMATION                "Confirmar       "
 #define DISPLAY_AUTO_CONFIRMATION           "Confirmar Auto  "
-#define DISPLAY_STOP_CONFIRMATION           "DETENER EQUIPO? "
 #define DISPLAY_EMPTY_LINE                  "                "
-#define DISPLAY_CONFIRMATION_OPTIONS        "SI:Enter,NO:Back"
 //Show
 #define DISPLAY_S_MODE                      "SET MD"
 #define DISPLAY_R_SND_VOL                   "REAL VEn"
@@ -106,9 +102,7 @@ typedef enum
   UI_SHOW_PARAMETERS,
   UI_ALARMS_MANAGEMENT,
   UI_RESTART_CONFIG,
-  UI_RESTART_UI,
-  UI_STOP_VENTILATION_CONFIRMATION,
-  UI_STOP_PARAMETERS_EDITION
+  UI_RESTART_UI
 } 
 UI_states_e; 
 
@@ -208,8 +202,9 @@ UI_ControlModesOptions_e;
 
 typedef struct
 {
-  bool    setUpComplete;      // Setup completed flag
-  bool    stopVentilation;     // Stop ventilation
+  bool    setUpComplete,      // Setup completed flag
+          stopVentilation;    // Stop ventilation flag
+
   uint8_t selectedMode;       
 
   uint8_t t_i,                // Total % of breath cicle to inspiration  
