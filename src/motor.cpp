@@ -601,6 +601,12 @@ void Motor_Tasks() {
       else {                                                    // Piston in final position and inspiration time ended
         comandoMotor(motorDIR, motorPWM, 0);
         
+        motorState = MOTOR_RETURN_HOME_POSITION;
+        #if MOTOR_STATES_LOG
+          Serial.println("STATE: RETURN TO HOME");
+        #endif
+
+        /*
         #if MOTOR_GAP_CORRECTION
           motorState = MOTOR_PREPARE_EXPIRATION;
           #if MOTOR_STATES_LOG
@@ -612,6 +618,7 @@ void Motor_Tasks() {
             Serial.println("STATE: RETURN TO HOME");
           #endif
         #endif
+        */
         
         /*Start flow measurement integration*/
 
