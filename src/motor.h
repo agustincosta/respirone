@@ -21,16 +21,19 @@
 /*Control activo PID*/
 #define CONTROL_ACTIVO_VOLUMEN true
 #define CONTROL_ACTIVO_PRESION true
-#define CONTROL_SAMPLE_RATE 100  // Hz
+#define CONTROL_SAMPLE_RATE 400  // Hz
 
 /*Limite respiraciones minuto*/
 #define BUFFER_SIZE 30
 
 /*Velocidades*/
 #define VEL_ANG_MAX 2.07    // Experimental en rad/s - 8.986 en el motor del rover ---- 1.52 rad/s a 12V, 1.77 rad/s a 13V, 2.07 rad/s a 14V, 2.54 rad/s a 15V
-#define VEL_ANG_MIN 0.7     // Experimental en rad/s - 3.5 en el motor del rover
-#define VEL_PAUSE 0         // Probar
+#define VEL_ANG_MIN 0.5     // Experimental en rad/s - 3.5 en el motor del rover
+
+/*Pausa*/
+#define VEL_PAUSE 0.4         // Probar
 #define PAUSE_CONTROL_PERIOD    10  // Periodo de control de desaceleracion en pausa en millis
+#define MAX_PAUSE_DECELERATION_TIME 100 // Tiempo en milisegundos en que el motor baja de su velocidad a la de pausa
 
 /*Presiones*/
 #define PRES_MIN 5          // Minimum control pressure
@@ -64,10 +67,11 @@
 
 /*Caracteristicas mecanicas*/
 #define pistonArea 12271.8463       //En mm2
-#define crownRadius 60.00           //En mm
+#define crownRadius 70.00           //En mm
 
 /*Conversiones*/
 #define SEC_TO_MILLIS 1000
+#define SEC_TO_MICROS 1000000
 #define ML_TO_MM3 1000
 #define ML_TO_L 1000
 
@@ -104,6 +108,7 @@ typedef struct
     double pSetpoint;       // Pressure setpoint in Pressure Control Mode
     double pMeasure;        // Pressure measured by sensor in patient airway relative to ambient
     double pCommand;        // Pressure calculated by PID to minimise error in pressure - Used to drive the motor
+    bool adjustedPressureReached;   // Adjusted pressure in UI reached by pressure control mode
     //Encoder
     long encoderCounts;     // Counts by encoder in a set period, reset every iteration
     long encoderTotal;      // Total counts by encoder in whole movement
@@ -299,9 +304,9 @@ float getTidalVolume();
 /**
  * @brief Returns the Breaths in the last Minute
  * 
- * @return uint8_t Number of breaths
+ * @return float Number of breaths
  */
-uint8_t getBreathsMinute();
+float getBreathsMinute();
 
 /**
  * @brief Returns the volume sent to patient in the last minute

@@ -36,8 +36,8 @@ SensorIndexes_e;
 
 // Pressure
 #define PRESSURE_SENSOR_PIN                 A0
-#define PRESSURE_SENSOR_MIN_VALUE           0  // 0mBar
-#define PRESSURE_SENSOR_MAX_VALUE           60 // 60mBar
+#define PRESSURE_SENSOR_MIN_VALUE           -7.5  // 0mBar
+#define PRESSURE_SENSOR_MAX_VALUE           67.5 // 60mBar
 #define PRESSURE_SENSOR_INVALID_VALUE       PRESSURE_SENSOR_MAX_VALUE+1 
 #define PRESSURE_SENSOR_PLATEAU_THRESHOLD   4.0 
 #define PRESSURE_SENSOR_ACQUISITION_PERIOD  10

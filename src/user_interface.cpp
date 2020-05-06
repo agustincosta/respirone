@@ -42,7 +42,7 @@ void UI_Init()
   pinMode(LED_MEDICAL_ALARM_PIN, OUTPUT);
   pinMode(BUZZER_ALARM_PIN, OUTPUT);
 
-  ALARM.enable = true;
+  ALARM.enable = false;
 
   tone(BUZZER_ALARM_PIN, 500, 500);
   
@@ -106,7 +106,7 @@ void UI_Task()
       //else 
       if(UI.setUpComplete)
       {
-        UI.setUpComplete = false; //debug
+        //UI.setUpComplete = false; //debug
 
         uiTask = UI_SHOW_PARAMETERS;
         UI_Timer(0);

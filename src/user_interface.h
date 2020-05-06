@@ -202,7 +202,9 @@ UI_ControlModesOptions_e;
 
 typedef struct
 {
-  bool    setUpComplete;      // Setup completed flag
+  bool    setUpComplete,      // Setup completed flag
+          stopVentilation;    // Stop ventilation flag
+
   uint8_t selectedMode;       
 
   uint8_t t_i,                // Total % of breath cicle to inspiration  
