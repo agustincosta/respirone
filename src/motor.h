@@ -12,7 +12,7 @@
 #include <Arduino.h>
 #include "user_interface.h"
 
-#define MOTOR_STATES_LOG true
+#define MOTOR_STATES_LOG false
 #define MOTOR_PID_LOG false
 
 #define MOTOR_GAP_CORRECTION true       // Includes two states to compensate the time it takes for motors to change direction
@@ -21,7 +21,7 @@
 /*Control activo PID*/
 #define CONTROL_ACTIVO_VOLUMEN true
 #define CONTROL_ACTIVO_PRESION true
-#define CONTROL_SAMPLE_RATE 100  // Hz
+#define CONTROL_SAMPLE_RATE 400  // Hz
 
 /*Limite respiraciones minuto*/
 #define BUFFER_SIZE 30
@@ -67,10 +67,11 @@
 
 /*Caracteristicas mecanicas*/
 #define pistonArea 12271.8463       //En mm2
-#define crownRadius 60.00           //En mm
+#define crownRadius 70.00           //En mm
 
 /*Conversiones*/
 #define SEC_TO_MILLIS 1000
+#define SEC_TO_MICROS 1000000
 #define ML_TO_MM3 1000
 #define ML_TO_L 1000
 
