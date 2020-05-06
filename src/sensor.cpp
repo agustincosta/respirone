@@ -110,7 +110,7 @@ void Sensor_PressureTasks()
     case SENSOR_ACQUIRE:
       // Read, map & add to the moving average queue
       pressureAnalogRead = (float)analogReadFast(PRESSURE_SENSOR_PIN);
-      pressureRead += mapf(pressureAnalogRead, SENSOR_ADC_MIN, SENSOR_ADC_MAX, PRESSURE_SENSOR_MIN_VALUE, PRESSURE_SENSOR_MAX_VALUE)/PRESSURE_SENSOR_WINDOW_SIZE;
+      pressureRead += PRESSURE_CONVERSION_MBAR_CMH2O*(mapf(pressureAnalogRead, SENSOR_ADC_MIN, SENSOR_ADC_MAX, PRESSURE_SENSOR_MIN_VALUE, PRESSURE_SENSOR_MAX_VALUE))/PRESSURE_SENSOR_WINDOW_SIZE;
 
       if (pressureReadIndex==PRESSURE_SENSOR_WINDOW_SIZE-1)
       {

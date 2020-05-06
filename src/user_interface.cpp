@@ -95,7 +95,8 @@ void UI_Task()
         initialSetUpDone = true;
         UI_Timer(0);
       }
-      if(initialSetUpDone)
+      if(initialSetUpDone) 
+      {
         if(UI_ButtonDebounce(BUTTON_CIRCLE_PIN))
         {
           uiTask = UI_CANCEL_EDITION;
@@ -106,6 +107,7 @@ void UI_Task()
           uiTask = UI_RESTART_CONFIG;
           UI_Timer(0);
         }
+      }
       break;
 
     case UI_SHOW_PARAMETERS:

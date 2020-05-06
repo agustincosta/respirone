@@ -43,6 +43,7 @@ SensorIndexes_e;
 #define PRESSURE_SENSOR_ACQUISITION_PERIOD  5
 #define PRESSURE_SENSOR_WINDOW_SIZE         4
 #define PRESSURE_SENSOR_QUEUE_SIZE          4
+#define PRESSURE_CONVERSION_MBAR_CMH2O      1.01972 // Multiply mBar by this factor to convert
 
 // Flow
 #define FLOW_SENSOR_ACQUISITION_PERIOD      10  // At least 10ms
