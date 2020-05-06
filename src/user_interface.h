@@ -22,7 +22,7 @@
 #define BUTTON_MENU_PIN                     46 
 #define BUTTON_ENTER_PIN                    48
 #define BUTTON_BACK_PIN                     40 
-#define BUTTON_CIRCLE                       38
+#define BUTTON_CIRCLE_PIN                   38
 #define EMERGENCY_STOP                      50
 
 // Display
@@ -53,7 +53,9 @@
 #define TIMEOUT_BLINK                       500
 #define TIMEOUT_SHOW_SELECTED_PARAM         500
 #define TIMEOUT_UPDATE_CTRL_PARAM           500  
-#define TIMEOUT_RESTART_CONFIG              2000 
+#define TIMEOUT_STOP_VENTILATION_CONFIRM    3000
+#define TIMEOUT_CANCEL_EDITION              1000
+#define TIMEOUT_RESTART_CONFIG              1000 
 
 //Display messages
 //Config
@@ -77,6 +79,8 @@
 #define DISPLAY_TRP                         "PresionTri (PTr)"	 
 #define DISPLAY_CONFIRMATION                "Confirmar       "
 #define DISPLAY_AUTO_CONFIRMATION           "Confirmar Auto  "
+#define DISPLAY_CONFIRMATION_OPTIONS        "SI:Enter,NO:Back"
+#define DISPLAY_STOP_VENTILATION            "DETENER EQUIPO? "
 #define DISPLAY_EMPTY_LINE                  "                "
 //Show
 #define DISPLAY_S_MODE                      "SET MD"
@@ -101,8 +105,9 @@ typedef enum
   UI_SET_UP_PAREMETERS,
   UI_SHOW_PARAMETERS,
   UI_ALARMS_MANAGEMENT,
-  UI_RESTART_CONFIG,
-  UI_RESTART_UI
+  UI_STOP_VENTILATION_CONFIRMATION,
+  UI_CANCEL_EDITION,
+  UI_RESTART_CONFIG
 } 
 UI_states_e; 
 
@@ -203,7 +208,8 @@ UI_ControlModesOptions_e;
 typedef struct
 {
   bool    setUpComplete,      // Setup completed flag
-          stopVentilation;    // Stop ventilation flag
+          stopVentilation,    // Stop ventilation flag
+          initBeepOff;
 
   uint8_t selectedMode;       
 
@@ -336,7 +342,7 @@ void UI_DisplayClear();
  *  
  *  \details More details
  */
-void UI_LoadParam();
+void UI_LoadParam(uint8_t param);
 
 /**
  * @brief 
