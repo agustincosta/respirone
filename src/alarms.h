@@ -30,22 +30,18 @@ enum SystemAlarms
 {
   ALARM_SYSTEM_OFF,        						   
 
-  // Critical system alarms
   ALARM_PRESSURE_SENSOR_ERROR,  
   ALARM_FLOW_SENSOR_ERROR,
   ALARM_CURRENT_SENSOR_ERROR,        
   ALARM_MOTOR_ERROR,                    
   ALARM_MOTOR_HIGH_CURRENT_CONSUMPTION,
 
-  // Non critical system alarms
-  ALARM_LOW_BATTERY,
-
   ALARM_SYSTEM_QTY     
 };
 
 typedef struct
 {
-  bool  isActive;                                 // 
+  bool  isActive;                                 // Active alarm flag
   float triggerValue;                             // Trigger value
   float thresholdValue;                           // Threshold value
 } 
@@ -53,7 +49,7 @@ MedicalAlarm_t;
 
 typedef struct
 {
-  bool  isActive;                                 // 
+  bool  isActive;                                 //  Active alarm flag
 } 
 SystemAlarm_t;
 
@@ -75,26 +71,26 @@ ALARM_t;
 #define ALARM_MESSAGE_TRIGGER_OFF                               "    "	
 #define ALARM_MESSAGE_TRIGGER_HIGH_PRESSURE                     "Pr  "
 #define ALARM_MESSAGE_TRIGGER_LOW_PRESSURE                      "Pr  "
-#define ALARM_MESSAGE_TRIGGER_HIGH_VOLUME_PER_MINUTE            "RPM "
-#define ALARM_MESSAGE_TRIGGER_LOW_VOLUME_PER_MINUTE             "RPM "
-#define ALARM_MESSAGE_TRIGGER_HIGH_BREATHS_PER_MINUTE           "VM  "
-#define ALARM_MESSAGE_TRIGGER_LOW_BREATHS_PER_MINUTE            "VM  "
+#define ALARM_MESSAGE_TRIGGER_HIGH_VOLUME_PER_MINUTE            "VM  "
+#define ALARM_MESSAGE_TRIGGER_LOW_VOLUME_PER_MINUTE             "VM  "
+#define ALARM_MESSAGE_TRIGGER_HIGH_BREATHS_PER_MINUTE           "RPM "
+#define ALARM_MESSAGE_TRIGGER_LOW_BREATHS_PER_MINUTE            "RPM "
 #define ALARM_MESSAGE_TRIGGER_ALARM_AIR_LEAK	                  "VT  "
 
 #define ALARM_MESSAGE_THRESHOLD_OFF                             "      "	
 #define ALARM_MESSAGE_THRESHOLD_HIGH_PRESSURE                   " PM   "
 #define ALARM_MESSAGE_THRESHOLD_LOW_PRESSURE                    " Pm   "
-#define ALARM_MESSAGE_THRESHOLD_HIGH_VOLUME_PER_MINUTE          " RPMM "
-#define ALARM_MESSAGE_THRESHOLD_LOW_VOLUME_PER_MINUTE           " RPMm "
-#define ALARM_MESSAGE_THRESHOLD_HIGH_BREATHS_PER_MINUTE         " VMM  "
-#define ALARM_MESSAGE_THRESHOLD_LOW_BREATHS_PER_MINUTE          " VMm  "
+#define ALARM_MESSAGE_THRESHOLD_HIGH_VOLUME_PER_MINUTE          " VMM  "
+#define ALARM_MESSAGE_THRESHOLD_LOW_VOLUME_PER_MINUTE           " VMm  "
+#define ALARM_MESSAGE_THRESHOLD_HIGH_BREATHS_PER_MINUTE         " RPMM "
+#define ALARM_MESSAGE_THRESHOLD_LOW_BREATHS_PER_MINUTE          " RPMm "
 #define ALARM_MESSAGE_THRESHOLD_ALARM_AIR_LEAK	                " VTm  "
 
 /**
  * @brief Buffer that stores the display message of each alarm
  * 
  * @example
- *     Print(alarmTriggerMedicalMessage[ALARM_MESSAGE_HIGH_PRESSURE]);
+ *     Print(alarmTriggerMedicalMessage[ALARM_MESSAGE_TRIGGER_LOW_PRESSURE]);
  */
 const char alarmTriggerMedicalMessage[ALARM_MEDICAL_QTY][5] =
 {
@@ -112,7 +108,7 @@ const char alarmTriggerMedicalMessage[ALARM_MEDICAL_QTY][5] =
  * @brief Buffer that stores the display message of each alarm
  * 
  * @example
- *     Print(alarmTriggerMedicalMessage[ALARM_MESSAGE_HIGH_PRESSURE]);
+ *     Print(alarmTriggerMedicalMessage[ALARM_MESSAGE_THRESHOLD_LOW_VOLUME_PER_MINUTE]);
  */
 const char alarmThresholdMedicalMessage[ALARM_MEDICAL_QTY][7] =
 {
@@ -136,8 +132,6 @@ const char alarmThresholdMedicalMessage[ALARM_MEDICAL_QTY][7] =
 #define ALARM_MESSAGE_MOTOR_ERROR                               "Codigo: #004    "
 #define ALARM_MESSAGE_MOTOR_HIGH_CURRENT_CONSUMPTION            "Codigo: #005    "
 
-#define ALARM_MESSAGE_LOW_BATTERY                               "Bateria baja    "
-
 /**
  * @brief Buffer that stores the display message of each alarm
  * 
@@ -152,9 +146,7 @@ const char alarmSystemMessage[ALARM_SYSTEM_QTY][DISPLAY_COLUMNS+1] =
   ALARM_MESSAGE_FLOW_SENSOR_ERROR,
   ALARM_MESSAGE_CURRENT_SENSOR_ERROR, 
   ALARM_MESSAGE_MOTOR_ERROR,                   
-  ALARM_MESSAGE_MOTOR_HIGH_CURRENT_CONSUMPTION,
-  
-  ALARM_MESSAGE_LOW_BATTERY
+  ALARM_MESSAGE_MOTOR_HIGH_CURRENT_CONSUMPTION
 };
 
 #endif

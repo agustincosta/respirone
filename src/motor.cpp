@@ -29,7 +29,7 @@ Encoder encoder(encoderA, encoderB);
 
 /*Variables de PID*/ 
 double Kp_v = 3.0, Ki_v = 1.5, Kd_v = 0.00; //Variables experimentales con nuevo motor
-double Kp_p = 2.5, Ki_p = 0.0, Kd_p = 0.00; //ToDo Probar con el sistema entero andando
+double Kp_p = 2.6, Ki_p = 0.0, Kd_p = 0.00; //ToDo Probar con el sistema entero andando
 
 //PID de control por volumen
 PID volumenPID(&MOTOR.wMeasure, &MOTOR.wCommand, &MOTOR.wSetpoint, Kp_v, Ki_v, Kd_v, DIRECT); //Crea objeto PID
@@ -281,7 +281,8 @@ void Motor_Tasks() {
   //calculateSystemPeriod();  //Prints in console the system period in microseconds
 
   //Serial.print(MOTOR.pCommand); Serial.print('\t'); Serial.print(CTRL.pressure); Serial.print('\t'); Serial.print(MOTOR.pSetpoint); Serial.print('\t'); Serial.print(MOTOR.wCommand); Serial.print('\t'); Serial.print(Kp_p); Serial.print('\t'); Serial.println(Ki_p);
-  
+  //presionPID.SetTunings(Kp_p, Ki_p, Kd_p);
+
   if (UI.stopVentilation) {
     motorState = MOTOR_POWER_ON;    //Resets state machine to first state
     UI.stopVentilation = false;

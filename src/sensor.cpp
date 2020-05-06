@@ -34,14 +34,14 @@ Sensor_States_e currentState;
 void Sensor_Init()
 {
   Sensor_PressureInit();
-  Sensor_FlowInit();
+  //Sensor_FlowInit();
   Sensor_CurrentInit();
 }
 
 void Sensor_Tasks()
 {
   Sensor_PressureTasks();
-  Sensor_FlowTasks();
+  //Sensor_FlowTasks();
   Sensor_CurrentTasks();
 }
 

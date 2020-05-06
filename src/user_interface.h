@@ -16,14 +16,28 @@
 // Buzzer
 #define BUZZER_ALARM_PIN                    7
 
+// Shield o PCB
+#define SHIELD true
+#define PCB !SHIELD
+
 // Buttons
-#define BUTTON_UP_PIN                       42   
-#define BUTTON_DOWN_PIN                     44
-#define BUTTON_MENU_PIN                     46 
-#define BUTTON_ENTER_PIN                    48
-#define BUTTON_BACK_PIN                     40 
-#define BUTTON_CIRCLE_PIN                   38
-#define EMERGENCY_STOP                      50
+#if SHIELD
+  #define BUTTON_UP_PIN                       42   
+  #define BUTTON_DOWN_PIN                     44
+  #define BUTTON_MENU_PIN                     46 
+  #define BUTTON_ENTER_PIN                    48
+  #define BUTTON_BACK_PIN                     40 
+  #define BUTTON_CIRCLE_PIN                   38
+  //#define EXTRA                             50
+#else
+  #define BUTTON_UP_PIN                       44   
+  #define BUTTON_DOWN_PIN                     42
+  #define BUTTON_MENU_PIN                     40 
+  #define BUTTON_ENTER_PIN                    38
+  #define BUTTON_BACK_PIN                     46 
+  #define BUTTON_CIRCLE_PIN                   48
+  //#define EXTRA                             52
+#endif
 
 // Display
 #define DISPLAY_RS_PIN						          22
