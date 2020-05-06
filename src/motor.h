@@ -44,7 +44,7 @@
 
 /*Encoder*/
 #define encoderCountsPerRev 16896   //8400 en el motor del rover
-#define maxVolumeEncoderCounts 4000 //Experimental - 2880 en el motor del rover sacado por proporcion respecto al motor anterior - ToDo medirlo bien
+#define maxVolumeEncoderCounts 2850 //Experimental - 2880 en el motor del rover sacado por proporcion respecto al motor anterior - ToDo medirlo bien
 #define minInspirationCounts 100    // Encoder counts needed to determine motor has moved
 
 #if MOTOR_GAP_CORRECTION

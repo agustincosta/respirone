@@ -29,7 +29,7 @@ Encoder encoder(encoderA, encoderB);
 
 /*Variables de PID*/ 
 double Kp_v = 3.0, Ki_v = 1.5, Kd_v = 0.00; //Variables experimentales con nuevo motor
-double Kp_p = 5.0, Ki_p = 0.5, Kd_p = 0.00; //ToDo Probar con el sistema entero andando
+double Kp_p = 2.5, Ki_p = 0.0, Kd_p = 0.00; //ToDo Probar con el sistema entero andando
 
 //PID de control por volumen
 PID volumenPID(&MOTOR.wMeasure, &MOTOR.wCommand, &MOTOR.wSetpoint, Kp_v, Ki_v, Kd_v, DIRECT); //Crea objeto PID
@@ -185,13 +185,11 @@ void controlDePresion() {
    * Esta funcion usa un PID para computar la presion de comando para alcanzar 
    * y determina la velocidad del motor para alcanzarla
    */
-  double deltaPresion = 0;
   float deltaVelocidad = 0; 
   
   MOTOR.pMeasure = CTRL.pressure;                    //Actualiza la presion medida
   presionPID.Compute();                              //Actualiza p_comando en funcion de p_medida y p_setpoint
-  deltaPresion = MOTOR.pCommand - MOTOR.pSetpoint;   //Diferencia de presion para determinar cambio de velocidad
-  deltaVelocidad = mapf((float)MOTOR.pCommand, PRES_MIN, PRES_MAX, VEL_ANG_MIN, VEL_ANG_MAX);   //Convierte diferencia de presion a diferencia de velocidad (TURBIO)
+  deltaVelocidad = mapf((float)MOTOR.pCommand, PRES_MIN, PRES_MAX, 0, 0.8*VEL_ANG_MAX);   //Convierte diferencia de presion a diferencia de velocidad (TURBIO)
 
   /*
   Serial.println("CONSTANTES:");
@@ -208,31 +206,16 @@ void controlDePresion() {
     Serial.print("MOTOR.pSetpoint: "); Serial.println(MOTOR.pSetpoint);
   #endif
 
-  if (deltaPresion >= 0) 
-  {
-    MOTOR.wCommand += deltaVelocidad;  //Modifica velocidad
-  }
-  else 
-  {
-    MOTOR.wCommand -= deltaVelocidad;
-  }
+  
+  MOTOR.wCommand = deltaVelocidad;  //Modifica velocidad
+ 
 
-  if (MOTOR.wCommand < VEL_ANG_MIN) {
-    MOTOR.wCommand = VEL_ANG_MIN;
+  if (MOTOR.wCommand < 0.25) {
+    MOTOR.wCommand = 0.25;
   }
   else if (MOTOR.wCommand > VEL_ANG_MAX) {
     MOTOR.wCommand = VEL_ANG_MAX;
   }
-
-  Serial.print(MOTOR.pCommand); Serial.print('\t'); Serial.print(MOTOR.pMeasure); Serial.print('\t'); Serial.print(MOTOR.pSetpoint); Serial.print('\t'); Serial.println(MOTOR.wCommand);
-
-  /*
-  Serial.println("PRESIONES: "); 
-  Serial.print(MOTOR.pCommand); Serial.print('\t'); Serial.print(MOTOR.pMeasure); Serial.print('\t'); Serial.println(MOTOR.pSetpoint); Serial.println("");
-  
-  Serial.println("VELOCIDADES: "); 
-  Serial.print(MOTOR.wCommand); Serial.print('\t'); Serial.print(MOTOR.wMeasure); Serial.print('\t'); Serial.println(MOTOR.wSetpoint); Serial.println("");
-  */
 
   comandoMotor(motorDIR, motorPWM, MOTOR.wCommand); //Mueve el motor
 }
@@ -297,6 +280,7 @@ void Motor_Tasks() {
   checkMotorOvercurrent();  //Check if current has surpassed the limit
   //calculateSystemPeriod();  //Prints in console the system period in microseconds
 
+  //Serial.print(MOTOR.pCommand); Serial.print('\t'); Serial.print(CTRL.pressure); Serial.print('\t'); Serial.print(MOTOR.pSetpoint); Serial.print('\t'); Serial.print(MOTOR.wCommand); Serial.print('\t'); Serial.print(Kp_p); Serial.print('\t'); Serial.println(Ki_p);
   
   if (UI.stopVentilation) {
     motorState = MOTOR_POWER_ON;    //Resets state machine to first state
@@ -513,7 +497,7 @@ void Motor_Tasks() {
       
       if (MOTOR.motorAction == MOTOR_WAITING) {                               // Check if it its the first iteration to save the time
         inspirationFirstIteration();
-        comandoMotor(motorDIR, motorPWM, VEL_ANG_MAX);
+        //comandoMotor(motorDIR, motorPWM, VEL_ANG_MAX);
       }
 
       if ((millis() < MOTOR.inspEndTime) && (MOTOR.encoderTotal < maxVolumeEncoderCounts)) {     // Piston moving forward

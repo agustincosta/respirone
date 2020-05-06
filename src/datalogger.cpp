@@ -150,19 +150,19 @@ void serialEvent()
 
       //DEBUG PID VOLUMEN
       case 'p':
-        Kp_v += 0.1;
+        Kp_p += 0.5;
         break;
 
       case 'o':
-        Kp_v -= 0.1;
+        Kp_p -= 0.5;
         break;
 
       case 'r':
-        Ki_v += 0.1;
+        Ki_p += 0.5;
         break;
       
       case 'e':
-        Ki_v -= 0.1;
+        Ki_p -= 0.5;
         break;
     }
   }
