@@ -10,6 +10,8 @@ bool printUserSettings;
 extern double Kp_v, Ki_v, Kd_v;
 extern double Kp_p, Ki_p, Kd_p;
 
+extern float pauseVelFactor;
+
 uint32_t logTimeoutMillis;
 
 void DataLogger_Init()
@@ -150,19 +152,27 @@ void serialEvent()
 
       //DEBUG PID VOLUMEN
       case 'p':
-        Kp_p += 0.5;
+        Kp_p += 0.1;
         break;
 
       case 'o':
-        Kp_p -= 0.5;
+        Kp_p -= 0.1;
         break;
 
       case 'r':
-        Ki_p += 0.5;
+        Ki_p += 0.1;
         break;
       
       case 'e':
-        Ki_p -= 0.5;
+        Ki_p -= 0.1;
+        break;
+
+      case 'y':
+        pauseVelFactor += 0.1;
+        break;
+      
+      case 't':
+        pauseVelFactor -= 0.1;
         break;
     }
   }

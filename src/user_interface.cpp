@@ -42,7 +42,7 @@ void UI_Init()
   pinMode(LED_MEDICAL_ALARM_PIN, OUTPUT);
   pinMode(BUZZER_ALARM_PIN, OUTPUT);
 
-  ALARM.enable = true;
+  ALARM.enable = false;
 
   if(!tempParam.initBeepOff)
     tone(BUZZER_ALARM_PIN, 500, 500);
