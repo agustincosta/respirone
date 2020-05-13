@@ -69,6 +69,7 @@ void DataLogger_PrintUserSettings()
 {
   switch (UI.selectedMode)
   {
+    case UI_AUTOMATIC_CONTROL:
     case UI_VOLUME_CONTROL:
       Serial.print("MS=Vlm,");
   
@@ -135,6 +136,16 @@ void serialEvent()
       case 'u': case 'U':
         printUserSettings=true;  
         break;    
+
+      // toggle alarm enable
+      case 'a': case 'A':
+        ALARM.enable^=true;
+        break;
+
+      // toggle alarm mute enable
+      case 'm': case 'M':
+        ALARM.mute^=true;
+        break;
 
       // increase log period
       case '+':

@@ -7,16 +7,16 @@
 #include "user_interface.h"
 #include "control.h"
 #include "datalogger.h"
+#include "power_supply.h"
 #include "led_fw.h"
 
 void setup()
 {
-  UI_Init();
   Control_Init();
+  UI_Init();
   DataLogger_Init();
+  PowerSupply_Init();
   LedInit();
-  //Serial.println("MOTOR.wCommand,MOTOR.wMeasure,MOTOR.wSetpoint,Kp_v,Ki_v");  //DEBUG
-  //Serial.println("CTRL.pressure,MOTOR.pSetpoint,MOTOR.wCommand,Kp_p,Ki_p");  //DEBUG
 }
 
 void loop()
@@ -24,5 +24,6 @@ void loop()
   Control_Task();
   UI_Task();
   DataLogger_Task();
+  PowerSupply_Tasks();
   LedTick();
-}
+} 
