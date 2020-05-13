@@ -2223,12 +2223,29 @@ void UI_SystemAlarmTask()
   }
 
   // Buzzer tasks
-  if (UI_AlarmBuzzerTimer(1000)) //todo
+  //if (UI_AlarmBuzzerTimer(1000)) //todo
+  //{
+  //  UI_AlarmBuzzerTimer(0); //todo
+  //  
+  //  tone(BUZZER_ALARM_PIN, 500, 200); //todo
+  //}  
+
+  if (ALARM.mute)
   {
-    UI_AlarmBuzzerTimer(0); //todo
-    
-    tone(BUZZER_ALARM_PIN, 500, 200); //todo
-  }  
+    ALARM.mute = false;
+
+    UI_AlarmMuteTimer(0);
+  }
+  else if (UI_AlarmMuteTimer(5000))
+  {    
+    if (UI_AlarmBuzzerTimer(1000)) // todo
+    {
+      UI_AlarmBuzzerTimer(0);
+
+      tone(BUZZER_ALARM_PIN, 1000, 150);
+    }
+  }
+
 }
 
 void UI_SetMedicalAlarm(uint8_t alarm, float triggerValue, float thresholdValue)
@@ -2236,7 +2253,7 @@ void UI_SetMedicalAlarm(uint8_t alarm, float triggerValue, float thresholdValue)
   if (ALARM.enable)
   {
     ALARM.newMedicalEvent = true; 
-
+    Serial.print(alarm); Serial.print('\t'); Serial.print(triggerValue); Serial.print('\t'); Serial.println(thresholdValue);
     ALARM.medical[alarm].isActive = true;    
     ALARM.medical[alarm].triggerValue = triggerValue;
     ALARM.medical[alarm].thresholdValue = thresholdValue;
@@ -2578,6 +2595,20 @@ bool UI_AlarmDisplayTimer(uint32_t n)
 }
 
 bool UI_AlarmBuzzerTimer(uint32_t n)
+{
+  static uint32_t initialMillis;
+
+  if(n == 0)
+  {
+	  initialMillis = millis();
+  }
+  else if((millis() - initialMillis) > n){
+	  return true;
+  }
+    return false;
+}
+
+bool UI_AlarmMuteTimer(uint32_t n)
 {
   static uint32_t initialMillis;
 

@@ -30,18 +30,22 @@ enum SystemAlarms
 {
   ALARM_SYSTEM_OFF,        						   
 
+  // Critical system alarms
   ALARM_PRESSURE_SENSOR_ERROR,  
   ALARM_FLOW_SENSOR_ERROR,
   ALARM_CURRENT_SENSOR_ERROR,        
   ALARM_MOTOR_ERROR,                    
   ALARM_MOTOR_HIGH_CURRENT_CONSUMPTION,
 
+  // Non critical system alarms
+  ALARM_LOW_BATTERY,
+
   ALARM_SYSTEM_QTY     
 };
 
 typedef struct
 {
-  bool  isActive;                                 // Active alarm flag
+  bool  isActive;                                 // 
   float triggerValue;                             // Trigger value
   float thresholdValue;                           // Threshold value
 } 
@@ -49,13 +53,14 @@ MedicalAlarm_t;
 
 typedef struct
 {
-  bool  isActive;                                 //  Active alarm flag
+  bool  isActive;                                 // 
 } 
 SystemAlarm_t;
 
 typedef struct
 {
-  bool            enable;                         // Alarm enable (disabled when muted)
+  bool            enable;                         // Alarm enable 
+  bool            mute;                           // Alarm mute for 5' 
 
   bool            newMedicalEvent;                // New event flag
   MedicalAlarm_t  medical[ALARM_MEDICAL_QTY];     // Medical alarm vector
@@ -90,7 +95,7 @@ ALARM_t;
  * @brief Buffer that stores the display message of each alarm
  * 
  * @example
- *     Print(alarmTriggerMedicalMessage[ALARM_MESSAGE_TRIGGER_LOW_PRESSURE]);
+ *     Print(alarmTriggerMedicalMessage[ALARM_MESSAGE_HIGH_PRESSURE]);
  */
 const char alarmTriggerMedicalMessage[ALARM_MEDICAL_QTY][5] =
 {
@@ -108,7 +113,7 @@ const char alarmTriggerMedicalMessage[ALARM_MEDICAL_QTY][5] =
  * @brief Buffer that stores the display message of each alarm
  * 
  * @example
- *     Print(alarmTriggerMedicalMessage[ALARM_MESSAGE_THRESHOLD_LOW_VOLUME_PER_MINUTE]);
+ *     Print(alarmTriggerMedicalMessage[ALARM_MESSAGE_HIGH_PRESSURE]);
  */
 const char alarmThresholdMedicalMessage[ALARM_MEDICAL_QTY][7] =
 {
@@ -132,6 +137,8 @@ const char alarmThresholdMedicalMessage[ALARM_MEDICAL_QTY][7] =
 #define ALARM_MESSAGE_MOTOR_ERROR                               "Codigo: #004    "
 #define ALARM_MESSAGE_MOTOR_HIGH_CURRENT_CONSUMPTION            "Codigo: #005    "
 
+#define ALARM_MESSAGE_LOW_BATTERY                               "Bateria baja    "
+
 /**
  * @brief Buffer that stores the display message of each alarm
  * 
@@ -146,7 +153,9 @@ const char alarmSystemMessage[ALARM_SYSTEM_QTY][DISPLAY_COLUMNS+1] =
   ALARM_MESSAGE_FLOW_SENSOR_ERROR,
   ALARM_MESSAGE_CURRENT_SENSOR_ERROR, 
   ALARM_MESSAGE_MOTOR_ERROR,                   
-  ALARM_MESSAGE_MOTOR_HIGH_CURRENT_CONSUMPTION
+  ALARM_MESSAGE_MOTOR_HIGH_CURRENT_CONSUMPTION,
+  
+  ALARM_MESSAGE_LOW_BATTERY
 };
 
 #endif

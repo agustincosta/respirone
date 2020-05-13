@@ -2,7 +2,7 @@
 #define LED_FW_H
 
 #define LED_FW_PIN     13
-#define LED_FW_PERIOD  200
+#define LED_FW_PERIOD  1000
 
 /**
  * @brief 

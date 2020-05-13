@@ -11,33 +11,23 @@
 #define ARDUINO_PIN_QTY                     53
 
 // LEDS
-#define LED_MEDICAL_ALARM_PIN               12
+#define LED_MEDICAL_ALARM_PIN               50
 
 // Buzzer
 #define BUZZER_ALARM_PIN                    7
 
 // Shield o PCB
-#define SHIELD true
+#define SHIELD false
 #define PCB !SHIELD
 
 // Buttons
-#if SHIELD
-  #define BUTTON_UP_PIN                       42   
-  #define BUTTON_DOWN_PIN                     44
-  #define BUTTON_MENU_PIN                     46 
-  #define BUTTON_ENTER_PIN                    48
-  #define BUTTON_BACK_PIN                     40 
-  #define BUTTON_CIRCLE_PIN                   38
-  //#define EXTRA                             50
-#else
-  #define BUTTON_UP_PIN                       44   
-  #define BUTTON_DOWN_PIN                     42
-  #define BUTTON_MENU_PIN                     40 
-  #define BUTTON_ENTER_PIN                    38
-  #define BUTTON_BACK_PIN                     46 
-  #define BUTTON_CIRCLE_PIN                   48
-  //#define EXTRA                             52
-#endif
+#define BUTTON_UP_PIN                       44   
+#define BUTTON_DOWN_PIN                     42
+#define BUTTON_MENU_PIN                     40 
+#define BUTTON_ENTER_PIN                    38
+#define BUTTON_BACK_PIN                     46 
+#define BUTTON_CIRCLE_PIN                   48
+//#define EXTRA                             52
 
 // Display
 #define DISPLAY_RS_PIN						          22
@@ -58,7 +48,7 @@
 #define DEFAULT_T_INSP                      25
 #define DEFAULT_T_PAUSE                     10
 #define DEFAULT_MAX_PRESSURE                30
-#define DEFAULT_MIN_PRESSURE                7
+#define DEFAULT_MIN_PRESSURE                10
 #define DEFAULT_TRP                         -2
 #define DEFAULT_ADJUSTED_PRESSURE           20
 
@@ -93,9 +83,10 @@
 #define DISPLAY_TRP                         "PresionTri (PTr)"	 
 #define DISPLAY_CONFIRMATION                "Confirmar       "
 #define DISPLAY_AUTO_CONFIRMATION           "Confirmar Auto  "
-#define DISPLAY_CONFIRMATION_OPTIONS        "SI:Enter,NO:Back"
-#define DISPLAY_STOP_VENTILATION            "DETENER EQUIPO? "
+#define DISPLAY_STOP_CONFIRMATION           "DETENER EQUIPO? "
 #define DISPLAY_EMPTY_LINE                  "                "
+#define DISPLAY_STOP_VENTILATION            "DETENER EQUIPO? "
+#define DISPLAY_CONFIRMATION_OPTIONS        "SI:Enter,NO:Back"
 //Show
 #define DISPLAY_S_MODE                      "SET MD"
 #define DISPLAY_R_SND_VOL                   "REAL VEn"
@@ -222,7 +213,7 @@ UI_ControlModesOptions_e;
 typedef struct
 {
   bool    setUpComplete,      // Setup completed flag
-          stopVentilation,    // Stop ventilation flag
+          stopVentilation,     // Stop ventilation
           initBeepOff;
 
   uint8_t selectedMode;       
@@ -505,5 +496,14 @@ bool UI_AlarmDisplayTimer(uint32_t n);
  * @return false 
  */
 bool UI_AlarmBuzzerTimer(uint32_t n);
+
+/**
+ * @brief 
+ * 
+ * @param n 
+ * @return true 
+ * @return false 
+ */
+bool UI_AlarmMuteTimer(uint32_t n);
 
 #endif // USER_INTERFACE_H

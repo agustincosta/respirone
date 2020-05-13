@@ -7,8 +7,7 @@
 bool logEnable;
 bool printUserSettings;
 
-extern double Kp_v, Ki_v, Kd_v;
-extern double Kp_p, Ki_p, Kd_p;
+extern float pauseVelFactor;
 
 uint32_t logTimeoutMillis;
 
@@ -70,6 +69,7 @@ void DataLogger_PrintUserSettings()
 {
   switch (UI.selectedMode)
   {
+    case UI_AUTOMATIC_CONTROL:
     case UI_VOLUME_CONTROL:
       Serial.print("MS=Vlm,");
   
@@ -137,6 +137,16 @@ void serialEvent()
         printUserSettings=true;  
         break;    
 
+      // toggle alarm enable
+      case 'a': case 'A':
+        ALARM.enable^=true;
+        break;
+
+      // toggle alarm mute enable
+      case 'm': case 'M':
+        ALARM.mute^=true;
+        break;
+
       // increase log period
       case '+':
         logTimeoutMillis += 50; 
@@ -147,22 +157,12 @@ void serialEvent()
         (logTimeoutMillis>50)? (logTimeoutMillis -= 50) : logTimeoutMillis = 0; 
         break; 
 
-
-      //DEBUG PID VOLUMEN
-      case 'p':
-        Kp_p += 0.5;
-        break;
-
-      case 'o':
-        Kp_p -= 0.5;
-        break;
-
-      case 'r':
-        Ki_p += 0.5;
+      case 'y':
+        pauseVelFactor += 0.1;
         break;
       
-      case 'e':
-        Ki_p -= 0.5;
+      case 't':
+        pauseVelFactor -= 0.1;
         break;
     }
   }

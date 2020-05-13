@@ -7,7 +7,6 @@
 #ifndef MOTOR_H
 #define MOTOR_H
 
-#include <PID_v1.h>
 #include <Encoder.h>
 #include <Arduino.h>
 #include "user_interface.h"
@@ -15,7 +14,7 @@
 #define MOTOR_STATES_LOG false
 #define MOTOR_PID_LOG false
 
-#define MOTOR_GAP_CORRECTION true       // Includes two states to compensate the time it takes for motors to change direction
+#define MOTOR_GAP_CORRECTION false       // Includes two states to compensate the time it takes for motors to change direction
 #define MOTOR_PAUSE_DECELERATION true   // Decreases speed progressively to a complete stop during pause time
 
 /*Control activo PID*/
@@ -31,7 +30,7 @@
 #define VEL_ANG_MIN 0.5     // Experimental en rad/s - 3.5 en el motor del rover
 
 /*Pausa*/
-#define VEL_PAUSE 0.4         // Probar
+#define VEL_PAUSE 0.2         // Probar
 #define PAUSE_CONTROL_PERIOD    10  // Periodo de control de desaceleracion en pausa en millis
 #define MAX_PAUSE_DECELERATION_TIME 100 // Tiempo en milisegundos en que el motor baja de su velocidad a la de pausa
 
@@ -44,11 +43,12 @@
 
 /*Encoder*/
 #define encoderCountsPerRev 16896   //8400 en el motor del rover
-#define maxVolumeEncoderCounts 2850 //Experimental - 2880 en el motor del rover sacado por proporcion respecto al motor anterior - ToDo medirlo bien
+#define maxVolumeEncoderCounts 3200 //Experimental - 2880 en el motor del rover sacado por proporcion respecto al motor anterior - ToDo medirlo bien
 #define minInspirationCounts 100    // Encoder counts needed to determine motor has moved
+#define countsFactor 1.0            // Factor to compensate motor does not stop immediately
 
 #if MOTOR_GAP_CORRECTION
-    #define preparationCounts 300
+    #define preparationCounts 100
 #else
     #define preparationCounts 0
 #endif
@@ -67,7 +67,7 @@
 
 /*Caracteristicas mecanicas*/
 #define pistonArea 12271.8463       //En mm2
-#define crownRadius 70.00           //En mm
+#define crownRadius 80.00           //En mm
 
 /*Conversiones*/
 #define SEC_TO_MILLIS 1000
@@ -145,16 +145,25 @@ extern MOTOR_t MOTOR;
 typedef enum 
 {
     MOTOR_POWER_ON = 0,                 // First state when system starts, does not return to it
-    MOTOR_IDLE,                     // Waiting for next cycle to begin
-    MOTOR_RETURN_HOME_POSITION,     // Return to home after inspiration or power on
-    MOTOR_PREPARE_INSPIRATION,      // Prepare to start inspiration 
-    MOTOR_VOLUME_CONTROL,           // Inspiration by volume control
-    MOTOR_PRESSURE_CONTROL,         // Inspiration by pressure control
-    MOTOR_PREPARE_EXPIRATION,       // Prepare to start expiration
-    MOTOR_PAUSE                    // Pause during inspiration after control condition met (volume displaced) before expiration  
+    MOTOR_IDLE,                         // Waiting for next cycle to begin
+    MOTOR_RETURN_HOME_POSITION,         // Return to home after inspiration or power on
+    MOTOR_PREPARE_INSPIRATION,          // Prepare to start inspiration 
+    MOTOR_VOLUME_CONTROL,               // Inspiration by volume control
+    MOTOR_PRESSURE_CONTROL,             // Inspiration by pressure control
+    MOTOR_PREPARE_EXPIRATION,           // Prepare to start expiration
+    MOTOR_PAUSE                         // Pause during inspiration after control condition met (volume displaced) before expiration  
 
 }
 Motor_States_e; 
+
+
+typedef enum
+{
+    CONTROLLER_FIRST_ACCELERATION = 0,  // Accleration to rise pressure/volume at max speed
+    CONTROLLER_SECOND_ACCELERATION,     // Deceleration to continue to rise pressure/volume at lower speed
+    CONTROLLER_MAINTAIN_SETPOINT        // Pressure/volume is maintained at a percentage of VEL_PAUSE with corrections when it lowers
+}   
+Controller_states_e;
 
 typedef struct 
 {
@@ -171,12 +180,6 @@ Measured_t;
 void Motor_Init();
 
 /**
- * @brief Initializes pressure and volume PIDs
- * 
- */
-void initPID();
-
-/**
  * @brief Set the physical pins on board
  * 
  */
@@ -189,14 +192,6 @@ void setPinModes();
 void lecturaEncoder();
 
 /**
- * @brief Calculation of angular velocity measured by encoder
- * 
- * @param Ts Period of time corresponding to measure
- * @param encoderTotal Encoder counts in period of time
- */
-void calculoVelocidadMedida(long Ts);
-
-/**
  * @brief Commands motor to move at designed speed
  * 
  * @param dirPin Motor direction pin
@@ -206,30 +201,22 @@ void calculoVelocidadMedida(long Ts);
 void comandoMotor(int dirPin, int pwmPin, double velocidad);
 
 /**
- * @brief Controls the pressure of system using PID
+ * @brief Custom pressure control algorithm
  * 
  */
-void controlDePresion();
+void pressureControlAlgorithm();
 
 /**
- * @brief Controls the volume of system using PID
+ * @brief Custom volume control algorithm
  * 
- * @param Ts Control period
  */
-void controlDeVolumen();
+void volumeControlAlgorithm();
 
 /**
  * @brief Calculates inspiration and expiration times
  * 
  */
 void tiemposInspExp();
-
-/**
- * @brief Function called in MOTOR_VOLUME_CONTROL mode
- *  
- * @param Ts Control period
- */
-void inspiracionVolumen();
 
 /**
  * @brief Calculation of encoder counts needed to displace certain volume
@@ -248,18 +235,6 @@ void Motor_Tasks();
  * 
  */
 void Motor_ReturnToHomePosition();
-
-/**
- * @brief Sets MOTOR.wSetpoint taking into account UI.t_i and UI.t_p
- * 
- */
-void setpointVelocityCalculation();
-
-/**
- * @brief Control period calculation
- * 
- */
-void calculateControlPeriod();
 
 /**
  * @brief Called on first iteration of an inspiration cycle, calculates end times and sets MOTOR.inInspiration flag
@@ -351,5 +326,18 @@ void compareInspExpVolume();
  * 
  */
 void calculateDecelerationCurve();
+
+/**
+ * @brief Calculates factor to multiply min vel that can be set in pressure mode
+ * 
+ * @return float 
+ */
+float minVelPressureFactor();
+
+/**
+ * @brief Puts fake data to avoid alarms in buffer
+ * 
+ */
+void fillDataBuffer();
 
 #endif

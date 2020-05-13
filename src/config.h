@@ -9,6 +9,7 @@
 #define FIRMWARE_VERSION                    "01.00"
 #define FIRMWARE_VERSION_HIGH               01
 #define FIRMWARE_VERSION_LOW                00
+#define SERIAL_NUMBER                       002
 
 // Display dimentions
 #define DISPLAY_COLUMNS						          16
