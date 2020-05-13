@@ -13,6 +13,7 @@
 #include "control.h"
 #include "alarms.h"
 #include "sensor.h"
+#include "calibracion.h"
 
 //Definicion de motor
 MOTOR_t MOTOR;
@@ -28,19 +29,19 @@ float measuredCompliance = 0;
 //Definicion de encoder
 Encoder encoder(encoderB, encoderA);
 float selectedVolumeArray[12] = {300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850};
-long inspirationCountsArray[12] = //{1450, 1650, 1800, 1950, 2100, 2250, 2400, 2600, 2750, 2950, 3100, 3250};
-                                  //{805, 1284, 1474, 1626, 1803, 2005, 2165, 2430, 2613, 2754, 2910, 3160};
-        {1081,
-        1256,
-        1394,
-        1547,
-        1718,
-        1878,
-        2042,
-        2164,
-        2349,
-        2502,
-        2665};      //001
+// long inspirationCountsArray[12] = //{1450, 1650, 1800, 1950, 2100, 2250, 2400, 2600, 2750, 2950, 3100, 3250};
+//                                   //{805, 1284, 1474, 1626, 1803, 2005, 2165, 2430, 2613, 2754, 2910, 3160};
+//         {1081,
+//         1256,
+//         1394,
+//         1547,
+//         1718,
+//         1878,
+//         2042,
+//         2164,
+//         2349,
+//         2502,
+//         2665};      //001
 
 
 long startPeriod = 0;
@@ -329,6 +330,8 @@ void Motor_Tasks() {
       if (MOTOR.motorAction == MOTOR_STOPPED) {                                // Check if it its the first iteration to save time
         MOTOR.motorAction = MOTOR_RETURNING;
         MOTOR.expEndTime = millis() + MOTOR.expirationTime;
+
+        Serial.println(MOTOR.encoderTotal);
 
         MOTOR.flagInspEnded = true;
       } 
