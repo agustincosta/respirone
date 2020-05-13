@@ -29,7 +29,18 @@ float measuredCompliance = 0;
 Encoder encoder(encoderB, encoderA);
 float selectedVolumeArray[12] = {300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850};
 long inspirationCountsArray[12] = //{1450, 1650, 1800, 1950, 2100, 2250, 2400, 2600, 2750, 2950, 3100, 3250};
-                                  {805, 1284, 1474, 1626, 1803, 2005, 2165, 2430, 2613, 2754, 2910, 3160};
+                                  //{805, 1284, 1474, 1626, 1803, 2005, 2165, 2430, 2613, 2754, 2910, 3160};
+        {1081,
+        1256,
+        1394,
+        1547,
+        1718,
+        1878,
+        2042,
+        2164,
+        2349,
+        2502,
+        2665};      //001
 
 
 long startPeriod = 0;
@@ -322,7 +333,7 @@ void Motor_Tasks() {
         MOTOR.flagInspEnded = true;
       } 
 
-      if (MOTOR.limitSwitch  || (MOTOR.encoderTotal > 0)) {   // Not in home position conditions
+      if (MOTOR.limitSwitch  /*|| (MOTOR.encoderTotal > 0)*/) {   // Not in home position conditions
         Motor_ReturnToHomePosition();
         lecturaEncoder();      
       }
@@ -634,6 +645,8 @@ void Motor_ReturnToHomePosition() {
 }
 
 void inspirationFirstIteration() {
+  lecturaEncoder();
+  MOTOR.encoderTotal = 0;
   MOTOR.motorAction = MOTOR_ADVANCING;
   tiemposInspExp();                                       // Calculates inspiration and expiration times
   MOTOR.pauseEndTime = millis() + MOTOR.inspirationTime;  // In miliseconds
