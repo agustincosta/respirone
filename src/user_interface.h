@@ -17,7 +17,7 @@
 #define BUZZER_ALARM_PIN                    7
 
 // Shield o PCB
-#define SHIELD true
+#define SHIELD false
 #define PCB !SHIELD
 
 // Buttons

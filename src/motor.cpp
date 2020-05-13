@@ -17,7 +17,7 @@
 //Definicion de motor
 MOTOR_t MOTOR;
 Motor_States_e motorState;
-Controller_states_e controllerState;
+Controller_states_e pressureControllerState, volumeControllerState;
 
 //Variables para medidas reales
 Measured_t measuredData[BUFFER_SIZE];
@@ -28,17 +28,8 @@ float measuredCompliance = 0;
 //Definicion de encoder
 Encoder encoder(encoderB, encoderA);
 float selectedVolumeArray[12] = {300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850};
-long inspirationCountsArray[12] = {1450, 1650, 1800, 1950, 2100, 2250, 2400, 2600, 2750, 2950, 3100, 3250};
-
-/*Variables de PID*/ 
-double Kp_v = 3.0, Ki_v = 1.5, Kd_v = 0.00; //Variables experimentales con nuevo motor
-double Kp_p = 2.6, Ki_p = 0.2, Kd_p = 0.00; //ToDo Probar con el sistema entero andando Kp_p=1.2 en vacio
-
-//PID de control por volumen
-PID volumenPID(&MOTOR.wMeasure, &MOTOR.wCommand, &MOTOR.wSetpoint, Kp_v, Ki_v, Kd_v, DIRECT); //Crea objeto PID
-
-//PID de control por presion
-PID presionPID(&MOTOR.pMeasure,&MOTOR.pCommand,&MOTOR.pSetpoint, Kp_p, Ki_p, Kd_p, DIRECT); //Crea objeto PID
+long inspirationCountsArray[12] = //{1450, 1650, 1800, 1950, 2100, 2250, 2400, 2600, 2750, 2950, 3100, 3250};
+                                  {805, 1284, 1474, 1626, 1803, 2005, 2165, 2430, 2613, 2754, 2910, 3160};
 
 
 long startPeriod = 0;
@@ -91,38 +82,7 @@ void Motor_Init() {
   MOTOR.currentConsumption = 2.0;     //Hardcoded para simular sensor siempre bien
   MOTOR.expirationVolume = 0.0;
 
-  initPID();
   setPinModes();
-
-}
-
-void initPID() {
-  /**
-   * Ajusta las variables de PID y la tasa de muestreo. 
-   * Se debe llamar en Setup().
-   */
-
-  //PID para control por volumen
-  #if CONTROL_ACTIVO_VOLUMEN
-  {
-    volumenPID.SetMode(AUTOMATIC);
-    //Se ajusta el rango de salida porque de lo contrario solo funciona para el rango 0 - 255
-    volumenPID.SetOutputLimits(-VEL_ANG_MAX*0.98,VEL_ANG_MAX*0.98);
-
-    volumenPID.SetSampleTime((1000/(float)CONTROL_SAMPLE_RATE));
-  }
-  #endif
-
-  //PID para control por presion
-  #if CONTROL_ACTIVO_PRESION
-  {
-    presionPID.SetMode(AUTOMATIC);
-    //Se ajusta el rango de salida porque de lo contrario solo funciona para el rango 0 - 255
-    presionPID.SetOutputLimits(PRES_MIN, PRES_MAX);
-
-    presionPID.SetSampleTime((1000/(float)CONTROL_SAMPLE_RATE));
-  }
-  #endif
 
 }
 
@@ -151,19 +111,6 @@ void lecturaEncoder() {
   
 }
 
-void calculoVelocidadMedida(long Ts) {
-  /**
-   * Calcula la velocidad angular del periodo dado por el tiempo Ts en ms
-   */
-  lecturaEncoder();
-
-
-  MOTOR.wMeasure = (MOTOR.encoderTotal-lastEncoder)*2.0*PI/(encoderCountsPerRev*Ts/SEC_TO_MICROS); //En rad/s
-
-  lastEncoder = MOTOR.encoderTotal;
-   
-}
-
 void comandoMotor(int dirPin, int pwmPin, double velocidad) {
   /**
    * Esta funcion setea un nivel pwm segun la velocidad pasada como variables. Se debe especificar el pin de direccion y de pwm del motor DC.
@@ -188,32 +135,6 @@ void comandoMotor(int dirPin, int pwmPin, double velocidad) {
   analogWrite(pwmPin, velocidad/VEL_ANG_MAX*255);
 }
 
-void controlDePresion() {
-  /**
-   * Esta funcion usa un PID para computar la presion de comando para alcanzar 
-   * y determina la velocidad del motor para alcanzarla
-   */
-  
-  MOTOR.pMeasure = CTRL.pressure;                    //Actualiza la presion medida
-  presionPID.Compute();                              //Actualiza p_comando en funcion de p_medida y p_setpoint
-
-  float velPauseFactor = minVelPressureFactor();
-
-  MOTOR.wCommand = mapf((float)MOTOR.pCommand, PRES_MIN, PRES_MAX, VEL_PAUSE*velPauseFactor, 0.8*VEL_ANG_MAX);   //Convierte diferencia de presion a diferencia de velocidad (TURBIO)
-
-  #if MOTOR_PID_LOG
-    Serial.print("Kp: "); Serial.print(Kp_p); Serial.print('\t');
-    Serial.print("Ki: "); Serial.print(Ki_p);
-    Serial.println("");
-
-    Serial.print("MOTOR.pCommand: "); Serial.println(MOTOR.pCommand);
-    Serial.print("MOTOR.pMeasure: "); Serial.println(MOTOR.pMeasure);
-    Serial.print("MOTOR.pSetpoint: "); Serial.println(MOTOR.pSetpoint);
-  #endif
-
-  comandoMotor(motorDIR, motorPWM, MOTOR.wCommand); //Mueve el motor
-}
-
 void pressureControlAlgorithm() {
   /**
    * Algoritmo personalizado de control de presion para sustitutir el PID
@@ -228,15 +149,16 @@ void pressureControlAlgorithm() {
   float pressureThreshold = 0.95;
 
   MOTOR.pMeasure = CTRL.pressure;                    //Actualiza la presion medida
+  lecturaEncoder(); 
 
-  switch (controllerState)
+  switch (pressureControllerState)
   {
     case CONTROLLER_FIRST_ACCELERATION:                               // First stage of pressure rise at max speed
       if (MOTOR.pMeasure < firstPressureConst*MOTOR.pSetpoint) {       
         MOTOR.wCommand = firstVelocityConst*VEL_ANG_MAX;
       }
       else {
-        controllerState = CONTROLLER_SECOND_ACCELERATION;
+        pressureControllerState = CONTROLLER_SECOND_ACCELERATION;
       }
       break;
     
@@ -245,11 +167,11 @@ void pressureControlAlgorithm() {
         MOTOR.wCommand = secondVelocityConst*VEL_ANG_MAX;
       }
       else {
-        controllerState = CONTROLLER_MAINTAIN_PRESSURE;
+        pressureControllerState = CONTROLLER_MAINTAIN_SETPOINT;
       }
       break;
     
-    case CONTROLLER_MAINTAIN_PRESSURE:                                // Pressure reached and needs to be maintained
+    case CONTROLLER_MAINTAIN_SETPOINT:                                // Pressure reached and needs to be maintained
       if (MOTOR.pMeasure < pressureThreshold*MOTOR.pSetpoint) {
         //MOTOR.wCommand += (MOTOR.pSetpoint-MOTOR.pMeasure)*0.1;
         //MOTOR.wCommand = (MOTOR.wCommand >= VEL_ANG_MAX)? VEL_ANG_MAX : MOTOR.wCommand;
@@ -267,38 +189,55 @@ void pressureControlAlgorithm() {
   comandoMotor(motorDIR, motorPWM, MOTOR.wCommand); //Mueve el motor
 }
 
-void controlDeVolumen() {
+void volumeControlAlgorithm() {
   /**
-   * Esta funcion usa un PID para computar la velocidad de comando para alcanzar
-   * y determina la velocidad del motor
+   * Algoritmo personalizado de control de volumen para sustitutir el PID
+   * 
    */
-  setpointVelocityCalculation();
-  calculoVelocidadMedida(MOTOR.Ts);  //Calcula w_medida a partir de periodo (Ts) y encoder
-  volumenPID.Compute();        //Actualiza w_comando en funcion de w_medida y w_setpoint
 
-  //DEBUG PID TUNING
-  //Serial.print(MOTOR.wCommand); Serial.print('\t'); Serial.print(MOTOR.wMeasure); Serial.print('\t'); Serial.print(MOTOR.wSetpoint); Serial.print('\t'); Serial.print(Kp_v); Serial.print('\t'); Serial.println(Ki_v);
-  
-  #if MOTOR_PID_LOG
-    Serial.print("Kp: "); Serial.print(Kp_v); Serial.print('\t');
-    Serial.print("Ki: "); Serial.print(Ki_v);
-    Serial.println("");
+  float firstEncoderConst = 0.7;          // Encoder value when acceleration finishes and the controller maintains speed
+  float secondEncoderConst = 0.95;        // Encoder value when acceleration finishes and the controller maintains speed
+  float firstVelocityConst = 0.95;        // Percentage of VEL_ANG_MAX that defines the acceleration curve
+  float secondVelocityConst = 0.7;        // Percentage of VEL_ANG_MAX that defines the acceleration curve
+  float minVelocityConst = 3.0;           // Percentage of VEL_PAUSE when encoder counts are reached
+  float countsThreshold = 0.95;
 
-    Serial.print("MOTOR.wCommand: "); Serial.println(MOTOR.wCommand);
-    Serial.print("MOTOR.wMeasure: "); Serial.println(MOTOR.wMeasure);
-    Serial.print("MOTOR.wSetpoint: "); Serial.println(MOTOR.wSetpoint);
-  #endif
+  lecturaEncoder();
+
+  switch (volumeControllerState)
+  {
+    case CONTROLLER_FIRST_ACCELERATION:                               // First stage of pressure rise at max speed
+      if (MOTOR.encoderTotal < firstEncoderConst*MOTOR.inspirationCounts) {       
+        MOTOR.wCommand = firstVelocityConst*VEL_ANG_MAX;
+      }
+      else {
+        volumeControllerState = CONTROLLER_SECOND_ACCELERATION;
+      }
+      break;
+    
+    case CONTROLLER_SECOND_ACCELERATION:                              // Second stage of pressure rise at lower speed
+      if (MOTOR.encoderTotal < secondEncoderConst*MOTOR.inspirationCounts) {       
+        MOTOR.wCommand = secondVelocityConst*VEL_ANG_MAX;
+      }
+      else {
+        volumeControllerState = CONTROLLER_MAINTAIN_SETPOINT;
+      }
+      break;
+    
+    case CONTROLLER_MAINTAIN_SETPOINT:                                // Pressure reached and needs to be maintained
+      if (MOTOR.encoderTotal < countsThreshold*MOTOR.inspirationCounts) {
+        //;
+      }
+      else {
+        MOTOR.wCommand = minVelocityConst*VEL_PAUSE;
+      }
+      break;
+
+    default:
+      break;
+  }
   
   comandoMotor(motorDIR, motorPWM, MOTOR.wCommand); //Mueve el motor
-}
-
-void inspiracionVolumen() {
-  /**
-   * Esta funcion calcula la velocidad del motor y lo comanda para control por volumen sin PID
-   */
-  setpointVelocityCalculation();                      //Sets maximum speed for inspiration
-  comandoMotor(motorDIR, motorPWM, MOTOR.wSetpoint);  //Sends command to move motor
-
 }
 
 void tiemposInspExp() {
@@ -347,9 +286,7 @@ void Motor_Tasks() {
   //calculateSystemPeriod();  //Prints in console the system period in microseconds
 
   // DEBUG - IMPRIME PRESION PARA PID
-   
-  Serial.print(CTRL.pressure); Serial.print('\t'); Serial.print(MOTOR.pSetpoint); Serial.print('\t'); Serial.print(MOTOR.wCommand); Serial.print('\t'); Serial.println((controllerState+1)*MOTOR.pSetpoint/2);
-  //presionPID.SetTunings(Kp_p, Ki_p, Kd_p);
+  //Serial.print(CTRL.pressure); Serial.print('\t'); Serial.print(MOTOR.pSetpoint); Serial.print('\t'); Serial.print(MOTOR.wCommand); Serial.print('\t'); Serial.println((pressureControllerState+1)*MOTOR.pSetpoint/2);
   
 
   if (UI.stopVentilation) {
@@ -476,6 +413,8 @@ void Motor_Tasks() {
           Motor_SetBreathingParams();
           UI.setUpComplete = false;
 
+          fillDataBuffer();
+
           MOTOR.motorAction = MOTOR_WAITING;
           
           if (MOTOR.modeSet == UI_VOLUME_CONTROL  || MOTOR.modeSet == UI_AUTOMATIC_CONTROL) {             // Volume mode
@@ -502,22 +441,14 @@ void Motor_Tasks() {
 
       if (MOTOR.motorAction == MOTOR_WAITING) {                 // Check if it its the first iteration to save the time
         inspirationFirstIteration();
+        volumeControllerState = CONTROLLER_FIRST_ACCELERATION;
       }
 
       if ((MOTOR.encoderTotal < MOTOR.inspirationCounts*countsFactor + preparationCounts) && (millis() < MOTOR.inspEndTime) && (CTRL.pressure < UI.maxPressure)) {       // Piston moving forward
         // Conditions for inspiration: encoder counts not reached, inspiration time not passed and pressure below max
-        //delay(2);
-        #if CONTROL_ACTIVO_VOLUMEN 
-        { 
-          calculateControlPeriod();   
-          controlDeVolumen();     
-        }
-        #else 
-        {
-          inspiracionVolumen();
-          lecturaEncoder();       
-        }
-        #endif
+
+        volumeControlAlgorithm();    //Motor control based on encoder counts
+
       }
       else {
 
@@ -563,14 +494,11 @@ void Motor_Tasks() {
       
       if (MOTOR.motorAction == MOTOR_WAITING) {                               // Check if it its the first iteration to save the time
         inspirationFirstIteration();
-        controllerState = CONTROLLER_FIRST_ACCELERATION;
+        pressureControllerState = CONTROLLER_FIRST_ACCELERATION;
       }
 
       if ((millis() < MOTOR.inspEndTime) && (MOTOR.encoderTotal < maxVolumeEncoderCounts)) {     // Piston moving forward
-        //controlDePresion();                 //PID
-        pressureControlAlgorithm();
-        lecturaEncoder();                   
-        
+        pressureControlAlgorithm();          // Motor control based on pressure sensor
       }
       else {                                                    // Piston in final position and inspiration time ended
         
@@ -703,31 +631,6 @@ void Motor_Tasks() {
 
 void Motor_ReturnToHomePosition() {
   comandoMotor(motorDIR, motorPWM, -1*VEL_ANG_MAX);     // Sets return speed 
-}
-
-void setpointVelocityCalculation() {
-  float motorAdvanceTime = MOTOR.inspirationTime*(1-MOTOR.pausePercentage);
-  float angularRange = (MOTOR.inspirationCounts*2.0*PI/encoderCountsPerRev)*SEC_TO_MILLIS;
-  float angularVelocity = angularRange/motorAdvanceTime;
-
-  if (angularVelocity < VEL_ANG_MIN) {
-    MOTOR.wSetpoint = VEL_ANG_MIN;
-  }
-  else if (angularVelocity > VEL_ANG_MAX) {
-    MOTOR.wSetpoint = VEL_ANG_MAX;
-  }
-  else {
-    MOTOR.wSetpoint = angularVelocity;
-  }
-
-  MOTOR.wSetpoint = VEL_ANG_MAX; //DEBUG
-  
-}
-
-void calculateControlPeriod() {
-  MOTOR.tAct = micros();
-  MOTOR.Ts = MOTOR.tAct - MOTOR.tPrev;
-  MOTOR.tPrev = MOTOR.tAct;
 }
 
 void inspirationFirstIteration() {
@@ -891,11 +794,20 @@ void compareInspExpVolume() {
 
 void calculateDecelerationCurve() {
   float tiempo = (MOTOR.pauseTime > MAX_PAUSE_DECELERATION_TIME) ? MAX_PAUSE_DECELERATION_TIME : MOTOR.pauseTime;
-  MOTOR.wDecrement = (MOTOR.wCommand-VEL_ANG_MIN)/(tiempo/PAUSE_CONTROL_PERIOD);
+  MOTOR.wDecrement = (MOTOR.wCommand-VEL_PAUSE)/(tiempo/PAUSE_CONTROL_PERIOD);
 }
 
 float minVelPressureFactor() {
   //float pauseVelFactor = mapf(MOTOR.pSetpoint, PRES_MIN, PRES_MAX, 0.6, 2.0);
 
   return pauseVelFactor;
+}
+
+void fillDataBuffer() {
+  for (size_t i = BUFFER_SIZE-1; i > 0; i--)          //Moves data one place to the right
+  {
+    measuredData[i].tidalVolume = MOTOR.tidalVolume;
+    measuredData[i].cycleTime = 0;
+    measuredData[i].dynamicCompliance = 0;
+  }
 }
