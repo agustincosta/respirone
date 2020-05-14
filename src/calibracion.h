@@ -3,6 +3,8 @@
 
 #include "config.h"
 
+#define CALIBRACION true
+
 const float selectedVolumeArray[12] = {300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850};
 
 const long inspirationCountsArray[12] =
@@ -35,6 +37,18 @@ const long inspirationCountsArray[12] =
   2780};
 
 #elif (SERIAL_NUMBER == 003)
+  {1023,
+  1194,
+  1372,
+  1526,
+  1686,
+  1849,
+  2018,
+  2176,
+  2330,
+  2505,
+  2670,
+  2800};
 
 #elif (SERIAL_NUMBER == 004)
 

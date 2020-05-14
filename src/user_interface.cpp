@@ -2538,7 +2538,7 @@ void UI_UpdateControlParam()
     showParam.volumeMinute      = CTRL.volumeMinute;
     UI_Timer(0);
   }
-  else if(timeOutResetDisplay >= 4*TIMEOUT_UPDATE_CTRL_PARAM)
+  else if(timeOutResetDisplay >= TIMEOUT_UPDATE_CTRL_PARAM)
   {
     UI_DisplayClear();
     timeOutResetDisplay = 0;

@@ -193,9 +193,9 @@ void volumeControlAlgorithm() {
    */
 
   float firstEncoderConst = 0.7;          // Encoder value when acceleration finishes and the controller maintains speed
-  float secondEncoderConst = 0.95;        // Encoder value when acceleration finishes and the controller maintains speed
+  float secondEncoderConst = 0.80;        // Encoder value when acceleration finishes and the controller maintains speed
   float firstVelocityConst = 0.95;        // Percentage of VEL_ANG_MAX that defines the acceleration curve
-  float secondVelocityConst = 0.7;        // Percentage of VEL_ANG_MAX that defines the acceleration curve
+  float secondVelocityConst = 0.65;        // Percentage of VEL_ANG_MAX that defines the acceleration curve
   float minVelocityConst = 3.0;           // Percentage of VEL_PAUSE when encoder counts are reached
   float countsThreshold = 0.95;
 
@@ -271,7 +271,7 @@ void cuentasEncoderVolumen() {
 void Motor_Tasks() {
 
   MOTOR.limitSwitch = digitalRead(endSwitch);
-  MOTOR.currentConsumption = CTRL.currentConsumption;
+  //MOTOR.currentConsumption = CTRL.currentConsumption;
 
   // DEBUG - IMPRIME CUENTAS DEL ENCODER
   /*
@@ -318,6 +318,10 @@ void Motor_Tasks() {
       if (MOTOR.motorAction == MOTOR_STOPPED) {                                // Check if it its the first iteration to save time
         MOTOR.motorAction = MOTOR_RETURNING;
         MOTOR.expEndTime = millis() + MOTOR.expirationTime;
+
+        #if CALIBRACION
+          Serial.println(MOTOR.encoderTotal);
+        #endif
 
         MOTOR.flagInspEnded = true;
       } 
