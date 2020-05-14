@@ -53,6 +53,8 @@
 #define DEFAULT_ADJUSTED_PRESSURE           20
 
 // TimeOuts (ms)
+#define TIMEOUT_DELAY_INIT                  100
+#define TIMEOUT_SHOW_VERSION                2000
 #define INIT_MESSAGE_TIMEOUT                3000   
 #define TIMEOUT_BLINK                       500
 #define TIMEOUT_SHOW_SELECTED_PARAM         500
@@ -106,6 +108,8 @@
 
 typedef enum  
 {
+  UI_DELAY_INIT,
+  UI_SHOW_VERSION,
   UI_WAITING_BUTTON,
   UI_SET_UP_PAREMETERS,
   UI_SHOW_PARAMETERS,
@@ -214,7 +218,8 @@ typedef struct
 {
   bool    setUpComplete,      // Setup completed flag
           stopVentilation,     // Stop ventilation
-          initBeepOff;
+          initBeepOff,
+          notFirstInit;
 
   uint8_t selectedMode;       
 

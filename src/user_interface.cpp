@@ -31,13 +31,6 @@ bool              buttonState[ARDUINO_PIN_QTY];
 // User Interface
 void UI_Init()
 {
-  // Display
-  lcd.begin(DISPLAY_COLUMNS, DISPLAY_ROWS);   // initialize the lcd 
-  lcd.home ();                                // go home
-  UI_DisplayClear();
-  UI_DisplayMessage(0,0,DISPLAY_PROJECT_NAME);
-  UI_DisplayMessage(0,1,DISPLAY_LAUNCH_MENU);
-
   // Alarm
   pinMode(LED_MEDICAL_ALARM_PIN, OUTPUT);
   pinMode(BUZZER_ALARM_PIN, OUTPUT);
@@ -48,7 +41,16 @@ void UI_Init()
     tone(BUZZER_ALARM_PIN, 500, 500);
   
   // Init FSM
-  uiTask = UI_WAITING_BUTTON;
+  if(tempParam.notFirstInit)
+  {
+    uiTask = UI_SHOW_VERSION;
+  }
+  else 
+  {
+    tempParam.notFirstInit = true;
+    uiTask = UI_DELAY_INIT;
+  }
+  
   uiState = UI_SET_MODE_AUTO;
 
   // Button
@@ -74,6 +76,39 @@ void UI_Task()
   
   switch (uiTask)
   {
+    case UI_DELAY_INIT:
+      if(UI_Timer(TIMEOUT_DELAY_INIT))
+      {
+        UI_Timer(0);
+        uiTask = UI_SHOW_VERSION;
+
+        // init Display
+        lcd.begin(DISPLAY_COLUMNS, DISPLAY_ROWS);   // initialize the lcd 
+        lcd.home ();                                // go home
+        UI_DisplayClear();
+
+        strcat(stringAux, FIRMWARE_VERSION);
+        strcat(stringAux, " - ");
+        strcat(stringAux, SERIAL_NUMBER_STR);
+
+        UI_DisplayMessage(0,0,DISPLAY_PROJECT_NAME);
+        UI_DisplayMessage(0,1,stringAux);        
+
+      }
+      break;
+
+    case UI_SHOW_VERSION:
+      if(UI_Timer(TIMEOUT_SHOW_VERSION) || (!tempParam.notFirstInit))
+      {
+        UI_DisplayClear();
+        UI_DisplayMessage(0,0,DISPLAY_PROJECT_NAME);
+        UI_DisplayMessage(0,1,DISPLAY_LAUNCH_MENU);  
+        UI_Timer(0);
+        uiTask = UI_WAITING_BUTTON;
+      }
+
+      break;
+
     case UI_WAITING_BUTTON:
       if(UI_ButtonDebounce(BUTTON_MENU_PIN))
       {
@@ -188,7 +223,7 @@ void UI_Task()
       if(UI_ButtonDebounce(BUTTON_ENTER_PIN))
       {
         UI.stopVentilation = true;
-        tempParam.initBeepOff = false;
+        tempParam.initBeepOff = true;
         UI_Init();
       }
       else if((UI_ButtonDebounce(BUTTON_BACK_PIN)) || (UI_Timer(TIMEOUT_STOP_VENTILATION_CONFIRM)))
@@ -2487,8 +2522,12 @@ void UI_MedAlarmActiveTurnOff(uint8_t actualAlarm)
 
 void UI_UpdateControlParam()
 {
+  static uint32_t timeOutResetDisplay;
+
   if(UI_Timer(TIMEOUT_UPDATE_CTRL_PARAM))
   {
+    timeOutResetDisplay += TIMEOUT_UPDATE_CTRL_PARAM;
+
     showParam.breathsMinute     = CTRL.breathsMinute;
     showParam.dynamicCompliance = CTRL.dynamicCompliance;
     showParam.peakPressure      = CTRL.peakPressure;
@@ -2498,6 +2537,11 @@ void UI_UpdateControlParam()
     showParam.volume            = CTRL.volume;
     showParam.volumeMinute      = CTRL.volumeMinute;
     UI_Timer(0);
+  }
+  else if(timeOutResetDisplay >= 4*TIMEOUT_UPDATE_CTRL_PARAM)
+  {
+    UI_DisplayClear();
+    timeOutResetDisplay = 0;
   }
 }
 
@@ -2518,6 +2562,8 @@ void UI_DisplayMessage(uint8_t pos, uint8_t line, const char *message)
 
 void UI_DisplayClear()
 {
+  lcd.begin(DISPLAY_COLUMNS, DISPLAY_ROWS);   // initialize the lcd 
+  lcd.home ();
   lcd.clear();
 }
 

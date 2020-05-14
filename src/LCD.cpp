@@ -109,7 +109,7 @@ void LCD::begin(uint8_t cols, uint8_t lines, uint8_t dotsize)
    // before sending commands. Arduino can turn on way before 4.5V so we'll wait 
    // 50
    // ---------------------------------------------------------------------------
-   delay (100); // 100ms delay
+   //delay (100); // 100ms delay
    
    //put the LCD into 4 bit or 8 bit mode
    // -------------------------------------
