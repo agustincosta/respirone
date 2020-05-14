@@ -61,7 +61,8 @@
 #define TIMEOUT_UPDATE_CTRL_PARAM           500  
 #define TIMEOUT_STOP_VENTILATION_CONFIRM    3000
 #define TIMEOUT_CANCEL_EDITION              1000
-#define TIMEOUT_RESTART_CONFIG              1000 
+#define TIMEOUT_RESTART_CONFIG              1000
+#define TIMEOUT_BUTTON_DEBOUNCE             20 
 
 //Display messages
 //Config

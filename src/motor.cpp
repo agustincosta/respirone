@@ -28,21 +28,6 @@ float measuredCompliance = 0;
 
 //Definicion de encoder
 Encoder encoder(encoderB, encoderA);
-float selectedVolumeArray[12] = {300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850};
-// long inspirationCountsArray[12] = //{1450, 1650, 1800, 1950, 2100, 2250, 2400, 2600, 2750, 2950, 3100, 3250};
-//                                   //{805, 1284, 1474, 1626, 1803, 2005, 2165, 2430, 2613, 2754, 2910, 3160};
-//         {1081,
-//         1256,
-//         1394,
-//         1547,
-//         1718,
-//         1878,
-//         2042,
-//         2164,
-//         2349,
-//         2502,
-//         2665};      //001
-
 
 long startPeriod = 0;
 long endPeriod = 0;
@@ -286,6 +271,7 @@ void cuentasEncoderVolumen() {
 void Motor_Tasks() {
 
   MOTOR.limitSwitch = digitalRead(endSwitch);
+  MOTOR.currentConsumption = CTRL.currentConsumption;
 
   // DEBUG - IMPRIME CUENTAS DEL ENCODER
   /*
@@ -293,6 +279,8 @@ void Motor_Tasks() {
   lecturaEncoder();
   Serial.print(MOTOR.inspirationCounts); Serial.print('\t'); Serial.print(MOTOR.encoderTotal); Serial.print('\t'); Serial.println(print);
   */
+
+  //Serial.print(MOTOR.encoderTotal); Serial.print('\t'); Serial.println(MOTOR.wCommand*1000);
 
   checkMotorOvercurrent();  //Check if current has surpassed the limit
   //calculateSystemPeriod();  //Prints in console the system period in microseconds
@@ -330,8 +318,6 @@ void Motor_Tasks() {
       if (MOTOR.motorAction == MOTOR_STOPPED) {                                // Check if it its the first iteration to save time
         MOTOR.motorAction = MOTOR_RETURNING;
         MOTOR.expEndTime = millis() + MOTOR.expirationTime;
-
-        Serial.println(MOTOR.encoderTotal);
 
         MOTOR.flagInspEnded = true;
       } 
@@ -432,12 +418,14 @@ void Motor_Tasks() {
           MOTOR.motorAction = MOTOR_WAITING;
           
           if (MOTOR.modeSet == UI_VOLUME_CONTROL  || MOTOR.modeSet == UI_AUTOMATIC_CONTROL) {             // Volume mode
+            MOTOR.cycleStart = millis();
             motorState = MOTOR_VOLUME_CONTROL;
             #if MOTOR_STATES_LOG
               Serial.println("STATE: VOLUME CONTROL");
             #endif
           }
           else if (MOTOR.modeSet == UI_PRESSURE_CONTROL) {      // Pressure mode
+            MOTOR.cycleStart = millis();
             motorState = MOTOR_PRESSURE_CONTROL;
             #if MOTOR_STATES_LOG
               Serial.println("STATE: PRESSURE CONTROL");
@@ -644,7 +632,20 @@ void Motor_Tasks() {
 }
 
 void Motor_ReturnToHomePosition() {
-  comandoMotor(motorDIR, motorPWM, -1*VEL_ANG_MAX);     // Sets return speed 
+  if (MOTOR.motorAction != MOTOR_STARTING) {
+    if (MOTOR.encoderTotal > returnDecelerationCounts) {
+      MOTOR.wCommand = -1*VEL_ANG_MAX;
+    }
+    else {
+      MOTOR.wCommand += 0.05;
+      MOTOR.wCommand = (MOTOR.wCommand > -VEL_ANG_MIN)? -VEL_ANG_MIN : MOTOR.wCommand;
+    }
+  }
+  else {
+    MOTOR.wCommand = -1*VEL_ANG_MAX;
+  }
+
+  comandoMotor(motorDIR, motorPWM, MOTOR.wCommand);     // Sets return speed 
 }
 
 void inspirationFirstIteration() {
@@ -731,11 +732,15 @@ float getBreathsMinute() {
 
   }
 
+  //Serial.print(timeSum); Serial.print('\t'); Serial.print(minutePassed); Serial.print('\t'); Serial.println(iterations);
+
   if ((iterations > UI.maxBreathsMinute) && minutePassed) {
     UI_SetMedicalAlarm(ALARM_HIGH_BREATHS_PER_MINUTE, iterations, UI.maxBreathsMinute);
+    Serial.println("HIGH RPM");
   }
   else if ((iterations < UI.minBreathsMinute) && minutePassed) {
     UI_SetMedicalAlarm(ALARM_LOW_BREATHS_PER_MINUTE, iterations, UI.minBreathsMinute);
+    Serial.println("LOW RPM");
   }
 
   return iterations; 
@@ -767,11 +772,15 @@ float getVolumeMinute() {
 
   volumeMinute /= ML_TO_L;
 
+  //Serial.print(volumeMinute); Serial.print('\t'); Serial.print(minutePassed); Serial.print('\t'); Serial.println(timeSum);
+
   if ((volumeMinute > UI.maxVolumeMinute) && minutePassed) {
     UI_SetMedicalAlarm(ALARM_HIGH_VOLUME_PER_MINUTE, volumeMinute, UI.maxVolumeMinute);
+    Serial.println("HIGH VM");
   }
   else if ((volumeMinute < UI.minVolumeMinute) && minutePassed) {
     UI_SetMedicalAlarm(ALARM_LOW_VOLUME_PER_MINUTE, volumeMinute, UI.minVolumeMinute);
+    Serial.println("LOW VM");
   }
 
   return volumeMinute;
@@ -820,10 +829,10 @@ float minVelPressureFactor() {
 }
 
 void fillDataBuffer() {
-  for (size_t i = BUFFER_SIZE-1; i > 0; i--)          //Moves data one place to the right
+  for (size_t i = 0; i < BUFFER_SIZE; i++)          //Moves data one place to the right
   {
     measuredData[i].tidalVolume = MOTOR.tidalVolume;
-    measuredData[i].cycleTime = 0;
+    measuredData[i].cycleTime = MINUTE_MS/MOTOR.breathsMinute;
     measuredData[i].dynamicCompliance = 0;
   }
 }

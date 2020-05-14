@@ -3,6 +3,8 @@
 
 #include "config.h"
 
+const float selectedVolumeArray[12] = {300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850};
+
 const long inspirationCountsArray[12] =
 #if (SERIAL_NUMBER == 001)
   {1081,
@@ -17,6 +19,7 @@ const long inspirationCountsArray[12] =
   2502,
   2665,
   2810};
+  
 #elif (SERIAL_NUMBER == 002)
   {1082,
   1285,
