@@ -42,10 +42,11 @@
 #define AIR_LEAK_THRESHOLD 50    // Tolerated measured volume difference between inspiration and expiration in ml
 
 /*Encoder*/
-#define encoderCountsPerRev 16896   //8400 en el motor del rover
-#define maxVolumeEncoderCounts 3200 //Experimental - 2880 en el motor del rover sacado por proporcion respecto al motor anterior - ToDo medirlo bien
-#define minInspirationCounts 100    // Encoder counts needed to determine motor has moved
-#define countsFactor 1.0            // Factor to compensate motor does not stop immediately
+#define encoderCountsPerRev 16896       // 8400 en el motor del rover
+#define maxVolumeEncoderCounts 3200     // Experimental - 2880 en el motor del rover sacado por proporcion respecto al motor anterior - ToDo medirlo bien
+#define minInspirationCounts 100        // Encoder counts needed to determine motor has moved
+#define countsFactor 1.0                // Factor to compensate motor does not stop immediately
+#define returnDecelerationCounts 300    // Counts threshold when deceleration in RETURN HOME starts
 
 #if MOTOR_GAP_CORRECTION
     #define preparationCounts 100

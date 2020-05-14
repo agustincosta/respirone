@@ -2530,7 +2530,7 @@ bool UI_ButtonDebounce(uint8_t pin)
       switch (digitalRead(pin)) 
       {
         case LOW:
-          if ( millis()-debounceInitialMillis[pin]>5 )
+          if ( millis()-debounceInitialMillis[pin]> TIMEOUT_BUTTON_DEBOUNCE)
           {
             debounceState[pin] = BUTTON_PRESSED; 
             buttonState[pin] = true;
