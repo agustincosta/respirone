@@ -139,10 +139,10 @@ void pressureControlAlgorithm() {
    */
 
   float firstPressureConst = 0.7;         // Pressure value when acceleration finishes and the controller maintains speed
-  float secondPressureConst = 0.95;       // Pressure value when acceleration finishes and the controller maintains speed
+  float secondPressureConst = 0.85;       // Pressure value when acceleration finishes and the controller maintains speed
   float firstVelocityConst = 0.95;         // Percentage of VEL_ANG_MAX that defines the acceleration curve
   float secondVelocityConst = 0.7;        // Percentage of VEL_ANG_MAX that defines the acceleration curve
-  float minVelocityConst = 3.0;           // Percentage of VEL_PAUSE when pressure is reached
+  float minVelocityConst = minVelPressureFactor();           // Percentage of VEL_PAUSE when pressure is reached
   float pressureThreshold = 0.95;
 
   MOTOR.pMeasure = CTRL.pressure;                    //Actualiza la presion medida
@@ -192,12 +192,12 @@ void volumeControlAlgorithm() {
    * 
    */
 
-  float firstEncoderConst = 0.7;          // Encoder value when acceleration finishes and the controller maintains speed
-  float secondEncoderConst = 0.80;        // Encoder value when acceleration finishes and the controller maintains speed
-  float firstVelocityConst = 0.95;        // Percentage of VEL_ANG_MAX that defines the acceleration curve
+  float firstEncoderConst = 0.75;          // Encoder value when acceleration finishes and the controller maintains speed
+  float secondEncoderConst = 0.90;        // Encoder value when acceleration finishes and the controller maintains speed
+  float firstVelocityConst = 1.00;        // Percentage of VEL_ANG_MAX that defines the acceleration curve
   float secondVelocityConst = 0.65;        // Percentage of VEL_ANG_MAX that defines the acceleration curve
   float minVelocityConst = 3.0;           // Percentage of VEL_PAUSE when encoder counts are reached
-  float countsThreshold = 0.95;
+  float countsThreshold = 0.85;
 
   lecturaEncoder();
 
@@ -286,7 +286,7 @@ void Motor_Tasks() {
   //calculateSystemPeriod();  //Prints in console the system period in microseconds
 
   // DEBUG - IMPRIME PRESION PARA PID
-  //Serial.print(CTRL.pressure); Serial.print('\t'); Serial.print(MOTOR.pSetpoint); Serial.print('\t'); Serial.print(MOTOR.wCommand); Serial.print('\t'); Serial.println((pressureControllerState+1)*MOTOR.pSetpoint/2);
+  Serial.print(CTRL.pressure); Serial.print('\t'); Serial.print(MOTOR.pSetpoint); Serial.print('\t'); Serial.print(MOTOR.wCommand); Serial.print('\t'); Serial.println((pressureControllerState+1)*MOTOR.pSetpoint/2);
   
 
   if (UI.stopVentilation) {
@@ -827,8 +827,8 @@ void calculateDecelerationCurve() {
 }
 
 float minVelPressureFactor() {
-  //float pauseVelFactor = mapf(MOTOR.pSetpoint, PRES_MIN, PRES_MAX, 0.6, 2.0);
 
+  float pauseVelFactor = mapf(MOTOR.pSetpoint, 20, 40, 1.0, 1.8);
   return pauseVelFactor;
 }
 

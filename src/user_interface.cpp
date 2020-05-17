@@ -35,7 +35,7 @@ void UI_Init()
   pinMode(LED_MEDICAL_ALARM_PIN, OUTPUT);
   pinMode(BUZZER_ALARM_PIN, OUTPUT);
 
-  ALARM.enable = true;
+  ALARM.enable = false;
 
   if(!tempParam.initBeepOff)
     tone(BUZZER_ALARM_PIN, 500, 500);
@@ -503,7 +503,7 @@ void UI_SetParametersTask()
     case UI_SET_ADJUSTED_PRESSURE:
       if(UI_ButtonDebounce(BUTTON_UP_PIN))  
       {
-        (tempParam.adjustedPressure < 35) ? tempParam.adjustedPressure += 1 : tempParam.adjustedPressure = 35;
+        (tempParam.adjustedPressure < MAX_ADJUSTED_PRESSURE) ? tempParam.adjustedPressure += ADJUSTED_PRESSURE_STEP : tempParam.adjustedPressure = MAX_ADJUSTED_PRESSURE;
         itoa(tempParam.adjustedPressure,stringAux,10);
         strcat(stringAux, "cm.H2O");
         UI_DisplayMessage(0,1,stringAux);
@@ -511,7 +511,7 @@ void UI_SetParametersTask()
       } 
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) 
       {
-        (tempParam.adjustedPressure > 5)? tempParam.adjustedPressure -= 1 : tempParam.adjustedPressure = 5;
+        (tempParam.adjustedPressure > MIN_ADJUSTED_PRESSURE)? tempParam.adjustedPressure -= ADJUSTED_PRESSURE_STEP : tempParam.adjustedPressure = MIN_ADJUSTED_PRESSURE;
         itoa(tempParam.adjustedPressure,stringAux,10);
         strcat(stringAux, "cm.H2O");
         UI_DisplayMessage(0,1,stringAux);
@@ -544,14 +544,14 @@ void UI_SetParametersTask()
     case UI_BLINK_ADJUSTED_PRESSURE:
       if(UI_ButtonDebounce(BUTTON_UP_PIN))  
       {
-        (tempParam.adjustedPressure < 35) ? tempParam.adjustedPressure += 1 : tempParam.adjustedPressure = 35;
+        (tempParam.adjustedPressure < MAX_ADJUSTED_PRESSURE) ? tempParam.adjustedPressure += ADJUSTED_PRESSURE_STEP : tempParam.adjustedPressure = MAX_ADJUSTED_PRESSURE;
         itoa(tempParam.adjustedPressure,stringAux,10);
         strcat(stringAux, "cm.H2O");
         UI_DisplayMessage(0,1,stringAux);
       } 
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) 
       {
-        (tempParam.adjustedPressure > 5) ? tempParam.adjustedPressure -= 1 : tempParam.adjustedPressure = 5;
+        (tempParam.adjustedPressure > MIN_ADJUSTED_PRESSURE) ? tempParam.adjustedPressure -= ADJUSTED_PRESSURE_STEP : tempParam.adjustedPressure = MIN_ADJUSTED_PRESSURE;
         itoa(tempParam.adjustedPressure,stringAux,10);
         strcat(stringAux, "cm.H2O");
         UI_DisplayMessage(0,1,stringAux);
@@ -606,7 +606,7 @@ void UI_SetParametersTask()
     case UI_SET_TIDAL_VOLUME:
       if(UI_ButtonDebounce(BUTTON_UP_PIN))  
       {
-        (tempParam.tidalVolume < 800) ? tempParam.tidalVolume += 50 : tempParam.tidalVolume = 800;
+        (tempParam.tidalVolume < MAX_ADJUSTED_VOLUME) ? tempParam.tidalVolume += ADJUSTED_VOLUME_STEP : tempParam.tidalVolume = MAX_ADJUSTED_VOLUME;
         itoa(tempParam.tidalVolume,stringAux,10);
         strcat(stringAux, "ml");
         UI_DisplayMessage(0,1,stringAux);
@@ -614,7 +614,7 @@ void UI_SetParametersTask()
       } 
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) 
       {
-        (tempParam.tidalVolume > 300)? tempParam.tidalVolume -= 50 : tempParam.tidalVolume = 300;
+        (tempParam.tidalVolume > MIN_ADJUSTED_VOLUME)? tempParam.tidalVolume -= ADJUSTED_VOLUME_STEP : tempParam.tidalVolume = MIN_ADJUSTED_VOLUME;
         itoa(tempParam.tidalVolume,stringAux,10);
         strcat(stringAux, "ml");
         UI_DisplayMessage(0,1,stringAux);
@@ -647,14 +647,14 @@ void UI_SetParametersTask()
     case UI_BLINK_TIDAL_VOLUME:
       if(UI_ButtonDebounce(BUTTON_UP_PIN))  
       {
-        (tempParam.tidalVolume < 800) ? tempParam.tidalVolume += 50 : tempParam.tidalVolume = 800;
+        (tempParam.tidalVolume < MAX_ADJUSTED_VOLUME) ? tempParam.tidalVolume += ADJUSTED_VOLUME_STEP : tempParam.tidalVolume = MAX_ADJUSTED_VOLUME;
         itoa(tempParam.tidalVolume,stringAux,10);
         strcat(stringAux, "ml");
         UI_DisplayMessage(0,1,stringAux);
       } 
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) 
       {
-        (tempParam.tidalVolume > 300) ? tempParam.tidalVolume -= 50 : tempParam.tidalVolume = 300;
+        (tempParam.tidalVolume > MIN_ADJUSTED_VOLUME) ? tempParam.tidalVolume -= ADJUSTED_VOLUME_STEP : tempParam.tidalVolume = MIN_ADJUSTED_VOLUME;
         itoa(tempParam.tidalVolume,stringAux,10);
         strcat(stringAux, "ml");
         UI_DisplayMessage(0,1,stringAux);
@@ -709,14 +709,14 @@ void UI_SetParametersTask()
     case UI_SET_VOLUME_MINUTE_M:
       if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
       {
-        (tempParam.maxVolumeMinute < 16) ? tempParam.maxVolumeMinute += 1 : tempParam.maxVolumeMinute = 16;
+        (tempParam.maxVolumeMinute < MAX_ADJUSTED_MAX_VOLUME_MINUTE) ? tempParam.maxVolumeMinute += ADJUSTED_MAX_VOLUME_MINTUE_STEP : tempParam.maxVolumeMinute = MAX_ADJUSTED_MAX_VOLUME_MINUTE;
         itoa(tempParam.maxVolumeMinute,stringAux,10);
         strcat(stringAux, "L/m");
         UI_DisplayMessage(0,1,stringAux);
       }
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
       {
-        (tempParam.maxVolumeMinute > 12)? tempParam.maxVolumeMinute -= 1 : tempParam.maxVolumeMinute = 12;
+        (tempParam.maxVolumeMinute > MIN_ADJUSTED_MAX_VOLUME_MINUTE)? tempParam.maxVolumeMinute -= ADJUSTED_MAX_VOLUME_MINTUE_STEP : tempParam.maxVolumeMinute = MIN_ADJUSTED_MAX_VOLUME_MINUTE;
         itoa(tempParam.maxVolumeMinute,stringAux,10);
         strcat(stringAux, "L/m");
         UI_DisplayMessage(0,1,stringAux);
@@ -768,14 +768,14 @@ void UI_SetParametersTask()
     case UI_BLINK_VOLUME_MINUTE_M:
       if(UI_ButtonDebounce(BUTTON_UP_PIN))  
       {
-        (tempParam.maxVolumeMinute < 16) ? tempParam.maxVolumeMinute += 1 : tempParam.maxVolumeMinute = 16;
+        (tempParam.maxVolumeMinute < MAX_ADJUSTED_MAX_VOLUME_MINUTE) ? tempParam.maxVolumeMinute += ADJUSTED_MAX_VOLUME_MINTUE_STEP : tempParam.maxVolumeMinute = MAX_ADJUSTED_MAX_VOLUME_MINUTE;
         itoa(tempParam.maxVolumeMinute,stringAux,10);
         strcat(stringAux, "L/m");
         UI_DisplayMessage(0,1,stringAux);
       } 
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) 
       {
-        (tempParam.maxVolumeMinute > 12)? tempParam.maxVolumeMinute -= 1 : tempParam.maxVolumeMinute = 12;
+        (tempParam.maxVolumeMinute > MIN_ADJUSTED_MAX_VOLUME_MINUTE)? tempParam.maxVolumeMinute -= ADJUSTED_MAX_VOLUME_MINTUE_STEP : tempParam.maxVolumeMinute = MIN_ADJUSTED_MAX_VOLUME_MINUTE;
         itoa(tempParam.maxVolumeMinute,stringAux,10);
         strcat(stringAux, "L/m");
         UI_DisplayMessage(0,1,stringAux);
@@ -847,14 +847,14 @@ void UI_SetParametersTask()
     case UI_SET_VOLUME_MINUTE_m:
       if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
       {
-        (tempParam.minVolumeMinute < 5) ? tempParam.minVolumeMinute += 1 : tempParam.minVolumeMinute = 5;
+        (tempParam.minVolumeMinute < MAX_ADJUSTED_MIN_VOLUME_MINUTE) ? tempParam.minVolumeMinute += ADJUSTED_MIN_VOLUME_MINTUE_STEP : tempParam.minVolumeMinute = MAX_ADJUSTED_MIN_VOLUME_MINUTE;
         itoa(tempParam.minVolumeMinute,stringAux,10);
         strcat(stringAux, "L/m");
         UI_DisplayMessage(0,1,stringAux);
       }
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
       {
-        (tempParam.minVolumeMinute > 1)? tempParam.minVolumeMinute -= 1 : tempParam.minVolumeMinute = 1;
+        (tempParam.minVolumeMinute > MIN_ADJUSTED_MIN_VOLUME_MINUTE)? tempParam.minVolumeMinute -= ADJUSTED_MIN_VOLUME_MINTUE_STEP : tempParam.minVolumeMinute = MIN_ADJUSTED_MIN_VOLUME_MINUTE;
         itoa(tempParam.minVolumeMinute,stringAux,10);
         strcat(stringAux, "L/m");
         UI_DisplayMessage(0,1,stringAux);
@@ -891,14 +891,14 @@ void UI_SetParametersTask()
     case UI_BLINK_VOLUME_MINUTE_m:
       if(UI_ButtonDebounce(BUTTON_UP_PIN))  
       {
-        (tempParam.minVolumeMinute < 5) ? tempParam.minVolumeMinute += 1 : tempParam.minVolumeMinute = 5;
+        (tempParam.minVolumeMinute < MAX_ADJUSTED_MIN_VOLUME_MINUTE) ? tempParam.minVolumeMinute += ADJUSTED_MIN_VOLUME_MINTUE_STEP : tempParam.minVolumeMinute = MAX_ADJUSTED_MIN_VOLUME_MINUTE;
         itoa(tempParam.minVolumeMinute,stringAux,10);
         strcat(stringAux, "L/m");
         UI_DisplayMessage(0,1,stringAux);
       } 
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) 
       {
-        (tempParam.minVolumeMinute > 1)? tempParam.minVolumeMinute -= 1 : tempParam.minVolumeMinute = 1;
+        (tempParam.minVolumeMinute > MIN_ADJUSTED_MIN_VOLUME_MINUTE)? tempParam.minVolumeMinute -= ADJUSTED_MIN_VOLUME_MINTUE_STEP : tempParam.minVolumeMinute = MIN_ADJUSTED_MIN_VOLUME_MINUTE;
         itoa(tempParam.minVolumeMinute,stringAux,10);
         strcat(stringAux, "L/m");
         UI_DisplayMessage(0,1,stringAux);
@@ -957,14 +957,14 @@ void UI_SetParametersTask()
     case UI_SET_RPM:
       if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
       {
-        (tempParam.breathsMinute < 30) ? tempParam.breathsMinute += 1 : tempParam.breathsMinute = 30;
+        (tempParam.breathsMinute < MAX_ADJUSTED_BREATHS_MINUTE) ? tempParam.breathsMinute += ADJUSTED_BREATHS_MINUTE_STEP : tempParam.breathsMinute = MAX_ADJUSTED_BREATHS_MINUTE;
         itoa(tempParam.breathsMinute,stringAux,10);
         strcat(stringAux, " ");
         UI_DisplayMessage(0,1,stringAux);
       }
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
       {
-        (tempParam.breathsMinute > 5)? tempParam.breathsMinute -= 1 : tempParam.breathsMinute = 5;
+        (tempParam.breathsMinute > MIN_ADJUSTED_BREATHS_MINUTE)? tempParam.breathsMinute -= ADJUSTED_BREATHS_MINUTE_STEP : tempParam.breathsMinute = MIN_ADJUSTED_BREATHS_MINUTE;
         itoa(tempParam.breathsMinute,stringAux,10);
         strcat(stringAux, " ");
         UI_DisplayMessage(0,1,stringAux);
@@ -1001,14 +1001,14 @@ void UI_SetParametersTask()
     case UI_BLINK_RPM:
       if(UI_ButtonDebounce(BUTTON_UP_PIN))  
       {
-        (tempParam.breathsMinute < 30) ? tempParam.breathsMinute += 1 : tempParam.breathsMinute = 30;
+        (tempParam.breathsMinute < MAX_ADJUSTED_BREATHS_MINUTE) ? tempParam.breathsMinute += ADJUSTED_BREATHS_MINUTE_STEP : tempParam.breathsMinute = MAX_ADJUSTED_BREATHS_MINUTE;
         itoa(tempParam.breathsMinute,stringAux,10);
         strcat(stringAux, " ");
         UI_DisplayMessage(0,1,stringAux);
       } 
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) 
       {
-        (tempParam.breathsMinute > 5)? tempParam.breathsMinute -= 1 : tempParam.breathsMinute = 5;
+        (tempParam.breathsMinute > MIN_ADJUSTED_BREATHS_MINUTE)? tempParam.breathsMinute -= ADJUSTED_BREATHS_MINUTE_STEP : tempParam.breathsMinute = MIN_ADJUSTED_BREATHS_MINUTE;
         itoa(tempParam.breathsMinute,stringAux,10);
         strcat(stringAux, " ");
         UI_DisplayMessage(0,1,stringAux);
@@ -1067,14 +1067,14 @@ void UI_SetParametersTask()
     case UI_SET_RPM_M:
       if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
       {
-        (tempParam.maxBreathsMinute < 35) ? tempParam.maxBreathsMinute += 1 : tempParam.maxBreathsMinute = 35;
+        (tempParam.maxBreathsMinute < MAX_ADJUSTED_MAX_BREATHS_MINUTE) ? tempParam.maxBreathsMinute += ADJUSTED_MAX_BREATHS_MINUTE_STEP : tempParam.maxBreathsMinute = MAX_ADJUSTED_MAX_BREATHS_MINUTE;
         itoa(tempParam.maxBreathsMinute,stringAux,10);
         strcat(stringAux, " ");
         UI_DisplayMessage(0,1,stringAux);
       }
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
       {
-        (tempParam.maxBreathsMinute > 25)? tempParam.maxBreathsMinute -= 1 : tempParam.maxBreathsMinute = 25;
+        (tempParam.maxBreathsMinute > MIN_ADJUSTED_MAX_BREATHS_MINUTE)? tempParam.maxBreathsMinute -= ADJUSTED_MAX_BREATHS_MINUTE_STEP : tempParam.maxBreathsMinute = MIN_ADJUSTED_MAX_BREATHS_MINUTE;
         itoa(tempParam.maxBreathsMinute,stringAux,10);
         strcat(stringAux, " ");
         UI_DisplayMessage(0,1,stringAux);
@@ -1111,14 +1111,14 @@ void UI_SetParametersTask()
     case UI_BLINK_RPM_M:
       if(UI_ButtonDebounce(BUTTON_UP_PIN))  
       {
-        (tempParam.maxBreathsMinute < 35) ? tempParam.maxBreathsMinute += 1 : tempParam.maxBreathsMinute = 35;
+        (tempParam.maxBreathsMinute < MAX_ADJUSTED_MAX_BREATHS_MINUTE) ? tempParam.maxBreathsMinute += ADJUSTED_MAX_BREATHS_MINUTE_STEP : tempParam.maxBreathsMinute = MAX_ADJUSTED_MAX_BREATHS_MINUTE;
         itoa(tempParam.maxBreathsMinute,stringAux,10);
         strcat(stringAux, " ");
         UI_DisplayMessage(0,1,stringAux);
       } 
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) 
       {
-        (tempParam.maxBreathsMinute > 25)? tempParam.maxBreathsMinute -= 1 : tempParam.maxBreathsMinute = 25;
+        (tempParam.maxBreathsMinute > MIN_ADJUSTED_MAX_BREATHS_MINUTE)? tempParam.maxBreathsMinute -= ADJUSTED_MAX_BREATHS_MINUTE_STEP : tempParam.maxBreathsMinute = MIN_ADJUSTED_MAX_BREATHS_MINUTE;
         itoa(tempParam.maxBreathsMinute,stringAux,10);
         strcat(stringAux, " ");
         UI_DisplayMessage(0,1,stringAux);
@@ -1177,14 +1177,14 @@ void UI_SetParametersTask()
     case UI_SET_RPM_m:
       if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
       {
-        (tempParam.minBreathsMinute < 10) ? tempParam.minBreathsMinute += 1 : tempParam.minBreathsMinute = 10;
+        (tempParam.minBreathsMinute < MAX_ADJUSTED_MIN_BREATHS_MINUTE) ? tempParam.minBreathsMinute += ADJUSTED_MIN_BREATHS_MINUTE_STEP : tempParam.minBreathsMinute = MAX_ADJUSTED_MIN_BREATHS_MINUTE;
         itoa(tempParam.minBreathsMinute,stringAux,10);
         strcat(stringAux, " ");
         UI_DisplayMessage(0,1,stringAux);
       }
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
       {
-        (tempParam.minBreathsMinute > 5)? tempParam.minBreathsMinute -= 1 : tempParam.minBreathsMinute = 5;
+        (tempParam.minBreathsMinute > MIN_ADJUSTED_MIN_BREATHS_MINUTE) ? tempParam.minBreathsMinute -= ADJUSTED_MIN_BREATHS_MINUTE_STEP : tempParam.minBreathsMinute = MIN_ADJUSTED_MIN_BREATHS_MINUTE;
         itoa(tempParam.minBreathsMinute,stringAux,10);
         strcat(stringAux, " ");
         UI_DisplayMessage(0,1,stringAux);
@@ -1221,14 +1221,14 @@ void UI_SetParametersTask()
     case UI_BLINK_RPM_m:
       if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
       {
-        (tempParam.minBreathsMinute < 10) ? tempParam.minBreathsMinute += 1 : tempParam.minBreathsMinute = 10;
+        (tempParam.minBreathsMinute < MAX_ADJUSTED_MIN_BREATHS_MINUTE) ? tempParam.minBreathsMinute += ADJUSTED_MIN_BREATHS_MINUTE_STEP : tempParam.minBreathsMinute = MAX_ADJUSTED_MIN_BREATHS_MINUTE;
         itoa(tempParam.minBreathsMinute,stringAux,10);
         strcat(stringAux, " ");
         UI_DisplayMessage(0,1,stringAux);
       }
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
       {
-        (tempParam.minBreathsMinute > 5)? tempParam.minBreathsMinute -= 1 : tempParam.minBreathsMinute = 5;
+        (tempParam.minBreathsMinute > MIN_ADJUSTED_MIN_BREATHS_MINUTE)? tempParam.minBreathsMinute -= ADJUSTED_MIN_BREATHS_MINUTE_STEP : tempParam.minBreathsMinute = MIN_ADJUSTED_MIN_BREATHS_MINUTE;
         itoa(tempParam.minBreathsMinute,stringAux,10);
         strcat(stringAux, " ");
         UI_DisplayMessage(0,1,stringAux);
@@ -1287,14 +1287,14 @@ void UI_SetParametersTask()
     case UI_SET_T_I:
       if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
       {
-        (tempParam.t_i < 80) ? tempParam.t_i += 5 : tempParam.t_i = 80;
+        (tempParam.t_i < MAX_ADJUSTED_INSP_TIME) ? tempParam.t_i += ADJUSTED_INSP_TIME_STEP : tempParam.t_i = MAX_ADJUSTED_INSP_TIME;
         itoa(tempParam.t_i,stringAux,10);
         strcat(stringAux, "%");
         UI_DisplayMessage(0,1,stringAux);
       }
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
       {
-        (tempParam.t_i > 10)? tempParam.t_i -= 5 : tempParam.t_i = 10;
+        (tempParam.t_i > MIN_ADJUSTED_INSP_TIME)? tempParam.t_i -= ADJUSTED_INSP_TIME_STEP : tempParam.t_i = MIN_ADJUSTED_INSP_TIME;
         itoa(tempParam.t_i,stringAux,10);
         strcat(stringAux, "%");
         UI_DisplayMessage(0,1,stringAux);
@@ -1331,14 +1331,14 @@ void UI_SetParametersTask()
     case UI_BLINK_T_I:
       if(UI_ButtonDebounce(BUTTON_UP_PIN))  
       {
-        (tempParam.t_i < 80) ? tempParam.t_i += 5 : tempParam.t_i = 80;
+        (tempParam.t_i < MAX_ADJUSTED_INSP_TIME) ? tempParam.t_i += ADJUSTED_INSP_TIME_STEP : tempParam.t_i = MAX_ADJUSTED_INSP_TIME;
         itoa(tempParam.t_i,stringAux,10);
         strcat(stringAux, "%");
         UI_DisplayMessage(0,1,stringAux);
       } 
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) 
       {
-        (tempParam.t_i > 10)? tempParam.t_i -= 5 : tempParam.t_i = 10;
+        (tempParam.t_i > MIN_ADJUSTED_INSP_TIME)? tempParam.t_i -= ADJUSTED_INSP_TIME_STEP : tempParam.t_i = MIN_ADJUSTED_INSP_TIME;
         itoa(tempParam.t_i,stringAux,10);
         strcat(stringAux, "%");
         UI_DisplayMessage(0,1,stringAux);
@@ -1397,14 +1397,14 @@ void UI_SetParametersTask()
     case UI_SET_T_P:
       if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
       {
-        (tempParam.t_p < 30) ? tempParam.t_p += 5 : tempParam.t_p = 30;
+        (tempParam.t_p < MAX_ADJUSTED_PAUSE_TIME) ? tempParam.t_p += ADJUSTED_PAUSE_TIME_STEP : tempParam.t_p = MAX_ADJUSTED_PAUSE_TIME;
         itoa(tempParam.t_p,stringAux,10);
         strcat(stringAux, "%");
         UI_DisplayMessage(0,1,stringAux);
       }
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
       {
-        (tempParam.t_p > 0)? tempParam.t_p -= 5 : tempParam.t_p = 0;
+        (tempParam.t_p > MIN_ADJUSTED_PAUSE_TIME)? tempParam.t_p -= ADJUSTED_PAUSE_TIME_STEP : tempParam.t_p = MIN_ADJUSTED_PAUSE_TIME;
         itoa(tempParam.t_p,stringAux,10);
         strcat(stringAux, "%");
         UI_DisplayMessage(0,1,stringAux);
@@ -1441,14 +1441,14 @@ void UI_SetParametersTask()
     case UI_BLINK_T_P:
       if(UI_ButtonDebounce(BUTTON_UP_PIN))  
       {
-        (tempParam.t_p < 30) ? tempParam.t_p += 5 : tempParam.t_p = 30;
+        (tempParam.t_p < MAX_ADJUSTED_PAUSE_TIME) ? tempParam.t_p += ADJUSTED_PAUSE_TIME_STEP : tempParam.t_p = MAX_ADJUSTED_PAUSE_TIME;
         itoa(tempParam.t_p,stringAux,10);
         strcat(stringAux, "%");
         UI_DisplayMessage(0,1,stringAux);
       } 
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) 
       {
-        (tempParam.t_p > 0)? tempParam.t_p -= 5 : tempParam.t_p = 0;
+        (tempParam.t_p > MIN_ADJUSTED_PAUSE_TIME)? tempParam.t_p -= ADJUSTED_PAUSE_TIME_STEP : tempParam.t_p = MIN_ADJUSTED_PAUSE_TIME;
         itoa(tempParam.t_p,stringAux,10);
         strcat(stringAux, "%");
         UI_DisplayMessage(0,1,stringAux);
@@ -1507,14 +1507,14 @@ void UI_SetParametersTask()
     case UI_SET_MAX_PRESSURE:
       if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
       {
-        (tempParam.maxPressure < 55) ? tempParam.maxPressure += 1 : tempParam.maxPressure = 55;
+        (tempParam.maxPressure < MAX_ADJUSTED_MAX_PRESSURE) ? tempParam.maxPressure += ADJUSTED_MAX_PRESSURE_STEP : tempParam.maxPressure = MAX_ADJUSTED_MAX_PRESSURE;
         itoa(tempParam.maxPressure,stringAux,10);
         strcat(stringAux, "cm.H2O");
         UI_DisplayMessage(0,1,stringAux);
       }
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
       {
-        (tempParam.maxPressure > 35)? tempParam.maxPressure -= 1 : tempParam.maxPressure = 35;
+        (tempParam.maxPressure > MIN_ADJUSTED_MAX_PRESSURE)? tempParam.maxPressure -= ADJUSTED_MAX_PRESSURE_STEP : tempParam.maxPressure = MIN_ADJUSTED_MAX_PRESSURE;
         itoa(tempParam.maxPressure,stringAux,10);
         strcat(stringAux, "cm.H2O");
         UI_DisplayMessage(0,1,stringAux);
@@ -1551,14 +1551,14 @@ void UI_SetParametersTask()
     case UI_BLINK_MAX_PRESSURE:
       if(UI_ButtonDebounce(BUTTON_UP_PIN))  
       {
-        (tempParam.maxPressure < 55) ? tempParam.maxPressure += 1 : tempParam.maxPressure = 55;
+        (tempParam.maxPressure < MAX_ADJUSTED_MAX_PRESSURE) ? tempParam.maxPressure += ADJUSTED_MAX_PRESSURE_STEP : tempParam.maxPressure = MAX_ADJUSTED_MAX_PRESSURE;
         itoa(tempParam.maxPressure,stringAux,10);
         strcat(stringAux, "cm.H2O");
         UI_DisplayMessage(0,1,stringAux);
       } 
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) 
       {
-        (tempParam.maxPressure > 35)? tempParam.maxPressure -= 1 : tempParam.maxPressure = 35;
+        (tempParam.maxPressure > MIN_ADJUSTED_MAX_PRESSURE)? tempParam.maxPressure -= ADJUSTED_MAX_PRESSURE_STEP : tempParam.maxPressure = MIN_ADJUSTED_MAX_PRESSURE;
         itoa(tempParam.maxPressure,stringAux,10);
         strcat(stringAux, "cm.H2O");
         UI_DisplayMessage(0,1,stringAux);
@@ -1617,14 +1617,14 @@ void UI_SetParametersTask()
     case UI_SET_MIN_PRESSURE:
       if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
       {
-        (tempParam.minPressure < 10) ? tempParam.minPressure += 1 : tempParam.minPressure = 10;
+        (tempParam.minPressure < MAX_ADJUSTED_MIN_PRESSURE) ? tempParam.minPressure += ADJUSTED_MIN_PRESSURE_STEP : tempParam.minPressure = MAX_ADJUSTED_MIN_PRESSURE;
         itoa(tempParam.minPressure,stringAux,10);
         strcat(stringAux, "cm.H2O");
         UI_DisplayMessage(0,1,stringAux);
       }
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
       {
-        (tempParam.minPressure > 5)? tempParam.minPressure -= 1 : tempParam.minPressure = 5;
+        (tempParam.minPressure > MIN_ADJUSTED_MIN_PRESSURE)? tempParam.minPressure -= ADJUSTED_MIN_PRESSURE_STEP : tempParam.minPressure = MIN_ADJUSTED_MIN_PRESSURE;
         itoa(tempParam.minPressure,stringAux,10);
         strcat(stringAux, "cm.H2O");
         UI_DisplayMessage(0,1,stringAux);
@@ -1661,14 +1661,14 @@ void UI_SetParametersTask()
     case UI_BLINK_MIN_PRESSURE:
       if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
       {
-        (tempParam.minPressure < 10) ? tempParam.minPressure += 1 : tempParam.minPressure = 10;
+        (tempParam.minPressure < MAX_ADJUSTED_MIN_PRESSURE) ? tempParam.minPressure += ADJUSTED_MIN_PRESSURE_STEP : tempParam.minPressure = MAX_ADJUSTED_MIN_PRESSURE;
         itoa(tempParam.minPressure,stringAux,10);
         strcat(stringAux, "cm.H2O");
         UI_DisplayMessage(0,1,stringAux);
       }
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
       {
-        (tempParam.minPressure > 5)? tempParam.minPressure -= 1 : tempParam.minPressure = 5;
+        (tempParam.minPressure > MIN_ADJUSTED_MIN_PRESSURE)? tempParam.minPressure -= ADJUSTED_MIN_PRESSURE_STEP : tempParam.minPressure = MIN_ADJUSTED_MIN_PRESSURE;
         itoa(tempParam.minPressure,stringAux,10);
         strcat(stringAux, "cm.H2O");
         UI_DisplayMessage(0,1,stringAux);
@@ -1727,14 +1727,14 @@ void UI_SetParametersTask()
     case UI_SET_TRP:
       if(UI_ButtonDebounce(BUTTON_UP_PIN)) 
       {
-        (tempParam.TrP < 0) ? tempParam.TrP += 1 : tempParam.TrP = 0;
+        (tempParam.TrP < MAX_ADJUSTED_TRIGGER_PRESSURE) ? tempParam.TrP += ADJUSTED_TRIGGER_PRESSURE_STEP : tempParam.TrP = MAX_ADJUSTED_TRIGGER_PRESSURE;
         itoa(tempParam.TrP,stringAux,10);
         strcat(stringAux, " ");
         UI_DisplayMessage(0,1,stringAux);
       }
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
       {
-        (tempParam.TrP > -18)? tempParam.TrP -= 1 : tempParam.TrP = -18;
+        (tempParam.TrP > MIN_ADJUSTED_TRIGGER_PRESSURE)? tempParam.TrP -= ADJUSTED_TRIGGER_PRESSURE_STEP : tempParam.TrP = MIN_ADJUSTED_TRIGGER_PRESSURE;
         itoa(tempParam.TrP,stringAux,10);
         strcat(stringAux, " ");
         UI_DisplayMessage(0,1,stringAux);
@@ -1771,14 +1771,14 @@ void UI_SetParametersTask()
     case UI_BLINK_TRP:
       if(UI_ButtonDebounce(BUTTON_UP_PIN))  
       {
-        (tempParam.TrP < 0) ? tempParam.TrP += 1 : tempParam.TrP = 0;
+        (tempParam.TrP < MAX_ADJUSTED_TRIGGER_PRESSURE) ? tempParam.TrP += ADJUSTED_TRIGGER_PRESSURE_STEP : tempParam.TrP = MAX_ADJUSTED_TRIGGER_PRESSURE;
         itoa(tempParam.TrP,stringAux,10);
         strcat(stringAux, " ");
         UI_DisplayMessage(0,1,stringAux);
       } 
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) 
       {
-        (tempParam.TrP > -18)? tempParam.TrP -= 1 : tempParam.TrP = -18;
+        (tempParam.TrP > MIN_ADJUSTED_TRIGGER_PRESSURE)? tempParam.TrP -= ADJUSTED_TRIGGER_PRESSURE_STEP : tempParam.TrP = MIN_ADJUSTED_TRIGGER_PRESSURE;
         itoa(tempParam.TrP,stringAux,10);
         strcat(stringAux, " ");
         UI_DisplayMessage(0,1,stringAux);

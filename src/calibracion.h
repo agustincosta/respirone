@@ -3,7 +3,7 @@
 
 #include "config.h"
 
-#define CALIBRACION true
+#define CALIBRACION false
 
 const float selectedVolumeArray[12] = {300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850};
 

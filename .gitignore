@@ -36,3 +36,4 @@
 *.hex
 *.dblite
 *.checksum
+*.json
