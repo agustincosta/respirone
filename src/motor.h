@@ -132,6 +132,7 @@ typedef struct
     //Flags
     bool flagInspEnded;     // Flag activated when inspiration ends
     bool flagExpEnded;      // Flag activated when expiration ends
+    bool pressureModeFirstIteration;    //
     //Sensors
     float currentConsumption;   // Current consumed by motor sensed by hall effect sensor
     float expirationVolume;     // Expiration air flow rate

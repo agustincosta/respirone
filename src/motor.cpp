@@ -75,6 +75,7 @@ void Motor_Init() {
   //Flags
   MOTOR.flagInspEnded = false;
   MOTOR.flagExpEnded = false;
+  MOTOR.pressureModeFirstIteration = true;
   //Sensors
   MOTOR.currentConsumption = 2.0;     //Hardcoded para simular sensor siempre bien
   MOTOR.expirationVolume = 0.0;
@@ -297,7 +298,7 @@ void Motor_Tasks() {
   switch (motorState) 
   {
     /*--------------------------POWER ON--------------------------*/
-    case MOTOR_POWER_ON:
+    case MOTOR_POWER_ON: {
 
       #if MOTOR_STATES_LOG
         Serial.println("STATE: POWER ON");
@@ -311,9 +312,9 @@ void Motor_Tasks() {
       #endif
 
       break;
-
+    }
     /*-----------------------RETURN TO HOME-----------------------*/
-    case MOTOR_RETURN_HOME_POSITION:
+    case MOTOR_RETURN_HOME_POSITION: {
       
       if (MOTOR.motorAction == MOTOR_STOPPED) {                                // Check if it its the first iteration to save time
         MOTOR.motorAction = MOTOR_RETURNING;
@@ -331,7 +332,6 @@ void Motor_Tasks() {
         lecturaEncoder();      
       }
       else {                                                  // In home position - either by encoder or limit switch 
-
         comandoMotor(motorDIR, motorPWM, 0);                  // Stops motor for a brief moment before gap correction
         if (MOTOR.motorAction == MOTOR_STARTING) {  
           lecturaEncoder();         
@@ -352,9 +352,9 @@ void Motor_Tasks() {
       }   
       
       break;
-
+    }
     /*---------------------PREPARE INSPIRATION--------------------*/
-    case MOTOR_PREPARE_INSPIRATION:
+    case MOTOR_PREPARE_INSPIRATION: {
       if (MOTOR.encoderTotal < preparationCounts) {
         comandoMotor(motorDIR, motorPWM, 0.8*VEL_ANG_MAX);
         lecturaEncoder();
@@ -368,9 +368,9 @@ void Motor_Tasks() {
         #endif
       }  
       break;
-
+    }
     /*----------------------------IDLE----------------------------*/
-    case MOTOR_IDLE:
+    case MOTOR_IDLE: {
 
       Motor_SetBreathingParams();     //First checks if UI.setUpComplete  
 
@@ -401,7 +401,13 @@ void Motor_Tasks() {
             #endif
           }
           else if (MOTOR.modeSet == UI_PRESSURE_CONTROL) {    // Pressure mode
-            motorState = MOTOR_PRESSURE_CONTROL;
+            if (MOTOR.pressureModeFirstIteration) {
+              motorState = MOTOR_VOLUME_CONTROL;
+              MOTOR.tidalVolume = 500;
+            }
+            else {
+              motorState = MOTOR_PRESSURE_CONTROL;
+            }
             #if MOTOR_STATES_LOG
               Serial.println("STATE: PRESSURE CONTROL");
             #endif
@@ -430,7 +436,13 @@ void Motor_Tasks() {
           }
           else if (MOTOR.modeSet == UI_PRESSURE_CONTROL) {      // Pressure mode
             MOTOR.cycleStart = millis();
-            motorState = MOTOR_PRESSURE_CONTROL;
+            if (MOTOR.pressureModeFirstIteration) {
+              motorState = MOTOR_VOLUME_CONTROL;
+              MOTOR.tidalVolume = 500;
+            }
+            else {
+              motorState = MOTOR_PRESSURE_CONTROL;
+            }
             #if MOTOR_STATES_LOG
               Serial.println("STATE: PRESSURE CONTROL");
             #endif
@@ -441,9 +453,9 @@ void Motor_Tasks() {
         }         
       }
       break;
-
+    }
     /*-----------------------VOLUME CONTROL-----------------------*/
-    case MOTOR_VOLUME_CONTROL:
+    case MOTOR_VOLUME_CONTROL: {
 
       if (MOTOR.motorAction == MOTOR_WAITING) {                 // Check if it its the first iteration to save the time
         inspirationFirstIteration();
@@ -481,6 +493,8 @@ void Motor_Tasks() {
 
         //comandoMotor(motorDIR, motorPWM, VEL_PAUSE);
 
+        MOTOR.pressureModeFirstIteration = false;
+
         #if MOTOR_PAUSE_DECELERATION 
           motorState = MOTOR_PAUSE;
           #if MOTOR_STATES_LOG
@@ -494,13 +508,14 @@ void Motor_Tasks() {
         #endif               
       }
       break;    
-      
+    } 
     /*----------------------PRESSURE CONTROL----------------------*/
-    case MOTOR_PRESSURE_CONTROL:
+    case MOTOR_PRESSURE_CONTROL: {
       
       if (MOTOR.motorAction == MOTOR_WAITING) {                               // Check if it its the first iteration to save the time
         inspirationFirstIteration();
         pressureControllerState = CONTROLLER_FIRST_ACCELERATION;
+        MOTOR.pSetpoint = CTRL.PEEP + (float)UI.adjustedPressure;             // Set pressure is referentiated to the PEEP
       }
 
       if ((millis() < MOTOR.inspEndTime) && (MOTOR.encoderTotal < maxVolumeEncoderCounts)) {     // Piston moving forward
@@ -541,10 +556,10 @@ void Motor_Tasks() {
         /*Start flow measurement integration*/
 
       }
-      break;        
-
+      break;
+    }
     /*---------------------PREPARE EXPIRATION--------------------*/
-    case MOTOR_PREPARE_EXPIRATION:
+    case MOTOR_PREPARE_EXPIRATION: {
       if (MOTOR.encoderTotal > MOTOR.inspirationCounts + MOTOR.pauseCounts) {
         comandoMotor(motorDIR, motorPWM, -0.8*VEL_ANG_MAX);
         lecturaEncoder();
@@ -565,9 +580,9 @@ void Motor_Tasks() {
         #endif  
       }
       break;
-
+    }
     /*--------------------PAUSE IN INSPIRATION--------------------*/
-    case MOTOR_PAUSE:
+    case MOTOR_PAUSE: {
 
       if(MOTOR.motorAction == MOTOR_ADVANCING) {
         calculateDecelerationCurve();                             // Calculates MOTOR.wDecrement
@@ -626,12 +641,13 @@ void Motor_Tasks() {
 
       }
       break;
-    
+    }
     /*-------------------------DEFAULT----------------------------*/
-    default:
+    default: {
       Serial.println("ESTADO DESCONOCIDO");
       motorState = MOTOR_IDLE;
       break;
+    }
   }
 }
 
