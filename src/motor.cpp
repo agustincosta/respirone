@@ -19,6 +19,7 @@
 MOTOR_t MOTOR;
 Motor_States_e motorState;
 Controller_states_e pressureControllerState, volumeControllerState;
+Watchdog_states_e motorWatchdogState;
 
 //Variables para medidas reales
 Measured_t measuredData[BUFFER_SIZE];
@@ -34,6 +35,7 @@ long endPeriod = 0;
 long prevPauseTime = 0;
 long lastEncoder = 0;
 float pauseVelFactor = 1;
+float newVelocity = 0;
 
 
 void Motor_Init() {
@@ -76,6 +78,9 @@ void Motor_Init() {
   MOTOR.flagInspEnded = false;
   MOTOR.flagExpEnded = false;
   MOTOR.pressureModeFirstIteration = true;
+  MOTOR.movingBackwards = false;
+  MOTOR.movingForwards = false;
+  MOTOR.fatalError = false;
   //Sensors
   MOTOR.currentConsumption = 2.0;     //Hardcoded para simular sensor siempre bien
   MOTOR.expirationVolume = 0.0;
@@ -193,29 +198,42 @@ void volumeControlAlgorithm() {
    * 
    */
 
-  float firstEncoderConst = 0.75;          // Encoder value when acceleration finishes and the controller maintains speed
-  float secondEncoderConst = 0.90;        // Encoder value when acceleration finishes and the controller maintains speed
-  float firstVelocityConst = 1.00;        // Percentage of VEL_ANG_MAX that defines the acceleration curve
-  float secondVelocityConst = 0.65;        // Percentage of VEL_ANG_MAX that defines the acceleration curve
+  float firstEncoderConst = 0.70;          // Encoder value when acceleration finishes and the controller maintains speed
+  float secondEncoderConst = 1.0;        // Encoder value when acceleration finishes and the controller maintains speed
+  float firstVelocityConst = 1.20;        // Percentage of VEL_ANG_MAX that defines the acceleration curve
+  float secondVelocityConst = 1.05;        // Percentage of VEL_ANG_MAX that defines the acceleration curve
   float minVelocityConst = 3.0;           // Percentage of VEL_PAUSE when encoder counts are reached
-  float countsThreshold = 0.85;
+  float countsThreshold = 0.98;
+  
 
   lecturaEncoder();
 
   switch (volumeControllerState)
   {
     case CONTROLLER_FIRST_ACCELERATION:                               // First stage of pressure rise at max speed
+      MOTOR.movingForwards = true;
       if (MOTOR.encoderTotal < firstEncoderConst*MOTOR.inspirationCounts) {       
-        MOTOR.wCommand = firstVelocityConst*VEL_ANG_MAX;
+        MOTOR.wCommand = firstVelocityConst*MOTOR.wSetpoint;
       }
       else {
         volumeControllerState = CONTROLLER_SECOND_ACCELERATION;
+        MOTOR.calculateDynamicSpeed = true;
       }
       break;
     
     case CONTROLLER_SECOND_ACCELERATION:                              // Second stage of pressure rise at lower speed
+      MOTOR.movingForwards = true;
+
+      if (MOTOR.calculateDynamicSpeed) {
+        long remainingCounts = MOTOR.inspirationCounts-MOTOR.encoderTotal;
+        float remainingTime = MOTOR.inspEndTime - millis();
+        newVelocity = remainingCounts*SEC_TO_MILLIS/remainingTime;
+        MOTOR.calculateDynamicSpeed = false;
+        //Serial.print(remainingCounts); Serial.print('\t'); Serial.print(remainingTime); Serial.print('\t'); Serial.println(newVelocity);
+      }
+
       if (MOTOR.encoderTotal < secondEncoderConst*MOTOR.inspirationCounts) {       
-        MOTOR.wCommand = secondVelocityConst*VEL_ANG_MAX;
+        MOTOR.wCommand = secondVelocityConst*newVelocity;
       }
       else {
         volumeControllerState = CONTROLLER_MAINTAIN_SETPOINT;
@@ -223,6 +241,7 @@ void volumeControlAlgorithm() {
       break;
     
     case CONTROLLER_MAINTAIN_SETPOINT:                                // Pressure reached and needs to be maintained
+      MOTOR.movingForwards = false;
       if (MOTOR.encoderTotal < countsThreshold*MOTOR.inspirationCounts) {
         //;
       }
@@ -265,30 +284,34 @@ void cuentasEncoderVolumen() {
       break;
     }
   }
-  
 }
 
 //MOTOR TASKS
 void Motor_Tasks() {
 
   MOTOR.limitSwitch = digitalRead(endSwitch);
-  //MOTOR.currentConsumption = CTRL.currentConsumption;
+
+  checkMotorBlocked();
 
   // DEBUG - IMPRIME CUENTAS DEL ENCODER
   /*
-  int print = (motorState == MOTOR_PAUSE)? 2000:0;
+  int pauseState = (motorState == MOTOR_PAUSE)? 2000:0;
   lecturaEncoder();
-  Serial.print(MOTOR.inspirationCounts); Serial.print('\t'); Serial.print(MOTOR.encoderTotal); Serial.print('\t'); Serial.println(print);
+  Serial.print(MOTOR.inspirationCounts); Serial.print('\t'); Serial.print(MOTOR.encoderTotal); Serial.print('\t'); Serial.println(CTRL.pressure); Serial.print('\t'); Serial.println(pauseState);
   */
-
-  //Serial.print(MOTOR.encoderTotal); Serial.print('\t'); Serial.println(MOTOR.wCommand*1000);
-
-  checkMotorOvercurrent();  //Check if current has surpassed the limit
   //calculateSystemPeriod();  //Prints in console the system period in microseconds
 
   // DEBUG - IMPRIME PRESION PARA PID
-  Serial.print(CTRL.pressure); Serial.print('\t'); Serial.print(MOTOR.pSetpoint); Serial.print('\t'); Serial.print(MOTOR.wCommand); Serial.print('\t'); Serial.println((pressureControllerState+1)*MOTOR.pSetpoint/2);
+  // Serial.print(CTRL.pressure); Serial.print('\t'); Serial.print(MOTOR.pSetpoint); Serial.print('\t'); Serial.print(MOTOR.wCommand); Serial.print('\t'); Serial.println((pressureControllerState+1)*MOTOR.pSetpoint/2);
   
+  if (MOTOR.fatalError) {
+    motorState = MOTOR_ERROR;
+    MOTOR.fatalError = false;
+    UI_SetSystemAlarm(ALARM_MOTOR_ERROR);
+    #if MOTOR_STATES_LOG
+      Serial.println("MOTOR ERROR");
+    #endif
+  }
 
   if (UI.stopVentilation) {
     motorState = MOTOR_POWER_ON;    //Resets state machine to first state
@@ -327,12 +350,15 @@ void Motor_Tasks() {
         MOTOR.flagInspEnded = true;
       } 
 
-      if (MOTOR.limitSwitch  /*|| (MOTOR.encoderTotal > 0)*/) {   // Not in home position conditions
+      if ((MOTOR.limitSwitch)) {   // Not in home position conditions
+        MOTOR.movingBackwards = true;
         Motor_ReturnToHomePosition();
         lecturaEncoder();      
       }
       else {                                                  // In home position - either by encoder or limit switch 
+        MOTOR.movingBackwards = false;
         comandoMotor(motorDIR, motorPWM, 0);                  // Stops motor for a brief moment before gap correction
+
         if (MOTOR.motorAction == MOTOR_STARTING) {  
           lecturaEncoder();         
           MOTOR.encoderTotal = 0;
@@ -459,23 +485,25 @@ void Motor_Tasks() {
 
       if (MOTOR.motorAction == MOTOR_WAITING) {                 // Check if it its the first iteration to save the time
         inspirationFirstIteration();
+        setpointVelocityCalculation();
         volumeControllerState = CONTROLLER_FIRST_ACCELERATION;
       }
 
       if ((MOTOR.encoderTotal < MOTOR.inspirationCounts*countsFactor + preparationCounts) && (millis() < MOTOR.inspEndTime) && (CTRL.pressure < UI.maxPressure)) {       // Piston moving forward
         // Conditions for inspiration: encoder counts not reached, inspiration time not passed and pressure below max
-
+        
         volumeControlAlgorithm();    //Motor control based on encoder counts
 
       }
       else {
-
+        MOTOR.movingForwards = false;
         if (CTRL.pressure > UI.maxPressure) {                     // Set alarm if inspiration interrupted by high pressure
           UI_SetMedicalAlarm(ALARM_HIGH_PRESSURE, CTRL.pressure, UI.maxPressure);
         }
         else if ((millis() < MOTOR.inspEndTime) && (MOTOR.encoderTotal < minInspirationCounts + preparationCounts)) { // Alarm if motor is not moving during inspiration
           UI_SetSystemAlarm(ALARM_MOTOR_ERROR);
-          motorState = MOTOR_POWER_ON;
+          motorState = MOTOR_ERROR;
+          Serial.println("ERROR");
           break;                       
         }
 
@@ -490,8 +518,6 @@ void Motor_Tasks() {
             Serial.println("Presion alta");
           }
         #endif
-
-        //comandoMotor(motorDIR, motorPWM, VEL_PAUSE);
 
         MOTOR.pressureModeFirstIteration = false;
 
@@ -525,7 +551,8 @@ void Motor_Tasks() {
         
         if ((millis() > MOTOR.inspEndTime) && (MOTOR.encoderTotal < minInspirationCounts + preparationCounts)) { // Alarm if motor is not moving during inspiration
           UI_SetSystemAlarm(ALARM_MOTOR_ERROR);
-          motorState = MOTOR_POWER_ON;
+          motorState = MOTOR_ERROR;
+          Serial.println("ERROR");
           break;                       
         }
 
@@ -643,6 +670,11 @@ void Motor_Tasks() {
       break;
     }
     /*-------------------------DEFAULT----------------------------*/
+    case MOTOR_ERROR: {
+      comandoMotor(motorDIR,motorPWM, 0);
+      break;
+    }
+    /*-------------------------DEFAULT----------------------------*/
     default: {
       Serial.println("ESTADO DESCONOCIDO");
       motorState = MOTOR_IDLE;
@@ -657,7 +689,11 @@ void Motor_ReturnToHomePosition() {
       MOTOR.wCommand = -1*VEL_ANG_MAX;
     }
     else {
-      MOTOR.wCommand += 0.05;
+      #if COUNTS_SECOND_SPEEDS
+        MOTOR.wCommand += 135;
+      #else
+        MOTOR.wCommand += 0.05;
+      #endif
       MOTOR.wCommand = (MOTOR.wCommand > -VEL_ANG_MIN)? -VEL_ANG_MIN : MOTOR.wCommand;
     }
   }
@@ -821,7 +857,8 @@ void updateControlVariables() {
 void checkMotorOvercurrent() {
   if(MOTOR.currentConsumption >= maxMotorCurrent) {         
     UI_SetSystemAlarm(ALARM_MOTOR_HIGH_CURRENT_CONSUMPTION);
-    motorState = MOTOR_POWER_ON;
+    motorState = MOTOR_ERROR;
+    Serial.println("ERROR");
   }
 }
 
@@ -856,3 +893,100 @@ void fillDataBuffer() {
     measuredData[i].dynamicCompliance = 0;
   }
 }
+
+void setpointVelocityCalculation() {
+  float motorAdvanceTime = MOTOR.inspirationTime*(1-MOTOR.pausePercentage)/SEC_TO_MILLIS;
+  #if COUNTS_SECOND_SPEEDS
+    float angularRange = MOTOR.inspirationCounts;
+  #else
+    float angularRange = (MOTOR.inspirationCounts*TWO_PI/encoderCountsPerRev)*1.9;
+  #endif
+  
+  float angularVelocity = angularRange/motorAdvanceTime;
+
+  if (angularVelocity < VEL_ANG_MIN) {
+    MOTOR.wSetpoint = VEL_ANG_MIN;
+  }
+  else if (angularVelocity > VEL_ANG_MAX) {
+    MOTOR.wSetpoint = VEL_ANG_MAX;
+  }
+  else {
+    MOTOR.wSetpoint = angularVelocity;
+  }
+}
+
+bool MOTOR_Timer(uint32_t n) {
+  static uint32_t initialMotorMillis;
+
+  if(n == 0)
+  {
+	  initialMotorMillis = millis();
+  }
+  else if((millis() - initialMotorMillis) > n){
+	  return true;
+  }
+    return false;
+}
+
+void checkMotorBlocked() {
+
+  switch (motorWatchdogState)
+  {
+  case WATCHDOG_IDLE:
+    if (MOTOR.movingForwards) {
+      motorWatchdogState = WATCHDOG_MOVE_FORWARDS;
+      MOTOR_Timer(0);
+    }
+    else if (MOTOR.movingBackwards) {
+      motorWatchdogState = WATCHDOG_MOVE_BACKWARDS;
+      MOTOR_Timer(0);
+    }
+    break;
+  
+  case WATCHDOG_MOVE_FORWARDS:
+    if (MOTOR.movingForwards) {
+      if (MOTOR.encoderTotal <= MOTOR.prevCounts) {
+        if (MOTOR_Timer(TIMEOUT_MOTOR_WATCHDOG)) {
+          motorWatchdogState = WATCHDOG_ERROR;
+          MOTOR.fatalError = true;
+        }
+      }
+      else {
+        MOTOR_Timer(0);
+        MOTOR.prevCounts = MOTOR.encoderTotal;
+      }
+    }
+    else {
+      motorWatchdogState = WATCHDOG_IDLE;
+    }
+    break;
+  
+  case WATCHDOG_MOVE_BACKWARDS:
+    if (MOTOR.movingBackwards) {
+      if (MOTOR.encoderTotal >= MOTOR.prevCounts) {
+        if (MOTOR_Timer(TIMEOUT_MOTOR_WATCHDOG)) {
+          motorWatchdogState = WATCHDOG_ERROR;
+          MOTOR.fatalError = true;
+        }
+      }
+      else {
+        MOTOR_Timer(0);
+        MOTOR.prevCounts = MOTOR.encoderTotal;
+      }
+    }
+    else {
+      motorWatchdogState = WATCHDOG_IDLE;
+    }
+    break;
+  
+  case WATCHDOG_ERROR:
+    break;
+  
+  default:
+    motorWatchdogState = WATCHDOG_IDLE;
+    break;
+  }
+}
+
+
+

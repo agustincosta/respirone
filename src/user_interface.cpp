@@ -35,7 +35,7 @@ void UI_Init()
   pinMode(LED_MEDICAL_ALARM_PIN, OUTPUT);
   pinMode(BUZZER_ALARM_PIN, OUTPUT);
 
-  ALARM.enable = false;
+  ALARM.enable = true;
 
   if(!tempParam.initBeepOff)
     tone(BUZZER_ALARM_PIN, 500, 500);
@@ -224,6 +224,7 @@ void UI_Task()
       {
         UI.stopVentilation = true;
         tempParam.initBeepOff = true;
+        UI_DisplayClear();
         UI_Init();
       }
       else if((UI_ButtonDebounce(BUTTON_BACK_PIN)) || (UI_Timer(TIMEOUT_STOP_VENTILATION_CONFIRM)))

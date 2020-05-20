@@ -47,7 +47,7 @@
 #define DEFAULT_MIN_BREATHS_MINUTE          7 
 #define DEFAULT_T_INSP                      25
 #define DEFAULT_T_PAUSE                     10
-#define DEFAULT_MAX_PRESSURE                30
+#define DEFAULT_MAX_PRESSURE                40
 #define DEFAULT_MIN_PRESSURE                10
 #define DEFAULT_TRP                         -2
 #define DEFAULT_ADJUSTED_PRESSURE           20

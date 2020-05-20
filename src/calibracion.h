@@ -7,6 +7,8 @@
 
 const float selectedVolumeArray[12] = {300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850};
 
+const float pistonDisplacementArray[12] = {24.4, 28.5, 32.6, 36.7, 40.7, 44.8, 48.9, 53.0, 57.0, 61.1, 65.2, 69.3};
+
 const long inspirationCountsArray[12] =
 #if (SERIAL_NUMBER == 001)
   {1081,

@@ -17,6 +17,9 @@
 #define MOTOR_GAP_CORRECTION false       // Includes two states to compensate the time it takes for motors to change direction
 #define MOTOR_PAUSE_DECELERATION true   // Decreases speed progressively to a complete stop during pause time
 
+/*Velocidades en cuentas/s*/
+#define COUNTS_SECOND_SPEEDS true
+
 /*Control activo PID*/
 #define CONTROL_ACTIVO_VOLUMEN true
 #define CONTROL_ACTIVO_PRESION true
@@ -26,11 +29,17 @@
 #define BUFFER_SIZE 30
 
 /*Velocidades*/
-#define VEL_ANG_MAX 2.07    // Experimental en rad/s - 8.986 en el motor del rover ---- 1.52 rad/s a 12V, 1.77 rad/s a 13V, 2.07 rad/s a 14V, 2.54 rad/s a 15V
-#define VEL_ANG_MIN 0.5     // Experimental en rad/s - 3.5 en el motor del rover
+#if COUNTS_SECOND_SPEED
+    #define VEL_ANG_MAX 2.07    // Experimental en rad/s - 8.986 en el motor del rover ---- 1.52 rad/s a 12V, 1.77 rad/s a 13V, 2.07 rad/s a 14V, 2.54 rad/s a 15V
+    #define VEL_ANG_MIN 0.5     // Experimental en rad/s - 3.5 en el motor del rover
+    #define VEL_PAUSE 0.2       // Probar
+#else
+    #define VEL_ANG_MAX 3400    // Experimental en cuentas/s ---- 4087 cuentas/s a 12V, 4760 cuentas/s a 13V, 3400 cuentas/s a 14V, 6830 cuentas/s a 15V
+    #define VEL_ANG_MIN 1000    // Experimental en cuentas/s 
+    #define VEL_PAUSE 400       // Experimental en cuentas/s
+#endif
 
 /*Pausa*/
-#define VEL_PAUSE 0.2         // Probar
 #define PAUSE_CONTROL_PERIOD    10  // Periodo de control de desaceleracion en pausa en millis
 #define MAX_PAUSE_DECELERATION_TIME 100 // Tiempo en milisegundos en que el motor baja de su velocidad a la de pausa
 
@@ -56,6 +65,7 @@
 
 /*Motor*/
 #define maxMotorCurrent 5.0     //Maximum motor current in amps
+#define TIMEOUT_MOTOR_WATCHDOG 500 
 
 /*Definicion de pines*/
 #define encoderA 2
@@ -115,6 +125,7 @@ typedef struct
     long encoderTotal;      // Total counts by encoder in whole movement
     long inspirationCounts; // Encoder counts to displace tidal volume
     long pauseCounts;       // Encoder counts during pause deceleration
+    long prevCounts;        // Encoder counts in last iteration to check motor stopped
     //Times
     float inspirationTime;  // Duration of inspiration in seconds
     float expirationTime;   // Duration of expiration in seconds
@@ -132,7 +143,11 @@ typedef struct
     //Flags
     bool flagInspEnded;     // Flag activated when inspiration ends
     bool flagExpEnded;      // Flag activated when expiration ends
-    bool pressureModeFirstIteration;    //
+    bool pressureModeFirstIteration;// Flag to make first iteration volume control to calculate PEEP, then pressure mode
+    bool movingForwards;            // Flag activated when motor should be moving
+    bool movingBackwards;           // Flag activated when motor should be moving
+    bool fatalError;                // Fatal error detected by motor watchdog, sends motor to error state
+    bool calculateDynamicSpeed;     // Flag to calculate dynamic speed in volume control mode
     //Sensors
     float currentConsumption;   // Current consumed by motor sensed by hall effect sensor
     float expirationVolume;     // Expiration air flow rate
@@ -153,7 +168,8 @@ typedef enum
     MOTOR_VOLUME_CONTROL,               // Inspiration by volume control
     MOTOR_PRESSURE_CONTROL,             // Inspiration by pressure control
     MOTOR_PREPARE_EXPIRATION,           // Prepare to start expiration
-    MOTOR_PAUSE                         // Pause during inspiration after control condition met (volume displaced) before expiration  
+    MOTOR_PAUSE,                        // Pause during inspiration after control condition met (volume displaced) before expiration
+    MOTOR_ERROR                         // Error state to send the motor in catastrophic cases
 
 }
 Motor_States_e; 
@@ -166,6 +182,16 @@ typedef enum
     CONTROLLER_MAINTAIN_SETPOINT        // Pressure/volume is maintained at a percentage of VEL_PAUSE with corrections when it lowers
 }   
 Controller_states_e;
+
+
+typedef enum
+{
+    WATCHDOG_IDLE = 0,                  // Motor watchdog in idle state, motor is not moving
+    WATCHDOG_MOVE_FORWARDS,             // Motor watchdog checking if motor is moving while set to forwards
+    WATCHDOG_MOVE_BACKWARDS,            // Motor watchdog checking if motor is moving while set to backwards
+    WATCHDOG_ERROR                      // Motor watchdog detected motor not moving
+}
+Watchdog_states_e;
 
 typedef struct 
 {
@@ -341,5 +367,27 @@ float minVelPressureFactor();
  * 
  */
 void fillDataBuffer();
+
+/**
+ * @brief 
+ * 
+ */
+void setpointVelocityCalculation();
+
+/**
+ * @brief 
+ * 
+ * @param n 
+ * @return true 
+ * @return false 
+ */
+bool MOTOR_Timer(uint32_t n);
+
+/**
+ * @brief 
+ * 
+ */
+void checkMotorBlocked();
+
 
 #endif
