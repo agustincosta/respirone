@@ -198,12 +198,20 @@ void volumeControlAlgorithm() {
    * 
    */
 
-  float firstEncoderConst = 0.70;          // Encoder value when acceleration finishes and the controller maintains speed
-  float secondEncoderConst = 1.0;        // Encoder value when acceleration finishes and the controller maintains speed
   float firstVelocityConst = 1.20;        // Percentage of VEL_ANG_MAX that defines the acceleration curve
   float secondVelocityConst = 1.05;        // Percentage of VEL_ANG_MAX that defines the acceleration curve
   float minVelocityConst = 3.0;           // Percentage of VEL_PAUSE when encoder counts are reached
-  float countsThreshold = 0.98;
+  float firstAdvanceConst = 0.70;          // Encoder value when acceleration finishes and the controller maintains speed
+  float secondAdvanceConst = 1.0;        // Encoder value when acceleration finishes and the controller maintains speed
+  float advanceThreshold = 0.98;
+
+  #if VOLUME_FLOW_CONTROL
+    float controlVariable = CTRL.volume;
+    float setpointVariable = MOTOR.tidalVolume;
+  #else
+    long controlVariable = MOTOR.encoderTotal;
+    long setpointVariable = MOTOR.inspirationCounts;
+  #endif
   
 
   lecturaEncoder();
@@ -212,7 +220,7 @@ void volumeControlAlgorithm() {
   {
     case CONTROLLER_FIRST_ACCELERATION:                               // First stage of pressure rise at max speed
       MOTOR.movingForwards = true;
-      if (MOTOR.encoderTotal < firstEncoderConst*MOTOR.inspirationCounts) {       
+      if (controlVariable < firstAdvanceConst*setpointVariable) {       
         MOTOR.wCommand = firstVelocityConst*MOTOR.wSetpoint;
       }
       else {
@@ -224,15 +232,12 @@ void volumeControlAlgorithm() {
     case CONTROLLER_SECOND_ACCELERATION:                              // Second stage of pressure rise at lower speed
       MOTOR.movingForwards = true;
 
-      if (MOTOR.calculateDynamicSpeed) {
-        long remainingCounts = MOTOR.inspirationCounts-MOTOR.encoderTotal;
-        float remainingTime = MOTOR.inspEndTime - millis();
-        newVelocity = remainingCounts*SEC_TO_MILLIS/remainingTime;
+      if (MOTOR.calculateDynamicSpeed) {                              // Dynamic speed calculation for second part
+        newVelocity = (setpointVariable-controlVariable)*SEC_TO_MILLIS/(MOTOR.inspEndTime - millis());
         MOTOR.calculateDynamicSpeed = false;
-        //Serial.print(remainingCounts); Serial.print('\t'); Serial.print(remainingTime); Serial.print('\t'); Serial.println(newVelocity);
       }
 
-      if (MOTOR.encoderTotal < secondEncoderConst*MOTOR.inspirationCounts) {       
+      if (controlVariable < secondAdvanceConst*setpointVariable) {       
         MOTOR.wCommand = secondVelocityConst*newVelocity;
       }
       else {
@@ -242,7 +247,7 @@ void volumeControlAlgorithm() {
     
     case CONTROLLER_MAINTAIN_SETPOINT:                                // Pressure reached and needs to be maintained
       MOTOR.movingForwards = false;
-      if (MOTOR.encoderTotal < countsThreshold*MOTOR.inspirationCounts) {
+      if (controlVariable < advanceThreshold*setpointVariable) {
         //;
       }
       else {

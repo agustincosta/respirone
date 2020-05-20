@@ -17,6 +17,8 @@
 #define MOTOR_GAP_CORRECTION false       // Includes two states to compensate the time it takes for motors to change direction
 #define MOTOR_PAUSE_DECELERATION true   // Decreases speed progressively to a complete stop during pause time
 
+#define VOLUME_FLOW_CONTROL false
+
 /*Velocidades en cuentas/s*/
 #define COUNTS_SECOND_SPEEDS true
 
