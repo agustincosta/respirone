@@ -28,6 +28,9 @@ SensorIndexes_e;
 // Acquisition period
 #define SENSOR_START_TIMER                  0
 
+#define SENSOR_MIN_TO_MSEC                  60000
+#define SENSOR_L_TO_ML                      1000
+
 // ADCs
 #define SENSOR_ADC_MIN                      0
 #define SENSOR_ADC_MAX                      1023
@@ -46,9 +49,9 @@ SensorIndexes_e;
 #define PRESSURE_CONVERSION_MBAR_CMH2O      1.01972 // Multiply mBar by this factor to convert
 
 // Flow
-#define FLOW_SENSOR_ACQUISITION_PERIOD      10  // At least 10ms
+#define FLOW_SENSOR_ACQUISITION_PERIOD      20.0  // At least 10ms
 #define FLOW_SENSOR_QUEUE_SIZE              4
-#define FLOW_SENSOR_INVALID_VALUE           0  
+#define FLOW_SENSOR_INVALID_VALUE           200  
 #define FLOW_SENSOR_FLOW_COEFFICIENT        140
 #define FLOW_SENSOR_OFFSET_VALUE            32000  
 #define FLOW_SENSOR_I2C_ADDRESS             0x40
@@ -56,7 +59,7 @@ SensorIndexes_e;
 #define FLOW_SENSOR_I2C_READ_CMD            0x81
 #define FLOW_SENSOR_I2C_GETFLOW_H           0x10
 #define FLOW_SENSOR_I2C_GETFLOW_L           0x00
-#define FLOW_SENSOR_CRC8_POLYNOMIAL         0x131
+#define FLOW_SENSOR_CRC8_POLYNOMIAL         0x31
 
 // Current
 #define CURRENT_SENSOR_PIN                  A1
@@ -89,6 +92,8 @@ typedef struct
   float value[FLOW_SENSOR_QUEUE_SIZE];            // Measured value queue
   float average;                                  // Average of the queue values  
   uint8_t pValue;                                 // Queue index
+
+  float volume;                                   // Volume calculation from flow
 }
 FLOW_t;
 
@@ -98,6 +103,7 @@ typedef struct
   float value[CURRENT_SENSOR_QUEUE_SIZE];         // Measured value queue
   float average;                                  // Average of the queue values
   uint8_t pValue;                                 // Queue index
+  float peakValue;                                // Peak value
 }
 CURRENT_t;
 

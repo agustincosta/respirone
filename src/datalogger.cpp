@@ -54,15 +54,17 @@ void DataLogger_Task()
 
 void DataLogger_ReportStatus()
 {
-  /* Serial.print("BpM="); */  Serial.print((int16_t)(CTRL.breathsMinute));         Serial.print(",");
-  /* Serial.print("Pr=");  */  Serial.print((int16_t)(CTRL.pressure));              Serial.print(","); 
-  /* Serial.print("Ppk="); */  Serial.print((int16_t)(CTRL.peakPressure));          Serial.print(",");
-  /* Serial.print("Ppl="); */  Serial.print((int16_t)(CTRL.plateauPressure));       Serial.print(",");
-  /* Serial.print("Ppe="); */  Serial.print((int16_t)(CTRL.PEEP));                  Serial.print(",");
-  /* Serial.print("Vr=");  */  Serial.print((int16_t)(CTRL.volume));                Serial.print(",");
-  /* Serial.print("VpM="); */  Serial.print((int16_t)(CTRL.volumeMinute));          Serial.print(",");
-  /* Serial.print("VpM="); */  Serial.print((int16_t)(CTRL.dynamicCompliance));     Serial.print(",");
-  /* Serial.print("VpM="); */  Serial.print((int16_t)(CTRL.currentConsumption));    Serial.println(); 
+  /* Serial.print("BpM="); */  Serial.print((CTRL.breathsMinute));         Serial.print("\t");
+  /* Serial.print("Pr=");  */  Serial.print((CTRL.pressure));              Serial.print("\t"); 
+  /* Serial.print("Ppk="); */  Serial.print((CTRL.peakPressure));          Serial.print("\t");
+  /* Serial.print("Ppl="); */  Serial.print((CTRL.plateauPressure));       Serial.print("\t");
+  /* Serial.print("Ppe="); */  Serial.print((CTRL.PEEP));                  Serial.print("\t");
+  /* Serial.print("Ppe="); */  Serial.print((CTRL.flow));                  Serial.print("\t");
+  /* Serial.print("Vr=");  */  Serial.print((CTRL.measuredVolume));        Serial.print("\t");
+  /* Serial.print("Vr=");  */  Serial.print((CTRL.volume));                Serial.print("\t");
+  /* Serial.print("VpM="); */  Serial.print((CTRL.volumeMinute));          Serial.print("\t");
+  /* Serial.print("VpM="); */  Serial.print((CTRL.dynamicCompliance));     Serial.print("\t");
+  /* Serial.print("VpM="); */  Serial.print((CTRL.currentConsumption));    Serial.println(); 
 }
 
 void DataLogger_PrintUserSettings()

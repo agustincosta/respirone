@@ -22,6 +22,10 @@ typedef struct control
     float plateauPressure;    // Plateau pressure in the last cycle (cmH2O)
     float PEEP;               // Measured value of PEEP in the last cycle (cmH2O)
 
+    float flow;               // Actual flow value (mL)
+    float measuredVolume;     // Measured volume (flow) (mL)
+    
+    // ToDo change volume to estimatedVolume
     float volume;             // Actual volume value (mL)
     float volumeMinute;       // Volume/minute in the last minute (L/m)
 

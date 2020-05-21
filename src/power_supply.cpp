@@ -15,11 +15,6 @@ void PowerSupply_Init()
   // Variables
   POWER.lowBattery = false; 
   POWER.mainsOn = false;   
-
-  tone(7, 500, 500);
-
-  // Serial debug
-  //Serial.begin(115200);
 }
 
 void PowerSupply_Tasks()
@@ -31,16 +26,10 @@ void PowerSupply_Tasks()
     // Low battery
     POWER.lowBattery = digitalRead(LOW_BATTERY_SIGNAL_PIN);
     digitalWrite(LOW_BATTERY_LED_PIN, POWER.lowBattery?HIGH:LOW);  
-
-    if (POWER.lowBattery) tone(7, 500, 500);
-    //Serial.print("Low Battery: "); Serial.print(POWER.lowBattery?"Yes":"No");
-    //Serial.print(". ");
   
     // Mains on
     POWER.mainsOn = digitalRead(MAINS_ON_SIGNAL_PIN);  
     digitalWrite(MAINS_ON_LED_PIN, POWER.mainsOn?HIGH:LOW);
-    //Serial.print("Mains On: "); Serial.print(POWER.mainsOn?"Yes":"No");
-    //Serial.println(".");
   }
 }
 
