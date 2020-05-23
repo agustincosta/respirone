@@ -36,12 +36,14 @@ long prevPauseTime = 0;
 long lastEncoder = 0;
 float pauseVelFactor = 1;
 float newVelocity = 0;
+float velocitySteps = 0;
 
 
 void Motor_Init() {
   //Breathing parameters
   MOTOR.breathsMinute = 0;
   MOTOR.volumeMinute = 0;
+  MOTOR.setpointVolume = 0;
   MOTOR.inspPercentage = 0;
   MOTOR.pausePercentage = 0;
   MOTOR.modeSet = UI_VOLUME_CONTROL;
@@ -144,12 +146,14 @@ void pressureControlAlgorithm() {
    * 
    */
 
-  float firstPressureConst = 0.7;         // Pressure value when acceleration finishes and the controller maintains speed
-  float secondPressureConst = 0.85;       // Pressure value when acceleration finishes and the controller maintains speed
-  float firstVelocityConst = 0.95;         // Percentage of VEL_ANG_MAX that defines the acceleration curve
-  float secondVelocityConst = 0.7;        // Percentage of VEL_ANG_MAX that defines the acceleration curve
-  float minVelocityConst = minVelPressureFactor();           // Percentage of VEL_PAUSE when pressure is reached
-  float pressureThreshold = 0.95;
+  float firstPressureConst = 0.6;                   // Pressure value when acceleration finishes and the controller maintains speed
+  float secondPressureConst = 0.95;                 // Pressure value when acceleration finishes and the controller maintains speed
+  float firstVelocityConst = 0.85;                  // Percentage of VEL_ANG_MAX that defines the acceleration curve
+  float secondVelocityConst = 0.7;                  // Percentage of VEL_ANG_MAX that defines the acceleration curve
+  float minVelocityConst = minVelPressureFactor();  // Percentage of VEL_PAUSE when pressure is reached
+  float pressureThreshold = 0.95;                   // 
+
+  int transitionIterations = 10;                    // 
 
   MOTOR.pMeasure = CTRL.pressure;                    //Actualiza la presion medida
   lecturaEncoder(); 
@@ -157,6 +161,8 @@ void pressureControlAlgorithm() {
   switch (pressureControllerState)
   {
     case CONTROLLER_FIRST_ACCELERATION:                               // First stage of pressure rise at max speed
+    {
+      MOTOR.movingForwards = true;
       if (MOTOR.pMeasure < firstPressureConst*MOTOR.pSetpoint) {       
         MOTOR.wCommand = firstVelocityConst*VEL_ANG_MAX;
       }
@@ -164,8 +170,17 @@ void pressureControlAlgorithm() {
         pressureControllerState = CONTROLLER_SECOND_ACCELERATION;
       }
       break;
-    
+    }
+
+    case CONTROLLER_FIRST_TRANSITION:
+    {
+      float intermediateVel = (firstVelocityConst - secondVelocityConst)*VEL_ANG_MAX;
+      break;
+    }
+
     case CONTROLLER_SECOND_ACCELERATION:                              // Second stage of pressure rise at lower speed
+    {
+      MOTOR.movingForwards = true;
       if (MOTOR.pMeasure < secondPressureConst*MOTOR.pSetpoint) {       
         MOTOR.wCommand = secondVelocityConst*VEL_ANG_MAX;
       }
@@ -173,18 +188,26 @@ void pressureControlAlgorithm() {
         pressureControllerState = CONTROLLER_MAINTAIN_SETPOINT;
       }
       break;
-    
+    }
+
+    case CONTROLLER_SECOND_TRANSITION:
+    {
+
+      break;
+    }
+
     case CONTROLLER_MAINTAIN_SETPOINT:                                // Pressure reached and needs to be maintained
+    {
+      MOTOR.movingForwards = false;
       if (MOTOR.pMeasure < pressureThreshold*MOTOR.pSetpoint) {
-        //MOTOR.wCommand += (MOTOR.pSetpoint-MOTOR.pMeasure)*0.1;
-        //MOTOR.wCommand = (MOTOR.wCommand >= VEL_ANG_MAX)? VEL_ANG_MAX : MOTOR.wCommand;
-        MOTOR.wCommand = minVelocityConst*VEL_PAUSE;
+        MOTOR.wCommand = mapf(MOTOR.pMeasure - pressureThreshold, 0, 20, minVelocityConst*VEL_PAUSE, VEL_ANG_MAX);
+        //MOTOR.wCommand = minVelocityConst*VEL_PAUSE;
       }
       else {
         MOTOR.wCommand = minVelocityConst*VEL_PAUSE;
       }
       break;
-
+    }
     default:
       break;
   }
@@ -198,19 +221,25 @@ void volumeControlAlgorithm() {
    * 
    */
 
-  float firstVelocityConst = 1.20;        // Percentage of VEL_ANG_MAX that defines the acceleration curve
-  float secondVelocityConst = 1.05;        // Percentage of VEL_ANG_MAX that defines the acceleration curve
-  float minVelocityConst = 3.0;           // Percentage of VEL_PAUSE when encoder counts are reached
-  float firstAdvanceConst = 0.70;          // Encoder value when acceleration finishes and the controller maintains speed
-  float secondAdvanceConst = 1.0;        // Encoder value when acceleration finishes and the controller maintains speed
-  float advanceThreshold = 0.98;
+  float firstVelocityConst = 1.30;          // Percentage of VEL_ANG_MAX that defines the acceleration curve
+  float secondVelocityConst = 1.10;         // Percentage of VEL_ANG_MAX that defines the acceleration curve
+  float minVelocityConst = 3.0;             // Percentage of VEL_PAUSE when encoder counts are reached
+
+  float firstAdvanceConst = 0.50;           // Encoder value when acceleration finishes and the controller maintains speed
+  float secondAdvanceConst = 0.60;          // Encoder value when acceleration finishes and the controller maintains speed
+  
+  long firstTransitionCounts = 100;
+  long secondTransitionCounts = 50;
+  int transitionIterations = 10;
+
+  float advanceThreshold = 1.00;
 
   #if VOLUME_FLOW_CONTROL
     float controlVariable = CTRL.volume;
     float setpointVariable = MOTOR.tidalVolume;
   #else
     long controlVariable = MOTOR.encoderTotal;
-    long setpointVariable = MOTOR.inspirationCounts;
+    long setpointVariable = MOTOR.inspirationCounts-100;
   #endif
   
 
@@ -222,6 +251,29 @@ void volumeControlAlgorithm() {
       MOTOR.movingForwards = true;
       if (controlVariable < firstAdvanceConst*setpointVariable) {       
         MOTOR.wCommand = firstVelocityConst*MOTOR.wSetpoint;
+      }
+      else {
+        volumeControllerState = CONTROLLER_FIRST_TRANSITION;
+        MOTOR.calculateDynamicSpeed = true;
+      }
+      break;
+
+    case CONTROLLER_FIRST_TRANSITION:
+      MOTOR.movingForwards = true;
+
+      if (MOTOR.calculateDynamicSpeed) {                              // Dynamic speed calculation for second part
+        float nextVel = (setpointVariable-firstAdvanceConst*setpointVariable + firstTransitionCounts)*SEC_TO_MILLIS/(MOTOR.inspEndTime - millis());
+        float actVel = firstVelocityConst*MOTOR.wSetpoint;
+        velocitySteps = (actVel - nextVel)/transitionIterations;
+        MOTOR.calculateDynamicSpeed = false;
+      }
+
+      if (controlVariable < firstAdvanceConst*setpointVariable + firstTransitionCounts) {
+        int i = 1;
+        if ((i <= transitionIterations) && (controlVariable < firstAdvanceConst*setpointVariable + i*firstTransitionCounts/transitionIterations)) {
+          MOTOR.wCommand -= velocitySteps;
+          i++;
+        }
       }
       else {
         volumeControllerState = CONTROLLER_SECOND_ACCELERATION;
@@ -241,8 +293,30 @@ void volumeControlAlgorithm() {
         MOTOR.wCommand = secondVelocityConst*newVelocity;
       }
       else {
+        volumeControllerState = CONTROLLER_SECOND_TRANSITION;
+        MOTOR.calculateDynamicSpeed = true;
+      }
+      break;
+
+    case CONTROLLER_SECOND_TRANSITION:
+      if (MOTOR.calculateDynamicSpeed) {                              // Dynamic speed calculation for second part
+        float nextVel = minVelocityConst*VEL_PAUSE;
+        float actVel = secondVelocityConst*newVelocity;
+        velocitySteps = (actVel - nextVel)/transitionIterations;
+        MOTOR.calculateDynamicSpeed = false;
+      }
+
+      if (controlVariable < secondAdvanceConst*setpointVariable + secondTransitionCounts) {
+        int i = 1;
+        if ((i <= transitionIterations) && (controlVariable < secondAdvanceConst*setpointVariable + i*secondTransitionCounts/transitionIterations)) {
+          MOTOR.wCommand -= velocitySteps;
+          i++;
+        }
+      }
+      else {
         volumeControllerState = CONTROLLER_MAINTAIN_SETPOINT;
       }
+
       break;
     
     case CONTROLLER_MAINTAIN_SETPOINT:                                // Pressure reached and needs to be maintained
@@ -284,8 +358,9 @@ void cuentasEncoderVolumen() {
   
   for (size_t i = 0; i < 12; i++)
   {
-    if (selectedVolumeArray[i] == MOTOR.tidalVolume) {
-      MOTOR.inspirationCounts = inspirationCountsArray[i];
+    if (selectedVolumeArray[i] > MOTOR.setpointVolume) {
+      float newCounts = mapf(MOTOR.setpointVolume, selectedVolumeArray[i-1], selectedVolumeArray[i], (float)inspirationCountsArray[i-1], (float)inspirationCountsArray[i]);
+      MOTOR.inspirationCounts = (long)newCounts;
       break;
     }
   }
@@ -299,11 +374,11 @@ void Motor_Tasks() {
   checkMotorBlocked();
 
   // DEBUG - IMPRIME CUENTAS DEL ENCODER
-  /*
+  
   int pauseState = (motorState == MOTOR_PAUSE)? 2000:0;
   lecturaEncoder();
-  Serial.print(MOTOR.inspirationCounts); Serial.print('\t'); Serial.print(MOTOR.encoderTotal); Serial.print('\t'); Serial.println(CTRL.pressure); Serial.print('\t'); Serial.println(pauseState);
-  */
+  Serial.print(MOTOR.inspirationCounts); Serial.print('\t'); Serial.print(MOTOR.encoderTotal); Serial.print('\t'); Serial.print(CTRL.pressure); Serial.print('\t'); Serial.println(pauseState);
+  
   //calculateSystemPeriod();  //Prints in console the system period in microseconds
 
   // DEBUG - IMPRIME PRESION PARA PID
@@ -312,7 +387,6 @@ void Motor_Tasks() {
   if (MOTOR.fatalError) {
     motorState = MOTOR_ERROR;
     MOTOR.fatalError = false;
-    UI_SetSystemAlarm(ALARM_MOTOR_ERROR);
     #if MOTOR_STATES_LOG
       Serial.println("MOTOR ERROR");
     #endif
@@ -453,7 +527,7 @@ void Motor_Tasks() {
         if (UI.setUpComplete) {                                 // Check if setup complete
           Motor_SetBreathingParams();
           UI.setUpComplete = false;
-
+          measuredTidalVol = MOTOR.tidalVolume;
           fillDataBuffer();
 
           MOTOR.motorAction = MOTOR_WAITING;
@@ -469,7 +543,7 @@ void Motor_Tasks() {
             MOTOR.cycleStart = millis();
             if (MOTOR.pressureModeFirstIteration) {
               motorState = MOTOR_VOLUME_CONTROL;
-              MOTOR.tidalVolume = 500;
+              MOTOR.tidalVolume = 500;                          // Volume for the first iteration of pressure mode
             }
             else {
               motorState = MOTOR_PRESSURE_CONTROL;
@@ -716,6 +790,7 @@ void inspirationFirstIteration() {
   tiemposInspExp();                                       // Calculates inspiration and expiration times
   MOTOR.pauseEndTime = millis() + MOTOR.inspirationTime;  // In miliseconds
   MOTOR.inspEndTime = millis() + MOTOR.advanceTime;       // In miliseconds
+  MOTOR.setpointVolume = MOTOR.tidalVolume + (MOTOR.tidalVolume-measuredTidalVol)*VOLUME_COMPENSATION_CONST;
   cuentasEncoderVolumen();                                // Calculates MOTOR.inspirationCounts
 }
 
@@ -726,6 +801,7 @@ void Motor_SetBreathingParams() {
     }
     MOTOR.breathsMinute = (float)UI.breathsMinute;
     MOTOR.tidalVolume = (float)UI.tidalVolume;
+    //measuredTidalVol = MOTOR.tidalVolume + (MOTOR.tidalVolume-measuredTidalVol)/2;
     MOTOR.inspPercentage = ((float)UI.t_i)/100;
     MOTOR.pausePercentage = ((float)UI.t_p)/100;
     MOTOR.pSetpoint = (double)UI.adjustedPressure;
@@ -886,7 +962,7 @@ void calculateDecelerationCurve() {
 
 float minVelPressureFactor() {
 
-  float pauseVelFactor = mapf(MOTOR.pSetpoint, 20, 40, 1.0, 1.8);
+  float pauseVelFactor = mapf(MOTOR.pSetpoint, 15, 35, 1.0, 1.8);
   return pauseVelFactor;
 }
 
@@ -954,6 +1030,7 @@ void checkMotorBlocked() {
         if (MOTOR_Timer(TIMEOUT_MOTOR_WATCHDOG)) {
           motorWatchdogState = WATCHDOG_ERROR;
           MOTOR.fatalError = true;
+          UI_SetSystemAlarm(ALARM_MOTOR_ERROR);
         }
       }
       else {
@@ -972,6 +1049,7 @@ void checkMotorBlocked() {
         if (MOTOR_Timer(TIMEOUT_MOTOR_WATCHDOG)) {
           motorWatchdogState = WATCHDOG_ERROR;
           MOTOR.fatalError = true;
+          UI_SetSystemAlarm(ALARM_MOTOR_ERROR);
         }
       }
       else {
