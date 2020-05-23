@@ -17,6 +17,10 @@
 #define MOTOR_GAP_CORRECTION false       // Includes two states to compensate the time it takes for motors to change direction
 #define MOTOR_PAUSE_DECELERATION true   // Decreases speed progressively to a complete stop during pause time
 
+/*Control de volumen por flujo en lugar de por cuentas*/
+#define VOLUME_FLOW_CONTROL false
+#define VOLUME_CONTROL_TRANSITIONS false
+
 /*Velocidades en cuentas/s*/
 #define COUNTS_SECOND_SPEEDS true
 
@@ -25,7 +29,7 @@
 #define CONTROL_ACTIVO_PRESION true
 #define CONTROL_SAMPLE_RATE 400  // Hz
 
-/*Limite respiraciones minuto*/
+/*Limite respiraciones minuto para buffer de datos medidos*/
 #define BUFFER_SIZE 30
 
 /*Velocidades*/
@@ -36,11 +40,11 @@
 #else
     #define VEL_ANG_MAX 3400    // Experimental en cuentas/s ---- 4087 cuentas/s a 12V, 4760 cuentas/s a 13V, 3400 cuentas/s a 14V, 6830 cuentas/s a 15V
     #define VEL_ANG_MIN 1000    // Experimental en cuentas/s 
-    #define VEL_PAUSE 400       // Experimental en cuentas/s
+    #define VEL_PAUSE 500       // Experimental en cuentas/s
 #endif
 
 /*Pausa*/
-#define PAUSE_CONTROL_PERIOD    10  // Periodo de control de desaceleracion en pausa en millis
+#define PAUSE_CONTROL_PERIOD    50  // Periodo de control de desaceleracion en pausa en millis
 #define MAX_PAUSE_DECELERATION_TIME 100 // Tiempo en milisegundos en que el motor baja de su velocidad a la de pausa
 
 /*Presiones*/
@@ -49,6 +53,7 @@
 
 /*Volumen*/
 #define AIR_LEAK_THRESHOLD 50    // Tolerated measured volume difference between inspiration and expiration in ml
+#define VOLUME_COMPENSATION_CONST 0.8   // Constant to multiply error between iterations of VCV to 
 
 /*Encoder*/
 #define encoderCountsPerRev 16896       // 8400 en el motor del rover
@@ -106,6 +111,7 @@ typedef struct
     float breathsMinute;    // Measured value of breath/minute
     float volumeMinute;     // Volume/minute in the last minute
     float tidalVolume;      // Tidal volume in ml
+    float setpointVolume;   // Volume setpoint 
     float inspPercentage;   // Percentage of cycle for inspiration
     float pausePercentage;  // Percentage of inspiration for pause
     uint8_t modeSet;        // Breathing mode set by UI
@@ -178,7 +184,9 @@ Motor_States_e;
 typedef enum
 {
     CONTROLLER_FIRST_ACCELERATION = 0,  // Accleration to rise pressure/volume at max speed
+    CONTROLLER_FIRST_TRANSITION,        // Transition state between first and second acceleration to make the speed change more gradual
     CONTROLLER_SECOND_ACCELERATION,     // Deceleration to continue to rise pressure/volume at lower speed
+    CONTROLLER_SECOND_TRANSITION,       // Transition state between second and maintain acceleration to make the speed change more gradual
     CONTROLLER_MAINTAIN_SETPOINT        // Pressure/volume is maintained at a percentage of VEL_PAUSE with corrections when it lowers
 }   
 Controller_states_e;
