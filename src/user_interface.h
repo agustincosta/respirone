@@ -16,9 +16,8 @@
 // Buzzer
 #define BUZZER_ALARM_PIN                    7
 
-// Shield o PCB
-#define SHIELD false
-#define PCB !SHIELD
+// Active Modes
+#define PRESSURE_MODE   false   
 
 // Buttons
 #define BUTTON_UP_PIN                       44   
@@ -110,11 +109,12 @@
 #define INIT_MESSAGE_TIMEOUT                3000   
 #define TIMEOUT_BLINK                       500
 #define TIMEOUT_SHOW_SELECTED_PARAM         500
-#define TIMEOUT_UPDATE_CTRL_PARAM           500  
+#define TIMEOUT_UPDATE_CTRL_PARAM           400  
 #define TIMEOUT_STOP_VENTILATION_CONFIRM    3000
 #define TIMEOUT_CANCEL_EDITION              1000
 #define TIMEOUT_RESTART_CONFIG              1000
 #define TIMEOUT_BUTTON_DEBOUNCE             20 
+#define TIMEOUT_UPDATE_SCREEN               500
 
 //Display messages
 //Config
@@ -158,6 +158,7 @@
 #define DISPLAY_S_TP                        "SET Tp%"
 #define DISPLAY_S_TRP                       "SET TrP"
 #define DISPLAY_R_LUNG_COMP                 "REAL CP"
+#define DISPLAY_VENTILATION_TIME            "TIEMPO DE USO"
 
 typedef enum  
 {
@@ -225,13 +226,15 @@ UI_SetParametersStates_e;
 
 typedef enum
 {
-  UI_SCREEN_1,
+  UI_SCREEN_1 = 1,
   UI_SCREEN_2,
   UI_SCREEN_3,
   UI_SCREEN_4,
   UI_SCREEN_5,
   UI_SCREEN_6,
-  UI_SCREEN_7
+  UI_SCREEN_7,
+  UI_SCREEN_8,
+  UI_DELAY_SP
 }
 UI_ShowParametersStates_e;
 
@@ -272,7 +275,8 @@ typedef struct
   bool    setUpComplete,      // Setup completed flag
           stopVentilation,     // Stop ventilation
           initBeepOff,
-          notFirstInit;
+          notFirstInit,
+          ventilationOn;
 
   uint8_t selectedMode;       
 
@@ -536,6 +540,16 @@ void UI_MedAlarmActiveTurnOff(uint8_t actualAlarm);
  * @return false 
  */
 bool UI_Timer(uint32_t n);
+
+
+/**
+ * @brief 
+ * 
+ * @param n 
+ * @return true 
+ * @return false 
+ */
+bool UI_Timer2(uint32_t n);
 
 /**
  * @brief 

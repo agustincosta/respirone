@@ -9,11 +9,13 @@
 #include "datalogger.h"
 #include "power_supply.h"
 #include "led_fw.h"
+#include "time.h"
 
 void setup()
 {
   Control_Init();
   UI_Init();
+  Time_Init();
   DataLogger_Init();
   PowerSupply_Init();
   LedInit();
@@ -25,5 +27,6 @@ void loop()
   UI_Task();
   DataLogger_Task();
   PowerSupply_Tasks();
+  Time_Update_Task();
   LedTick();
 } 

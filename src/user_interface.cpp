@@ -2,6 +2,7 @@
 #include "control.h"
 #include "alarms.h"
 #include "config.h"
+#include "time.h"
 #include <LiquidCrystal.h>
 
 //LCD
@@ -128,6 +129,7 @@ void UI_Task()
       {
         uiTask = UI_SHOW_PARAMETERS;
         initialSetUpDone = true;
+        UI.ventilationOn = true;
         UI_Timer(0);
       }
       if(initialSetUpDone) 
@@ -198,7 +200,6 @@ void UI_Task()
       }
       else
       {
-        UI_UpdateControlParam();
         UI_ShowParametersTask();
       }
       break;
@@ -222,6 +223,7 @@ void UI_Task()
     case UI_STOP_VENTILATION_CONFIRMATION:
       if(UI_ButtonDebounce(BUTTON_ENTER_PIN))
       {
+        UI.ventilationOn = false;
         UI.stopVentilation = true;
         tempParam.initBeepOff = true;
         UI_DisplayClear();
@@ -317,8 +319,13 @@ void UI_SetParametersTask()
     case UI_SET_MODE_AUTO:
         if(UI_ButtonDebounce(BUTTON_UP_PIN))  //pre
         {
-          UI_DisplayMessage(0,1,DISPLAY_PRESSURE_MODE);
-          uiState = UI_SET_MODE_PRESSURE;
+          #if PRESSURE_MODE
+            UI_DisplayMessage(0,1,DISPLAY_PRESSURE_MODE);
+            uiState = UI_SET_MODE_PRESSURE;
+          #else
+            UI_DisplayMessage(0,1,DISPLAY_VOLUME_MODE);
+            uiState = UI_SET_MODE_VOLUME;
+          #endif
         } 
         else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) //vol
         {
@@ -342,8 +349,13 @@ void UI_SetParametersTask()
     case UI_BLINK_AUTO:
       if(UI_ButtonDebounce(BUTTON_UP_PIN))  //pre
       {
-        UI_DisplayMessage(0,1,DISPLAY_PRESSURE_MODE);
-        uiState = UI_SET_MODE_PRESSURE;
+        #if PRESSURE_MODE
+          UI_DisplayMessage(0,1,DISPLAY_PRESSURE_MODE);
+          uiState = UI_SET_MODE_PRESSURE;
+        #else
+          UI_DisplayMessage(0,1,DISPLAY_VOLUME_MODE);
+          uiState = UI_SET_MODE_VOLUME;
+        #endif
       } 
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) //vol
       {
@@ -372,8 +384,13 @@ void UI_SetParametersTask()
       } 
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) //pre
       {
-        UI_DisplayMessage(0,1,DISPLAY_PRESSURE_MODE);
-        uiState = UI_SET_MODE_PRESSURE;
+        #if PRESSURE_MODE
+          UI_DisplayMessage(0,1,DISPLAY_PRESSURE_MODE);
+          uiState = UI_SET_MODE_PRESSURE;
+        #else
+          UI_DisplayMessage(0,1,DISPLAY_AUTO_MODE);
+          uiState = UI_SET_MODE_AUTO;
+        #endif
       }
       else if(UI_ButtonDebounce(BUTTON_ENTER_PIN))
       {
@@ -398,8 +415,13 @@ void UI_SetParametersTask()
       } 
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN)) //pre
       {
-        UI_DisplayMessage(0,1,DISPLAY_PRESSURE_MODE);
-        uiState = UI_SET_MODE_PRESSURE;
+        #if PRESSURE_MODE
+          UI_DisplayMessage(0,1,DISPLAY_PRESSURE_MODE);
+          uiState = UI_SET_MODE_PRESSURE;
+        #else
+          UI_DisplayMessage(0,1,DISPLAY_AUTO_MODE);
+          uiState = UI_SET_MODE_AUTO;
+        #endif
       }
       else if(UI_ButtonDebounce(BUTTON_ENTER_PIN))
       {
@@ -1992,8 +2014,10 @@ void UI_LoadParam(uint8_t param)
 
 void UI_ShowParametersTask()
 {
-  char stringAux1[8], 
+  char stringAux1[16], 
        stringAux2[8];
+
+  static UI_ShowParametersStates_e actualState;
 
   stringAux1[0] = 0;
   stringAux2[0] = 0;
@@ -2001,6 +2025,10 @@ void UI_ShowParametersTask()
   switch(spState)
   {
     case UI_SCREEN_1:
+      spState = UI_DELAY_SP; 
+      actualState = UI_SCREEN_1;
+      UI_Timer2(0);
+
       if((UI.selectedMode == UI_AUTOMATIC_CONTROL) || ((UI.selectedMode == UI_VOLUME_CONTROL)))
       {
         strcat(stringAux1,"VOL");
@@ -2016,7 +2044,7 @@ void UI_ShowParametersTask()
       if(UI_ButtonDebounce(BUTTON_UP_PIN))
       {
         UI_DisplayClear();
-        spState = UI_SCREEN_7;
+        spState = UI_SCREEN_8;
       } 
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
       {
@@ -2026,6 +2054,10 @@ void UI_ShowParametersTask()
       break;
 
     case UI_SCREEN_2:
+      spState = UI_DELAY_SP;     
+      actualState = UI_SCREEN_2;
+      UI_Timer2(0);
+
       if((UI.selectedMode == UI_AUTOMATIC_CONTROL) || ((UI.selectedMode == UI_VOLUME_CONTROL)))
       {
         itoa(UI.tidalVolume,stringAux1,10);
@@ -2055,6 +2087,10 @@ void UI_ShowParametersTask()
       break;
 
     case UI_SCREEN_3:
+      spState = UI_DELAY_SP; 
+      actualState = UI_SCREEN_3;
+      UI_Timer2(0);
+
       dtostrf(showParam.pressure,2,1,stringAux1);
       dtostrf(showParam.PEEP,2,1,stringAux2);
       UI_DisplayParameters(DISPLAY_R_PRESSURE,DISPLAY_R_PEEP,stringAux1,4,stringAux2,12);
@@ -2072,6 +2108,10 @@ void UI_ShowParametersTask()
       break;
 
     case UI_SCREEN_4:
+      spState = UI_DELAY_SP; 
+      actualState = UI_SCREEN_4;
+      UI_Timer2(0);
+
       itoa(UI.maxPressure,stringAux1,10);
       dtostrf(showParam.peakPressure,2,1,stringAux2);
       UI_DisplayParameters(DISPLAY_S_MAX_PRESS,DISPLAY_R_PEAK_PRESS,stringAux1,4,stringAux2,12);
@@ -2089,6 +2129,10 @@ void UI_ShowParametersTask()
       break;
 
     case UI_SCREEN_5:
+      spState = UI_DELAY_SP; 
+      actualState = UI_SCREEN_5;
+      UI_Timer2(0);
+
       itoa(UI.breathsMinute,stringAux1,10);
       dtostrf(showParam.breathsMinute,2,0,stringAux2);
       UI_DisplayParameters(DISPLAY_S_BPM,DISPLAY_R_BPM,stringAux1,4,stringAux2,13);
@@ -2106,6 +2150,10 @@ void UI_ShowParametersTask()
       break;
 
     case UI_SCREEN_6:
+      spState = UI_DELAY_SP; 
+      actualState = UI_SCREEN_6;
+      UI_Timer2(0);
+
       itoa(UI.t_i,stringAux1,10);
       itoa(UI.t_p,stringAux2,10);
       UI_DisplayParameters(DISPLAY_S_TI,DISPLAY_S_TP,stringAux1,4,stringAux2,12);
@@ -2123,6 +2171,10 @@ void UI_ShowParametersTask()
       break;
 
     case UI_SCREEN_7:
+      spState = UI_DELAY_SP; 
+      actualState = UI_SCREEN_7;
+      UI_Timer2(0);
+
       itoa(UI.TrP,stringAux1,10);
       dtostrf(showParam.dynamicCompliance,3,2,stringAux2);
       UI_DisplayParameters(DISPLAY_S_TRP,DISPLAY_R_LUNG_COMP,stringAux1,4,stringAux2,12);
@@ -2134,9 +2186,122 @@ void UI_ShowParametersTask()
       else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
       {
         UI_DisplayClear();
+        spState = UI_SCREEN_8;
+      }    
+      break;      
+
+    case UI_SCREEN_8:
+      spState = UI_DELAY_SP;  
+      actualState = UI_SCREEN_8;
+      UI_Timer2(0);
+
+      itoa(working_time.hour,stringAux2,10);
+      strcat(stringAux1,stringAux2);
+      strcat(stringAux1,"h ");
+
+      itoa(working_time.mnt,stringAux2,10);
+      strcat(stringAux1,stringAux2);
+      strcat(stringAux1,"m ");
+
+      itoa(working_time.scn,stringAux2,10);
+      strcat(stringAux1,stringAux2);
+      strcat(stringAux1,"s ");
+
+      UI_DisplayMessage(0,0,DISPLAY_VENTILATION_TIME);   
+      UI_DisplayMessage(0,1,stringAux1);  
+
+      if(UI_ButtonDebounce(BUTTON_UP_PIN))
+      {
+        UI_DisplayClear();
+        spState = UI_SCREEN_7;
+      } 
+      else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
+      {
+        UI_DisplayClear();
         spState = UI_SCREEN_1;
       }    
       break;      
+
+    case UI_DELAY_SP:
+      if(UI_Timer2(TIMEOUT_UPDATE_SCREEN))
+      {
+        UI_UpdateControlParam();
+        spState = actualState;
+      }
+      else if(UI_ButtonDebounce(BUTTON_UP_PIN))
+      {
+        UI_DisplayClear();
+
+        if(actualState == UI_SCREEN_1)
+        {
+          spState = UI_SCREEN_8;
+        }
+        else if(actualState == UI_SCREEN_2)
+        {
+          spState = UI_SCREEN_1;
+        }
+        else if(actualState == UI_SCREEN_3)
+        {
+          spState = UI_SCREEN_2;
+        }
+        else if(actualState == UI_SCREEN_4)
+        {
+          spState = UI_SCREEN_3;
+        }
+        else if(actualState == UI_SCREEN_5)
+        {
+          spState = UI_SCREEN_4;
+        }
+        else if(actualState == UI_SCREEN_6)
+        {
+          spState = UI_SCREEN_5;
+        }
+        else if(actualState == UI_SCREEN_7)
+        {
+          spState = UI_SCREEN_6;
+        }
+        else if(actualState == UI_SCREEN_8)
+        {
+          spState = UI_SCREEN_7;
+        }
+      } 
+      else if(UI_ButtonDebounce(BUTTON_DOWN_PIN))
+      {
+        UI_DisplayClear();
+        if(actualState == UI_SCREEN_1)
+        {
+          spState = UI_SCREEN_2;
+        }
+        else if(actualState == UI_SCREEN_2)
+        {
+          spState = UI_SCREEN_3;
+        }
+        else if(actualState == UI_SCREEN_3)
+        {
+          spState = UI_SCREEN_4;
+        }
+        else if(actualState == UI_SCREEN_4)
+        {
+          spState = UI_SCREEN_5;
+        }
+        else if(actualState == UI_SCREEN_5)
+        {
+          spState = UI_SCREEN_6;
+        }
+        else if(actualState == UI_SCREEN_6)
+        {
+          spState = UI_SCREEN_7;
+        }
+        else if(actualState == UI_SCREEN_7)
+        {
+          spState = UI_SCREEN_8;
+        }
+        else if(actualState == UI_SCREEN_8)
+        {
+          spState = UI_SCREEN_1;
+        }
+      } 
+      break;
 
     default:
       spState = UI_SCREEN_1;
@@ -2614,6 +2779,20 @@ bool UI_ButtonDebounce(uint8_t pin)
 }
 
 bool UI_Timer(uint32_t n)
+{
+  static uint32_t initialMillis;
+
+  if(n == 0)
+  {
+	  initialMillis = millis();
+  }
+  else if((millis() - initialMillis) > n){
+	  return true;
+  }
+    return false;
+}
+
+bool UI_Timer2(uint32_t n)
 {
   static uint32_t initialMillis;
 

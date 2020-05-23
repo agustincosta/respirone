@@ -6,7 +6,7 @@
 #define DATALOG_STATUS_TIMEOUT      100
 
 #define DATALOG_DEFAULT_STATUS      false
-#define DATALOG_PRINT_INIT_MESSAGE  false
+#define DATALOG_PRINT_INIT_MESSAGE  true
 
 typedef enum 
 {

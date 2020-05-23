@@ -42,7 +42,7 @@ void Sensor_Tasks()
 {
   Sensor_PressureTasks();
   //Sensor_FlowTasks();
-  Sensor_CurrentTasks();
+  //Sensor_CurrentTasks();
 }
 
 void Sensor_PressureInit()
