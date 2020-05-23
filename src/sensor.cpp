@@ -52,8 +52,7 @@ void Sensor_Tasks()
       CTRL.plateauPressure = Pressure_GetPlateauValue(PRESSURE_SENSOR);
     }
 
-    // reset volume
-    //flow.volume = 0;
+    pressure.minValue = PRESSURE_SENSOR_MAX_VALUE;
   }
 
   // Expiration end
@@ -64,8 +63,7 @@ void Sensor_Tasks()
 		if (Pressure_PlateauDetected(PRESSURE_SENSOR))
 			CTRL.PEEP = Pressure_GetPlateauValue(PRESSURE_SENSOR);
     
-    // reset volume
-    //flow.volume = 0;
+    pressure.maxValue = PRESSURE_SENSOR_MIN_VALUE;
   }
 
   // Sensors state machines
@@ -200,7 +198,6 @@ void Sensor_FlowTasks()
         if (!Flow_StartReading(FLOW_SENSOR)) 
         {
           UI_SetSystemAlarm(ALARM_FLOW_SENSOR_ERROR); 
-          Serial.println("Alarma 2");
         }
       }
       break;
@@ -218,7 +215,6 @@ void Sensor_FlowTasks()
       if (flowRead==FLOW_SENSOR_INVALID_VALUE) 
       {
         UI_SetSystemAlarm(ALARM_FLOW_SENSOR_ERROR);
-        Serial.println("Alarma 1");
       }
       else
       {
