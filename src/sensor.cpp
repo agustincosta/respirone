@@ -32,8 +32,8 @@ Sensor_States_e currentState;
 void Sensor_Init()
 {
   Sensor_PressureInit();
-  Sensor_FlowInit();
-  Sensor_CurrentInit();
+  //Sensor_FlowInit();
+  //Sensor_CurrentInit();
 }
 
 void Sensor_Tasks()
@@ -65,13 +65,13 @@ void Sensor_Tasks()
 			CTRL.PEEP = Pressure_GetPlateauValue(PRESSURE_SENSOR);
     
     // reset volume
-    flow.volume = 0;
+    //flow.volume = 0;
   }
 
   // Sensors state machines
   Sensor_PressureTasks();
-  Sensor_FlowTasks();
-  Sensor_CurrentTasks();
+  //Sensor_FlowTasks();
+  //Sensor_CurrentTasks();
 }
 
 void Sensor_PressureInit()
@@ -161,6 +161,27 @@ void Sensor_PressureTasks()
         pressure.plateauDetected = true;
         pressure.plateauValue = pressure.average;
       }
+
+      // Alarm
+      pressure.maxValue = max(pressure.maxValue, pressure.average);
+      pressure.minValue = min(pressure.minValue, pressure.average);
+
+      if (UI.ventilationOn)
+      {
+        if (abs(pressure.maxValue-pressure.minValue)> PRESSURE_SENSOR_THRESHOLD_ALARM)
+        {
+          Sensor_AlarmTimer(0, PRESSURE_SENSOR);
+        }
+        if (Sensor_AlarmTimer(60000/UI.breathsMinute, PRESSURE_SENSOR))
+        {
+          MOTOR.fatalError = true;
+          UI_SetSystemAlarm(ALARM_PRESSURE_SENSOR_ERROR);
+        }
+      }
+      else
+      {
+        Sensor_AlarmTimer(0, PRESSURE_SENSOR);
+      }    
       break;
   }      
 }
@@ -363,6 +384,20 @@ float Flow_GetReading(uint8_t sensorNumber)
 }
 
 bool Sensor_Timer(uint32_t n, uint8_t sensor)
+{
+  static uint32_t initialMillis[SENSORS_QTY];
+
+  if(n == 0)
+  {
+	  initialMillis[sensor] = millis();
+  }
+  else if((millis() - initialMillis[sensor]) > n){
+	  return true;
+  }
+  return false;
+}
+
+bool Sensor_AlarmTimer(uint32_t n, uint8_t sensor)
 {
   static uint32_t initialMillis[SENSORS_QTY];
 

@@ -47,6 +47,7 @@ SensorIndexes_e;
 #define PRESSURE_SENSOR_WINDOW_SIZE         4
 #define PRESSURE_SENSOR_QUEUE_SIZE          4
 #define PRESSURE_CONVERSION_MBAR_CMH2O      1.01972 // Multiply mBar by this factor to convert
+#define PRESSURE_SENSOR_THRESHOLD_ALARM     4.0 // mBar
 
 // Flow
 #define FLOW_SENSOR_ACQUISITION_PERIOD      20.0  // At least 10ms
@@ -80,6 +81,8 @@ typedef struct
   float value[PRESSURE_SENSOR_QUEUE_SIZE];        // Measured value queue
   uint8_t pValue;                                 // Queue index
   float average;                                  // Average value
+  float maxValue;                                 // Error detection
+  float minValue;                                 // Error detection  
   float peakValue;                                // Peak value
   float plateauValue;                             // Plateau value
   bool plateauDetected;                           // Plateau detected flag
@@ -215,6 +218,16 @@ float Flow_GetReading(uint8_t sensorNumber);
  * @return false 
  */
 bool Sensor_Timer(uint32_t n, uint8_t sensor);
+
+/**
+ * @brief 
+ * 
+ * @param n 
+ * @param sensor 
+ * @return true 
+ * @return false 
+ */
+bool Sensor_AlarmTimer(uint32_t n, uint8_t sensor);
 
 // Map for floats
 float mapf(float val, float in_min, float in_max, float out_min, float out_max);
