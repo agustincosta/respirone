@@ -29,17 +29,46 @@ Sensor_States_e pressureState;
 Sensor_States_e flowState;
 Sensor_States_e currentState; 
 
-
-
 void Sensor_Init()
 {
   Sensor_PressureInit();
   //Sensor_FlowInit();
-  Sensor_CurrentInit();
+  //Sensor_CurrentInit();
 }
 
 void Sensor_Tasks()
 {
+  // Inspiration end
+  if (MOTOR.flagInspEnded)
+  {
+    MOTOR.flagInspEnded = false;
+
+    // Update peak pressure value
+    CTRL.peakPressure = Pressure_GetPeakValue(PRESSURE_SENSOR);
+
+    // Update plateau pressure value
+    if (Pressure_PlateauDetected(PRESSURE_SENSOR))
+    {
+      CTRL.plateauPressure = Pressure_GetPlateauValue(PRESSURE_SENSOR);
+    }
+
+    // reset volume
+    //flow.volume = 0;
+  }
+
+  // Expiration end
+  if (MOTOR.flagExpEnded)
+  {
+    MOTOR.flagExpEnded = false;
+    // Update PEEP value
+		if (Pressure_PlateauDetected(PRESSURE_SENSOR))
+			CTRL.PEEP = Pressure_GetPlateauValue(PRESSURE_SENSOR);
+    
+    // reset volume
+    //flow.volume = 0;
+  }
+
+  // Sensors state machines
   Sensor_PressureTasks();
   //Sensor_FlowTasks();
   //Sensor_CurrentTasks();
@@ -72,31 +101,6 @@ void Sensor_PressureTasks()
   // Update pressure value
   CTRL.pressure = Pressure_GetLastValue(PRESSURE_SENSOR);
   
-  // Inspiration end
-  if (MOTOR.flagInspEnded)
-  {
-    MOTOR.flagInspEnded = false;
-
-    // Update peak pressure value
-    CTRL.peakPressure = Pressure_GetPeakValue(PRESSURE_SENSOR);
-
-    // Update plateau pressure value
-    if (Pressure_PlateauDetected(PRESSURE_SENSOR))
-    {
-      CTRL.plateauPressure = Pressure_GetPlateauValue(PRESSURE_SENSOR);
-    }
-  }
-
-  // Expiration end
-  if (MOTOR.flagExpEnded)
-  {
-    MOTOR.flagExpEnded = false;
-    // Update PEEP value
-		if (Pressure_PlateauDetected(PRESSURE_SENSOR))
-			CTRL.PEEP = Pressure_GetPlateauValue(PRESSURE_SENSOR);
-  }
-  
-  // Pressure state machine
   switch(pressureState)
   {
     case SENSOR_IDLE:
@@ -158,6 +162,26 @@ void Sensor_PressureTasks()
         pressure.plateauValue = pressure.average;
       }
 
+      // Alarm
+      pressure.maxValue = max(pressure.maxValue, pressure.average);
+      pressure.minValue = min(pressure.minValue, pressure.average);
+
+      if (UI.ventilationOn)
+      {
+        if (abs(pressure.maxValue-pressure.minValue)> PRESSURE_SENSOR_THRESHOLD_ALARM)
+        {
+          Sensor_AlarmTimer(0, PRESSURE_SENSOR);
+        }
+        if (Sensor_AlarmTimer(60000/UI.breathsMinute, PRESSURE_SENSOR))
+        {
+          MOTOR.fatalError = true;
+          UI_SetSystemAlarm(ALARM_PRESSURE_SENSOR_ERROR);
+        }
+      }
+      else
+      {
+        Sensor_AlarmTimer(0, PRESSURE_SENSOR);
+      }    
       break;
   }      
 }
@@ -173,7 +197,11 @@ void Sensor_FlowTasks()
         Sensor_Timer(SENSOR_START_TIMER, FLOW_SENSOR);
 
         // Start reading and check 
-        if (!Flow_StartReading(FLOW_SENSOR)) /*UI_SetSystemAlarm(ALARM_FLOW_SENSOR_ERROR)*/; 
+        if (!Flow_StartReading(FLOW_SENSOR)) 
+        {
+          UI_SetSystemAlarm(ALARM_FLOW_SENSOR_ERROR); 
+          Serial.println("Alarma 2");
+        }
       }
       break;
 
@@ -189,11 +217,12 @@ void Sensor_FlowTasks()
       // Check and queue or set alarm
       if (flowRead==FLOW_SENSOR_INVALID_VALUE) 
       {
-        //UI_SetSystemAlarm(ALARM_FLOW_SENSOR_ERROR);
+        UI_SetSystemAlarm(ALARM_FLOW_SENSOR_ERROR);
+        Serial.println("Alarma 1");
       }
       else
       {
-        current.value[current.pValue] = (flowRead-FLOW_SENSOR_OFFSET_VALUE)/FLOW_SENSOR_FLOW_COEFFICIENT;
+        flow.value[flow.pValue] = (flowRead-FLOW_SENSOR_OFFSET_VALUE)/FLOW_SENSOR_FLOW_COEFFICIENT;
       }
       break;    
 
@@ -205,7 +234,13 @@ void Sensor_FlowTasks()
       for (uint8_t flowIndex = 0; flowIndex < FLOW_SENSOR_QUEUE_SIZE; flowIndex++)
       {
         flow.average += flow.value[flowIndex]/ FLOW_SENSOR_QUEUE_SIZE;    
-      }      
+      }  
+      CTRL.flow = flow.average; //flow.value[flow.pValue]; 
+
+      // Volume calculation
+      flow.volume += flow.value[flow.pValue]*((FLOW_SENSOR_ACQUISITION_PERIOD*SENSOR_L_TO_ML)/SENSOR_MIN_TO_MSEC);
+      CTRL.measuredVolume = flow.volume; 
+                     
       break;
   }
 }
@@ -240,7 +275,11 @@ void Sensor_CurrentTasks()
       for (uint8_t currentIndex = 0; currentIndex < CURRENT_SENSOR_QUEUE_SIZE; currentIndex++)
       {
         current.average += current.value[currentIndex]/CURRENT_SENSOR_QUEUE_SIZE;    
-      }      
+      }   
+
+      // Peak
+      current.peakValue = max(current.peakValue, current.value[current.pValue]);  
+      CTRL.currentConsumption = current.peakValue;
       break;
   } 
 }
@@ -302,43 +341,63 @@ bool Pressure_PlateauDetected(uint8_t sensorNumber)
 
 bool Flow_StartReading(uint8_t sensorNumber)
 {
-  bool retVal;
-
-  Wire.beginTransmission(FLOW_SENSOR_I2C_ADDRESS); 
-  Wire.write(FLOW_SENSOR_I2C_WRITE_CMD);
+  Wire.beginTransmission(FLOW_SENSOR_I2C_ADDRESS);
+ 
   Wire.write(FLOW_SENSOR_I2C_GETFLOW_H);
   Wire.write(FLOW_SENSOR_I2C_GETFLOW_L);
-  retVal = Wire.endTransmission()?false:true;
 
-  Wire.beginTransmission(FLOW_SENSOR_I2C_ADDRESS); 
-  Wire.write(FLOW_SENSOR_I2C_READ_CMD);
-  retVal &= Wire.endTransmission()?false:true;
-
-  return retVal;
+  return Wire.endTransmission()?false:true;
 }
 
 float Flow_GetReading(uint8_t sensorNumber)
 {
   uint8_t flowBuffer[2], flowRead_crc8;
-  float flowValue;
+  uint16_t iFlowValue;
+  float fFlowValue;
 
-  Wire.requestFrom(FLOW_SENSOR_I2C_ADDRESS, 3);    
-  if (Wire.available()) flowBuffer[1] = Wire.read(); 
-  if (Wire.available()) flowBuffer[0] = Wire.read(); 
-  if (Wire.available()) flowRead_crc8 = Wire.read(); 
+  uint8_t retVal = Wire.requestFrom(FLOW_SENSOR_I2C_ADDRESS, 3);
 
-  if (crc8(flowBuffer, 2)==flowRead_crc8)
-  {
-    flowValue = (float)((flowBuffer[1]<<8) & (flowBuffer[0]));
+  if (retVal==3)
+  {    
+    if (Wire.available()) flowBuffer[1] = Wire.read(); 
+    if (Wire.available()) flowBuffer[0] = Wire.read(); 
+    if (Wire.available()) flowRead_crc8 = Wire.read(); 
+
+    iFlowValue = (flowBuffer[1]<<8) | (flowBuffer[0]);
+    fFlowValue = (float) iFlowValue;
+
+    // ToDo> check CRC8
+    //if (crc8(flowBuffer, 2)==flowRead_crc8)
+    //{
+    //  flowValue = (float)((flowBuffer[1]<<8) & (flowBuffer[0]));
+    //}
+    //else
+    //{
+    //  flowValue = FLOW_SENSOR_INVALID_VALUE;
+    //}
   }
   else
   {
-    flowValue = FLOW_SENSOR_INVALID_VALUE;
+    fFlowValue = FLOW_SENSOR_INVALID_VALUE;
   }
-  return flowValue;
+  return fFlowValue;
 }
 
 bool Sensor_Timer(uint32_t n, uint8_t sensor)
+{
+  static uint32_t initialMillis[SENSORS_QTY];
+
+  if(n == 0)
+  {
+	  initialMillis[sensor] = millis();
+  }
+  else if((millis() - initialMillis[sensor]) > n){
+	  return true;
+  }
+  return false;
+}
+
+bool Sensor_AlarmTimer(uint32_t n, uint8_t sensor)
 {
   static uint32_t initialMillis[SENSORS_QTY];
 
