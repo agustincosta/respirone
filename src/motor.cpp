@@ -149,13 +149,13 @@ void pressureControlAlgorithm() {
 
   float firstPressureConst = 0.6;                   // Pressure value when acceleration finishes and the controller maintains speed
   float secondPressureConst = 0.95;                 // Pressure value when acceleration finishes and the controller maintains speed
-  float firstVelocityConst = 0.85;                  // Percentage of VEL_ANG_MAX that defines the acceleration curve
-  float secondVelocityConst = 0.7;                  // Percentage of VEL_ANG_MAX that defines the acceleration curve
+  float firstVelocityConst = 0.9;                  // Percentage of VEL_ANG_MAX that defines the acceleration curve
+  float secondVelocityConst = 0.5;                  // Percentage of VEL_ANG_MAX that defines the acceleration curve
   float minVelocityConst = minVelPressureFactor();  // Percentage of VEL_PAUSE when pressure is reached
   float pressureThreshold = 0.95;                   // 
 
   int transitionIterations = 10;                    //
-  float transitionTimeConst = 0.1; 
+  float transitionTimeConst = 0.2; 
 
   MOTOR.pMeasure = CTRL.pressure;                    //Actualiza la presion medida
   lecturaEncoder(); 
@@ -215,7 +215,7 @@ void pressureControlAlgorithm() {
     case CONTROLLER_MAINTAIN_SETPOINT: {                                // Pressure reached and needs to be maintained
       MOTOR.movingForwards = false;
       if (MOTOR.pMeasure < pressureThreshold*MOTOR.pSetpoint) {
-        MOTOR.wCommand = mapf(MOTOR.pMeasure - pressureThreshold, 0, 20, minVelocityConst*VEL_PAUSE, VEL_ANG_MAX);
+        //MOTOR.wCommand = mapf(MOTOR.pMeasure - pressureThreshold, 0, 20, minVelocityConst*VEL_PAUSE, VEL_ANG_MAX);
         //MOTOR.wCommand = minVelocityConst*VEL_PAUSE;
       }
       else {
@@ -236,7 +236,7 @@ void volumeControlAlgorithm() {
    * 
    */
 
-  float firstVelocityConst = 1.30;          // Percentage of VEL_ANG_MAX that defines the acceleration curve
+  float firstVelocityConst = 1.10;          // Percentage of VEL_ANG_MAX that defines the acceleration curve
   float secondVelocityConst = 1.10;         // Percentage of VEL_ANG_MAX that defines the acceleration curve
   float minVelocityConst = 3.0;             // Percentage of VEL_PAUSE when encoder counts are reached
 
@@ -264,7 +264,7 @@ void volumeControlAlgorithm() {
   {
     case CONTROLLER_FIRST_ACCELERATION: {                              // First stage of pressure rise at max speed
       MOTOR.movingForwards = true;
-      if (controlVariable < firstAdvanceConst*setpointVariable) {       
+      if (controlVariable < setpointVariable) {       
         MOTOR.wCommand = firstVelocityConst*MOTOR.wSetpoint;
       }
       else {
@@ -404,15 +404,15 @@ void Motor_Tasks() {
   checkMotorBlocked();
 
   // DEBUG - IMPRIME CUENTAS DEL ENCODER
-  
+  /*
   int pauseState = (motorState == MOTOR_PAUSE)? 2000:0;
   lecturaEncoder();
   Serial.print(MOTOR.inspirationCounts); Serial.print('\t'); Serial.print(MOTOR.encoderTotal); Serial.print('\t'); Serial.print(CTRL.pressure); Serial.print('\t'); Serial.println(pauseState);
-  
+  */
   //calculateSystemPeriod();  //Prints in console the system period in microseconds
 
   // DEBUG - IMPRIME PRESION PARA PID
-  // Serial.print(CTRL.pressure); Serial.print('\t'); Serial.print(MOTOR.pSetpoint); Serial.print('\t'); Serial.print(MOTOR.wCommand); Serial.print('\t'); Serial.println((pressureControllerState+1)*MOTOR.pSetpoint/2);
+  //Serial.print(CTRL.pressure); Serial.print('\t'); Serial.print(MOTOR.pSetpoint); Serial.print('\t'); Serial.print(MOTOR.wCommand/100); Serial.print('\t'); Serial.println((pressureControllerState+1)*MOTOR.pSetpoint/2);
   
   if (MOTOR.fatalError) {
     motorState = MOTOR_ERROR;
@@ -655,6 +655,9 @@ void Motor_Tasks() {
 
       if ((millis() < MOTOR.inspEndTime) && (MOTOR.encoderTotal < maxVolumeEncoderCounts)) {     // Piston moving forward
         pressureControlAlgorithm();          // Motor control based on pressure sensor
+        if (CTRL.pressure >= MOTOR.pSetpoint - 1) {
+          MOTOR.adjustedPressureReached = true;
+        }
       }
       else {                                                    // Piston in final position and inspiration time ended
         
@@ -992,7 +995,7 @@ void calculateDecelerationCurve() {
 
 float minVelPressureFactor() {
 
-  float pauseVelFactor = mapf(MOTOR.pSetpoint, 15, 35, 1.0, 1.8);
+  float pauseVelFactor = mapf(MOTOR.pSetpoint, 15, 35, 0.9, 1.7);
   return pauseVelFactor;
 }
 

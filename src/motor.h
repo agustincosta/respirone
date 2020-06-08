@@ -16,8 +16,8 @@
 
 #define MOTOR_GAP_CORRECTION false          // Includes two states to compensate the time it takes for motors to change direction
 #define MOTOR_PAUSE_DECELERATION true       // Decreases speed progressively to a complete stop during pause time
-#define VOLUME_CONTROL_TRANSITIONS false    // Adds intermediate states in volume control algorithm to change speeds progressively
-#define PRESSURE_CONTROL_TRANSITIONS false  // Adds intermediate states in pressure control algorithm to change speeds progressively
+#define VOLUME_CONTROL_TRANSITIONS true    // Adds intermediate states in volume control algorithm to change speeds progressively
+#define PRESSURE_CONTROL_TRANSITIONS true  // Adds intermediate states in pressure control algorithm to change speeds progressively
 
 /*Control de volumen por flujo en lugar de por cuentas*/
 #define VOLUME_FLOW_CONTROL false
