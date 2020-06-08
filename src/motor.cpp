@@ -37,6 +37,7 @@ long lastEncoder = 0;
 float pauseVelFactor = 1;
 float newVelocity = 0;
 float velocitySteps = 0;
+float pressTransitionIter = 0;
 
 
 void Motor_Init() {
@@ -148,59 +149,73 @@ void pressureControlAlgorithm() {
 
   float firstPressureConst = 0.6;                   // Pressure value when acceleration finishes and the controller maintains speed
   float secondPressureConst = 0.95;                 // Pressure value when acceleration finishes and the controller maintains speed
-  float firstVelocityConst = 0.85;                  // Percentage of VEL_ANG_MAX that defines the acceleration curve
-  float secondVelocityConst = 0.7;                  // Percentage of VEL_ANG_MAX that defines the acceleration curve
+  float firstVelocityConst = 0.9;                  // Percentage of VEL_ANG_MAX that defines the acceleration curve
+  float secondVelocityConst = 0.5;                  // Percentage of VEL_ANG_MAX that defines the acceleration curve
   float minVelocityConst = minVelPressureFactor();  // Percentage of VEL_PAUSE when pressure is reached
   float pressureThreshold = 0.95;                   // 
 
-  int transitionIterations = 10;                    // 
+  int transitionIterations = 10;                    //
+  float transitionTimeConst = 0.2; 
 
   MOTOR.pMeasure = CTRL.pressure;                    //Actualiza la presion medida
   lecturaEncoder(); 
 
   switch (pressureControllerState)
   {
-    case CONTROLLER_FIRST_ACCELERATION:                               // First stage of pressure rise at max speed
-    {
+    case CONTROLLER_FIRST_ACCELERATION: {                              // First stage of pressure rise at max speed
       MOTOR.movingForwards = true;
       if (MOTOR.pMeasure < firstPressureConst*MOTOR.pSetpoint) {       
         MOTOR.wCommand = firstVelocityConst*VEL_ANG_MAX;
       }
       else {
-        pressureControllerState = CONTROLLER_SECOND_ACCELERATION;
+        #if PRESSURE_CONTROL_TRANSITIONS
+          pressureControllerState = CONTROLLER_FIRST_TRANSITION;
+        #else
+          pressureControllerState = CONTROLLER_SECOND_ACCELERATION;
+        #endif
       }
       break;
     }
 
-    case CONTROLLER_FIRST_TRANSITION:
-    {
-      float intermediateVel = (firstVelocityConst - secondVelocityConst)*VEL_ANG_MAX;
+    case CONTROLLER_FIRST_TRANSITION: {
+      pressureControllerState = CONTROLLER_SECOND_ACCELERATION;
       break;
     }
 
-    case CONTROLLER_SECOND_ACCELERATION:                              // Second stage of pressure rise at lower speed
-    {
+    case CONTROLLER_SECOND_ACCELERATION: {                             // Second stage of pressure rise at lower speed
       MOTOR.movingForwards = true;
       if (MOTOR.pMeasure < secondPressureConst*MOTOR.pSetpoint) {       
         MOTOR.wCommand = secondVelocityConst*VEL_ANG_MAX;
       }
       else {
+        #if PRESSURE_CONTROL_TRANSITIONS
+          pressureControllerState = CONTROLLER_SECOND_TRANSITION;
+          MOTOR_Timer2(0);
+          MOTOR.wCommand -= (secondVelocityConst*VEL_ANG_MAX-minVelocityConst*VEL_PAUSE)/transitionIterations;
+          pressTransitionIter = 1;
+        #else
+          pressureControllerState = CONTROLLER_MAINTAIN_SETPOINT;
+        #endif
+      }
+      break;
+    }
+
+    case CONTROLLER_SECOND_TRANSITION: {
+      if (MOTOR_Timer2(MOTOR.inspirationTime*transitionTimeConst/transitionIterations)) {
+        MOTOR.wCommand -= (secondVelocityConst*VEL_ANG_MAX-minVelocityConst*VEL_PAUSE)/transitionIterations;
+        pressTransitionIter++;
+        MOTOR_Timer2(0);
+      }
+      if (pressTransitionIter == transitionIterations) {
         pressureControllerState = CONTROLLER_MAINTAIN_SETPOINT;
       }
       break;
     }
 
-    case CONTROLLER_SECOND_TRANSITION:
-    {
-
-      break;
-    }
-
-    case CONTROLLER_MAINTAIN_SETPOINT:                                // Pressure reached and needs to be maintained
-    {
+    case CONTROLLER_MAINTAIN_SETPOINT: {                                // Pressure reached and needs to be maintained
       MOTOR.movingForwards = false;
       if (MOTOR.pMeasure < pressureThreshold*MOTOR.pSetpoint) {
-        MOTOR.wCommand = mapf(MOTOR.pMeasure - pressureThreshold, 0, 20, minVelocityConst*VEL_PAUSE, VEL_ANG_MAX);
+        //MOTOR.wCommand = mapf(MOTOR.pMeasure - pressureThreshold, 0, 20, minVelocityConst*VEL_PAUSE, VEL_ANG_MAX);
         //MOTOR.wCommand = minVelocityConst*VEL_PAUSE;
       }
       else {
@@ -221,7 +236,7 @@ void volumeControlAlgorithm() {
    * 
    */
 
-  float firstVelocityConst = 1.30;          // Percentage of VEL_ANG_MAX that defines the acceleration curve
+  float firstVelocityConst = 1.10;          // Percentage of VEL_ANG_MAX that defines the acceleration curve
   float secondVelocityConst = 1.10;         // Percentage of VEL_ANG_MAX that defines the acceleration curve
   float minVelocityConst = 3.0;             // Percentage of VEL_PAUSE when encoder counts are reached
 
@@ -247,18 +262,24 @@ void volumeControlAlgorithm() {
 
   switch (volumeControllerState)
   {
-    case CONTROLLER_FIRST_ACCELERATION:                               // First stage of pressure rise at max speed
+    case CONTROLLER_FIRST_ACCELERATION: {                              // First stage of pressure rise at max speed
       MOTOR.movingForwards = true;
-      if (controlVariable < firstAdvanceConst*setpointVariable) {       
+      if (controlVariable < setpointVariable) {       
         MOTOR.wCommand = firstVelocityConst*MOTOR.wSetpoint;
       }
       else {
-        volumeControllerState = CONTROLLER_FIRST_TRANSITION;
+        #if VOLUME_CONTROL_TRANSITIONS
+          volumeControllerState = CONTROLLER_FIRST_TRANSITION;
+        #else
+          volumeControllerState = CONTROLLER_SECOND_ACCELERATION;
+        #endif
         MOTOR.calculateDynamicSpeed = true;
       }
       break;
+    }
 
-    case CONTROLLER_FIRST_TRANSITION:
+    case CONTROLLER_FIRST_TRANSITION: {
+
       MOTOR.movingForwards = true;
 
       if (MOTOR.calculateDynamicSpeed) {                              // Dynamic speed calculation for second part
@@ -280,8 +301,9 @@ void volumeControlAlgorithm() {
         MOTOR.calculateDynamicSpeed = true;
       }
       break;
-    
-    case CONTROLLER_SECOND_ACCELERATION:                              // Second stage of pressure rise at lower speed
+    }
+
+    case CONTROLLER_SECOND_ACCELERATION: {                             // Second stage of pressure rise at lower speed
       MOTOR.movingForwards = true;
 
       if (MOTOR.calculateDynamicSpeed) {                              // Dynamic speed calculation for second part
@@ -293,12 +315,17 @@ void volumeControlAlgorithm() {
         MOTOR.wCommand = secondVelocityConst*newVelocity;
       }
       else {
-        volumeControllerState = CONTROLLER_SECOND_TRANSITION;
+        #if VOLUME_CONTROL_TRANSITIONS
+          volumeControllerState = CONTROLLER_SECOND_TRANSITION;
+        #else
+          volumeControllerState = CONTROLLER_MAINTAIN_SETPOINT;
+        #endif
         MOTOR.calculateDynamicSpeed = true;
       }
       break;
+    }
 
-    case CONTROLLER_SECOND_TRANSITION:
+    case CONTROLLER_SECOND_TRANSITION: {
       if (MOTOR.calculateDynamicSpeed) {                              // Dynamic speed calculation for second part
         float nextVel = minVelocityConst*VEL_PAUSE;
         float actVel = secondVelocityConst*newVelocity;
@@ -318,8 +345,9 @@ void volumeControlAlgorithm() {
       }
 
       break;
-    
-    case CONTROLLER_MAINTAIN_SETPOINT:                                // Pressure reached and needs to be maintained
+    }
+
+    case CONTROLLER_MAINTAIN_SETPOINT: {                               // Pressure reached and needs to be maintained
       MOTOR.movingForwards = false;
       if (controlVariable < advanceThreshold*setpointVariable) {
         //;
@@ -328,9 +356,11 @@ void volumeControlAlgorithm() {
         MOTOR.wCommand = minVelocityConst*VEL_PAUSE;
       }
       break;
+    }
 
-    default:
+    default: {
       break;
+    }
   }
   
   comandoMotor(motorDIR, motorPWM, MOTOR.wCommand); //Mueve el motor
@@ -374,15 +404,15 @@ void Motor_Tasks() {
   checkMotorBlocked();
 
   // DEBUG - IMPRIME CUENTAS DEL ENCODER
-  
+  /*
   int pauseState = (motorState == MOTOR_PAUSE)? 2000:0;
   lecturaEncoder();
   Serial.print(MOTOR.inspirationCounts); Serial.print('\t'); Serial.print(MOTOR.encoderTotal); Serial.print('\t'); Serial.print(CTRL.pressure); Serial.print('\t'); Serial.println(pauseState);
-  
+  */
   //calculateSystemPeriod();  //Prints in console the system period in microseconds
 
   // DEBUG - IMPRIME PRESION PARA PID
-  // Serial.print(CTRL.pressure); Serial.print('\t'); Serial.print(MOTOR.pSetpoint); Serial.print('\t'); Serial.print(MOTOR.wCommand); Serial.print('\t'); Serial.println((pressureControllerState+1)*MOTOR.pSetpoint/2);
+  //Serial.print(CTRL.pressure); Serial.print('\t'); Serial.print(MOTOR.pSetpoint); Serial.print('\t'); Serial.print(MOTOR.wCommand/100); Serial.print('\t'); Serial.println((pressureControllerState+1)*MOTOR.pSetpoint/2);
   
   if (MOTOR.fatalError) {
     motorState = MOTOR_ERROR;
@@ -625,6 +655,9 @@ void Motor_Tasks() {
 
       if ((millis() < MOTOR.inspEndTime) && (MOTOR.encoderTotal < maxVolumeEncoderCounts)) {     // Piston moving forward
         pressureControlAlgorithm();          // Motor control based on pressure sensor
+        if (CTRL.pressure >= MOTOR.pSetpoint - 1) {
+          MOTOR.adjustedPressureReached = true;
+        }
       }
       else {                                                    // Piston in final position and inspiration time ended
         
@@ -962,7 +995,7 @@ void calculateDecelerationCurve() {
 
 float minVelPressureFactor() {
 
-  float pauseVelFactor = mapf(MOTOR.pSetpoint, 15, 35, 1.0, 1.8);
+  float pauseVelFactor = mapf(MOTOR.pSetpoint, 15, 35, 0.9, 1.7);
   return pauseVelFactor;
 }
 
@@ -997,6 +1030,19 @@ void setpointVelocityCalculation() {
 }
 
 bool MOTOR_Timer(uint32_t n) {
+  static uint32_t initialMotorMillis;
+
+  if(n == 0)
+  {
+	  initialMotorMillis = millis();
+  }
+  else if((millis() - initialMotorMillis) > n){
+	  return true;
+  }
+    return false;
+}
+
+bool MOTOR_Timer2(uint32_t n) {
   static uint32_t initialMotorMillis;
 
   if(n == 0)
