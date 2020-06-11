@@ -28,5 +28,5 @@ void loop()
   DataLogger_Task();
   PowerSupply_Tasks();
   Time_Update_Task();
-  LedTick();
+  //LedTick();
 } 

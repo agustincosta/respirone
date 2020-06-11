@@ -58,7 +58,7 @@
 
 /*Encoder*/
 #define encoderCountsPerRev 16896       // 8400 en el motor del rover
-#define maxVolumeEncoderCounts 3200     // Experimental - 2880 en el motor del rover sacado por proporcion respecto al motor anterior - ToDo medirlo bien
+#define maxVolumeEncoderCounts 2900     // Experimental - 2880 en el motor del rover sacado por proporcion respecto al motor anterior
 #define minInspirationCounts 100        // Encoder counts needed to determine motor has moved
 #define countsFactor 1.0                // Factor to compensate motor does not stop immediately
 #define returnDecelerationCounts 300    // Counts threshold when deceleration in RETURN HOME starts

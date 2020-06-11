@@ -386,7 +386,7 @@ void cuentasEncoderVolumen() {
   MOTOR.inspirationCounts = (long)(encoderCountsPerRev*recorridoAngular/(2*PI)); 
   */
   
-  for (size_t i = 0; i < 12; i++)
+  for (size_t i = 1; i <= 12; i++)
   {
     if (selectedVolumeArray[i] > MOTOR.setpointVolume) {
       float newCounts = mapf(MOTOR.setpointVolume, selectedVolumeArray[i-1], selectedVolumeArray[i], (float)inspirationCountsArray[i-1], (float)inspirationCountsArray[i]);
@@ -414,6 +414,8 @@ void Motor_Tasks() {
   // DEBUG - IMPRIME PRESION PARA PID
   //Serial.print(CTRL.pressure); Serial.print('\t'); Serial.print(MOTOR.pSetpoint); Serial.print('\t'); Serial.print(MOTOR.wCommand/100); Serial.print('\t'); Serial.println((pressureControllerState+1)*MOTOR.pSetpoint/2);
   
+  Serial.print(MOTOR.inspirationCounts); Serial.print('\t'); Serial.print(MOTOR.encoderTotal); Serial.print('\t'); Serial.print(MOTOR.tidalVolume); Serial.print('\t'); Serial.print(measuredTidalVol); Serial.print('\t'); Serial.println(MOTOR.setpointVolume);
+
   if (MOTOR.fatalError) {
     motorState = MOTOR_ERROR;
     MOTOR.fatalError = false;
@@ -424,6 +426,8 @@ void Motor_Tasks() {
 
   if (UI.stopVentilation) {
     motorState = MOTOR_POWER_ON;    //Resets state machine to first state
+    MOTOR.movingForwards = false;
+    MOTOR.movingBackwards = false;
     UI.stopVentilation = false;
   }
 
@@ -519,7 +523,7 @@ void Motor_Tasks() {
           MOTOR.flagExpEnded = true;
 
           /*End flow measurement integration*/
-          compareInspExpVolume();
+          //compareInspExpVolume();
 
           //Control variables for UI
           measuredCycleTime = millis() - MOTOR.cycleStart;    // Calculate last cycle time
@@ -598,7 +602,7 @@ void Motor_Tasks() {
         volumeControllerState = CONTROLLER_FIRST_ACCELERATION;
       }
 
-      if ((MOTOR.encoderTotal < MOTOR.inspirationCounts*countsFactor + preparationCounts) && (millis() < MOTOR.inspEndTime) && (CTRL.pressure < UI.maxPressure)) {       // Piston moving forward
+      if ((MOTOR.encoderTotal < MOTOR.inspirationCounts*countsFactor + preparationCounts) && (millis() < MOTOR.inspEndTime) && (CTRL.pressure < UI.maxPressure) && (MOTOR.encoderTotal < maxVolumeEncoderCounts)) {       // Piston moving forward
         // Conditions for inspiration: encoder counts not reached, inspiration time not passed and pressure below max
         
         volumeControlAlgorithm();    //Motor control based on encoder counts
@@ -758,6 +762,7 @@ void Motor_Tasks() {
         MOTOR.expirationVolume = measuredTidalVol;              //ToDo tiene que ser medido por sensor de flujo
 
         motorState = MOTOR_RETURN_HOME_POSITION;
+
         #if MOTOR_STATES_LOG
           Serial.println("STATE: RETURN TO HOME");
         #endif
@@ -834,6 +839,8 @@ void Motor_SetBreathingParams() {
     }
     MOTOR.breathsMinute = (float)UI.breathsMinute;
     MOTOR.tidalVolume = (float)UI.tidalVolume;
+    MOTOR.setpointVolume = MOTOR.tidalVolume;
+    measuredTidalVol = MOTOR.tidalVolume;
     //measuredTidalVol = MOTOR.tidalVolume + (MOTOR.tidalVolume-measuredTidalVol)/2;
     MOTOR.inspPercentage = ((float)UI.t_i)/100;
     MOTOR.pausePercentage = ((float)UI.t_p)/100;
@@ -852,7 +859,7 @@ float calculateDisplacedVolume() {
   */
   float volumeDisplaced;
 
-  for (size_t i = 0; i < 12; i++)
+  for (size_t i = 1; i <= 12; i++)
   {
     if (MOTOR.encoderTotal < inspirationCountsArray[i]) {
       volumeDisplaced = mapf((float)MOTOR.encoderTotal, (float)inspirationCountsArray[i-1], (float)inspirationCountsArray[i], selectedVolumeArray[i-1], selectedVolumeArray[i]);
