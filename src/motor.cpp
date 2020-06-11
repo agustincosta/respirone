@@ -414,7 +414,7 @@ void Motor_Tasks() {
   // DEBUG - IMPRIME PRESION PARA PID
   //Serial.print(CTRL.pressure); Serial.print('\t'); Serial.print(MOTOR.pSetpoint); Serial.print('\t'); Serial.print(MOTOR.wCommand/100); Serial.print('\t'); Serial.println((pressureControllerState+1)*MOTOR.pSetpoint/2);
   
-  Serial.print(MOTOR.inspirationCounts); Serial.print('\t'); Serial.print(MOTOR.encoderTotal); Serial.print('\t'); Serial.print(MOTOR.tidalVolume); Serial.print('\t'); Serial.print(measuredTidalVol); Serial.print('\t'); Serial.println(MOTOR.setpointVolume);
+  //Serial.print(MOTOR.inspirationCounts); Serial.print('\t'); Serial.print(MOTOR.encoderTotal); Serial.print('\t'); Serial.print(MOTOR.tidalVolume); Serial.print('\t'); Serial.print(measuredTidalVol); Serial.print('\t'); Serial.println(MOTOR.setpointVolume);
 
   if (MOTOR.fatalError) {
     motorState = MOTOR_ERROR;
